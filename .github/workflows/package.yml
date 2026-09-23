@@ -243,8 +243,7 @@ jobs:
       always() &&
       needs.context.result == 'success' &&
       needs.build-frontend.result == 'success' &&
-      (needs.pypi.result == 'success' || needs.pypi.result == 'skipped') &&
-      (github.event_name == 'push' || matrix.os == 'windows-latest')
+      (needs.pypi.result == 'success' || needs.pypi.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
@@ -252,21 +251,6 @@ jobs:
           - os: windows-latest
             electron_args: '--win --x64'
             artifact_name: windows-update-x86_64
-          - os: windows-11-arm
-            electron_args: '--win --arm64'
-            artifact_name: windows-update-aarch64
-          - os: ubuntu-24.04
-            electron_args: '--linux --x64'
-            artifact_name: desktop-linux-x86_64
-          - os: ubuntu-24.04-arm
-            electron_args: '--linux --arm64'
-            artifact_name: desktop-linux-aarch64
-          - os: macos-15-intel
-            electron_args: '--mac --x64'
-            artifact_name: desktop-mac-x86_64
-          - os: macos-15
-            electron_args: '--mac --arm64'
-            artifact_name: desktop-mac-aarch64
     runs-on: ${{ matrix.os }}
     env:
       ELECTRON_CACHE: ${{ github.workspace }}/.electron-cache
