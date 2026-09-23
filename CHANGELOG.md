@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.12.0](https://github.com/ahov520/OpenFic/compare/v0.11.1...v0.12.0) (2026-09-23)
+
+
+### ✨ 新功能
+
+* 导入酒馆素材并在写章时注入设定 ([8547ed7](https://github.com/ahov520/OpenFic/commit/8547ed7ab34b95119b818cdb7dc2e95ced2cc9d5))
+
+
+### 👷 CI/CD
+
+* 允许在 Fork 上手动构建 Windows 安装包 ([7cd1205](https://github.com/ahov520/OpenFic/commit/7cd1205036b70d80fe5aedf959326117dd9005d3))
+* 手动构建只打 Windows x64 安装包 ([4683f09](https://github.com/ahov520/OpenFic/commit/4683f0974ee70e2a09d8a3581e2ecd3a89b1693c))
+* 让 Fork 上的 release-please 能开出合并请求 ([126adac](https://github.com/ahov520/OpenFic/commit/126adac9b6ae00578a570180aa563c217e755c9e))
+
 ## [0.11.1](https://github.com/syrizelink/OpenFic/compare/v0.11.0...v0.11.1) (2026-09-09)
 
 
