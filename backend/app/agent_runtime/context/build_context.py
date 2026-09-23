@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agent_runtime.context.compaction.overlay import apply_compaction_overlay
 from app.agent_runtime.context.errors import ContextBuildError
 from app.agent_runtime.context.parts.history import build_history
+from app.agent_runtime.context.parts.lore import build_lore_pack
 from app.agent_runtime.context.parts.rules import build_rules
 from app.agent_runtime.context.parts.skills import build_skills
 from app.agent_runtime.context.parts.system_prompt import build_system_prompt
@@ -44,6 +45,8 @@ async def build_context_parts(
     if prompt_messages := await build_system_prompt(state, agent_name, db_session):
         parts.extend(prompt_messages)
     if (m := await build_rules(db_session, state.get("project_id"))) is not None:
+        parts.append(m)
+    if (m := await build_lore_pack(state, agent_name, db_session)) is not None:
         parts.append(m)
     if (m := await build_skills(state, agent_name, db_session, node_messages)) is not None:
         parts.append(m)

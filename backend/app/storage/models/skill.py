@@ -18,6 +18,7 @@ class Skill(SQLModel, table=True):
     summary: str = Field(default="")
     content: str = Field(default="")
     is_enabled: bool = Field(default=False, index=True)
+    origin_key: str = Field(default="", max_length=200, description="素材包来源，用于整包替换")
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 

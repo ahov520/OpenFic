@@ -104,3 +104,20 @@ async def update(session: AsyncSession, rule: AgentRule) -> AgentRule:
 async def delete(session: AsyncSession, rule: AgentRule) -> None:
     await session.delete(rule)
     await session.flush()
+
+
+async def delete_by_origin_key(session: AsyncSession, project_id: str, origin_key: str) -> int:
+    if not origin_key:
+        return 0
+    result = await session.execute(
+        select(AgentRule).where(
+            col(AgentRule.project_id) == project_id,
+            col(AgentRule.origin_key) == origin_key,
+        )
+    )
+    rules = list(result.scalars().all())
+    for rule in rules:
+        await session.delete(rule)
+    if rules:
+        await session.flush()
+    return len(rules)

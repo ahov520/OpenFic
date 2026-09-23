@@ -37,6 +37,9 @@ class WorldInfoEntry(SQLModel, table=True):
     content: str = Field(default="")
     token_count: int = Field(default=0)
     is_enabled: bool = Field(default=True)
+    keywords_json: str = Field(default="[]", description="JSON array of trigger keywords")
+    is_constant: bool = Field(default=True, description="常驻条目在写章时始终注入")
+    source: str = Field(default="", max_length=40, description="manual、sillytavern 或 character_card")
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 

@@ -1484,6 +1484,9 @@ function transformWorldInfoEntry(raw: Record<string, unknown>): WorldInfoEntry {
     content: raw.content as string,
     tokenCount: raw.token_count as number,
     isEnabled: raw.is_enabled as boolean,
+    keywords: (raw.keywords as string[]) ?? [],
+    isConstant: raw.is_constant !== false,
+    source: (raw.source as string) || "",
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
   };
@@ -1498,6 +1501,8 @@ function transformWorldInfoEntryBrief(raw: Record<string, unknown>): WorldInfoEn
     order: raw.order as number,
     tokenCount: raw.token_count as number,
     isEnabled: raw.is_enabled as boolean,
+    keywords: (raw.keywords as string[]) ?? [],
+    isConstant: raw.is_constant !== false,
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
   };
@@ -1509,11 +1514,15 @@ function transformWorldInfoImportPreview(
   return {
     entryCount: raw.entry_count as number,
     enabledCount: raw.enabled_count as number,
+    constantCount: (raw.constant_count as number) ?? 0,
+    keywordCount: (raw.keyword_count as number) ?? 0,
     entries: ((raw.entries as Record<string, unknown>[]) || []).map((entry) => ({
       uid: entry.uid as number,
       name: entry.name as string,
       contentPreview: (entry.content_preview as string) || "",
       isEnabled: Boolean(entry.is_enabled),
+      keywords: (entry.keywords as string[]) ?? [],
+      isConstant: entry.is_constant !== false,
     })),
   };
 }
@@ -1575,6 +1584,8 @@ export async function createWorldInfoEntry(
     content: data.content ?? "",
     token_count: data.tokenCount ?? 0,
     is_enabled: data.isEnabled ?? true,
+    keywords: data.keywords ?? [],
+    is_constant: data.isConstant ?? true,
   });
   return transformWorldInfoEntry(response.data);
 }
@@ -1591,6 +1602,8 @@ export async function updateWorldInfoEntry(
     content: data.content,
     token_count: data.tokenCount,
     is_enabled: data.isEnabled,
+    keywords: data.keywords,
+    is_constant: data.isConstant,
   });
   return transformWorldInfoEntry(response.data);
 }
@@ -1792,6 +1805,71 @@ export async function previewWorldInfoImport(file: File): Promise<WorldInfoImpor
   });
 
   return transformWorldInfoImportPreview(response.data as Record<string, unknown>);
+}
+
+function transformTavernPreview(raw: Record<string, unknown>): import("./tavern.types").TavernPreview {
+  return {
+    kind: raw.kind as string,
+    characterName: (raw.character_name as string) || "",
+    descriptionPreview: (raw.description_preview as string) || "",
+    discarded: (raw.discarded as string[]) ?? [],
+    constantCount: (raw.constant_count as number) ?? 0,
+    keywordCount: (raw.keyword_count as number) ?? 0,
+    loreEntries: ((raw.lore_entries as Record<string, unknown>[]) || []).map((entry) => ({
+      name: entry.name as string,
+      keywords: (entry.keywords as string[]) ?? [],
+      isConstant: Boolean(entry.is_constant),
+      isEnabled: entry.is_enabled !== false,
+    })),
+    presetName: (raw.preset_name as string) || "",
+    blocks: ((raw.blocks as Record<string, unknown>[]) || []).map((block) => ({
+      blockId: block.block_id as string,
+      name: block.name as string,
+      contentPreview: (block.content_preview as string) || "",
+      bucket: block.bucket as string,
+      reason: (block.reason as string) || "",
+      included: Boolean(block.included),
+    })),
+  };
+}
+
+export async function previewTavernMaterial(
+  projectId: string,
+  file: File,
+  userName: string,
+): Promise<import("./tavern.types").TavernPreview> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("user_name", userName);
+  const response = await apiClient.post(`/projects/${projectId}/tavern/preview`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return transformTavernPreview(response.data as Record<string, unknown>);
+}
+
+export async function importTavernMaterial(
+  projectId: string,
+  file: File,
+  userName: string,
+  mode: "append" | "overwrite",
+  includedBlockIds: string[],
+): Promise<import("./tavern.types").TavernImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("user_name", userName);
+  formData.append("mode", mode);
+  formData.append("included_block_ids", JSON.stringify(includedBlockIds));
+  const response = await apiClient.post(`/projects/${projectId}/tavern/import`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  const raw = response.data as Record<string, unknown>;
+  return {
+    kind: raw.kind as string,
+    characterId: (raw.character_id as string | null) ?? null,
+    importedEntries: (raw.imported_entries as number) ?? 0,
+    importedRules: (raw.imported_rules as number) ?? 0,
+    importedSkills: (raw.imported_skills as number) ?? 0,
+  };
 }
 
 /**

@@ -33,5 +33,8 @@ class RevisionWorldEntrySnapshot(SQLModel, table=True):
     )
     token_count: int | None = Field(default=None)
     is_enabled: bool | None = Field(default=None)
+    keywords_json: str | None = Field(default=None)
+    is_constant: bool | None = Field(default=None)
+    source: str | None = Field(default=None, max_length=40)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), index=True)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

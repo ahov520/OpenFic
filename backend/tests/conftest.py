@@ -50,6 +50,7 @@ from app.api.routers import (
     volumes,
     world_info,
     world_info_entries,
+    tavern,
 )
 from app.models.catalog import CatalogIconProxyService
 from app.storage.database import get_session
@@ -99,6 +100,7 @@ def _create_test_app() -> FastAPI:
     test_app.include_router(characters.router, prefix="/api/v1")
     test_app.include_router(world_info.router, prefix="/api/v1")
     test_app.include_router(world_info_entries.router, prefix="/api/v1")
+    test_app.include_router(tavern.router, prefix="/api/v1")
     test_app.include_router(settings.router, prefix="/api/v1")
     test_app.include_router(import_router.router, prefix="/api/v1")
     test_app.include_router(model_providers.router, prefix="/api/v1")

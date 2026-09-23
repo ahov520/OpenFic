@@ -91,6 +91,9 @@ class WorldEntryImage:
     content: str
     token_count: int
     is_enabled: bool
+    keywords_json: str = "[]"
+    is_constant: bool = True
+    source: str = ""
 
 
 @dataclass(frozen=True)
@@ -558,6 +561,9 @@ def _image_from_world_entry(entry: WorldInfoEntry, project_id: str) -> WorldEntr
         content=entry.content,
         token_count=entry.token_count,
         is_enabled=entry.is_enabled,
+        keywords_json=entry.keywords_json,
+        is_constant=entry.is_constant,
+        source=entry.source,
     )
 
 
@@ -576,6 +582,9 @@ def _image_from_world_entry_snapshot(
         content=snapshot.content or "",
         token_count=snapshot.token_count or 0,
         is_enabled=snapshot.is_enabled if snapshot.is_enabled is not None else True,
+        keywords_json=snapshot.keywords_json or "[]",
+        is_constant=snapshot.is_constant if snapshot.is_constant is not None else True,
+        source=snapshot.source or "",
     )
 
 
@@ -607,6 +616,9 @@ async def _snapshot_from_world_entry_image(
         content_blob_id=content_blob_id,
         token_count=image.token_count,
         is_enabled=image.is_enabled,
+        keywords_json=image.keywords_json,
+        is_constant=image.is_constant,
+        source=image.source,
     )
 def _world_entry_has_changed(
     before: WorldEntryImage | None,
@@ -622,6 +634,9 @@ def _world_entry_has_changed(
         or before.content != after.content
         or before.token_count != after.token_count
         or before.is_enabled != after.is_enabled
+        or before.keywords_json != after.keywords_json
+        or before.is_constant != after.is_constant
+        or before.source != after.source
     )
 
 
@@ -1109,6 +1124,9 @@ async def rollback_revision_for_session(
                     content=after_entry_image.content,
                     token_count=after_entry_image.token_count,
                     is_enabled=after_entry_image.is_enabled,
+                    keywords_json=after_entry_image.keywords_json,
+                    is_constant=after_entry_image.is_constant,
+                    source=after_entry_image.source,
                 ),
             )
         else:
@@ -1119,6 +1137,9 @@ async def rollback_revision_for_session(
             current_entry.content = after_entry_image.content
             current_entry.token_count = after_entry_image.token_count
             current_entry.is_enabled = after_entry_image.is_enabled
+            current_entry.keywords_json = after_entry_image.keywords_json
+            current_entry.is_constant = after_entry_image.is_constant
+            current_entry.source = after_entry_image.source
             current_entry.updated_at = datetime.now(UTC)
             await world_info_entry_repo.update_entry(session, current_entry)
 

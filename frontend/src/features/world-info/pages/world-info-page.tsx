@@ -43,6 +43,7 @@ import type {
 import { EntryEditor } from "../components/entry-editor";
 import { EntryList } from "../components/entry-list";
 import { ImportWorldInfoDialog } from "../components/import-world-info-dialog";
+import { TavernImportDialog } from "../components/tavern-import-dialog";
 import { useWorldInfoStore } from "../store/use-world-info-store";
 import {
   mergeWorldInfoEntryOrder,
@@ -105,6 +106,7 @@ export function WorldInfoPage() {
   const [scrollToLine, setScrollToLine] = useState<number | null>(null);
   const skipEntryRestoreWorldInfoIdRef = useRef<string | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [tavernDialogOpen, setTavernDialogOpen] = useState(false);
   const [assistantState, setAssistantState] = useState<AssistantSidebarState>({
     agentStatus: "idle",
     isAgentRunning: false,
@@ -231,6 +233,8 @@ export function WorldInfoPage() {
       order: entry.order,
       tokenCount: entry.tokenCount,
       isEnabled: entry.isEnabled,
+      keywords: entry.keywords,
+      isConstant: entry.isConstant,
       createdAt: entry.createdAt,
       updatedAt: entry.updatedAt,
     }),
@@ -585,6 +589,7 @@ export function WorldInfoPage() {
       currentProjectId={currentProjectId}
       onSelectProject={handleSelectProject}
       onImport={() => setImportDialogOpen(true)}
+      onImportTavern={() => setTavernDialogOpen(true)}
       entries={entries}
       onCreateEntry={handleCreateEntry}
       onSelectEntry={handleSelectEntry}
@@ -912,6 +917,17 @@ export function WorldInfoPage() {
           queryClient.invalidateQueries({ queryKey: ["world-info-entries", currentWorldInfoId] });
         }}
       />
+      {currentProjectId ? (
+        <TavernImportDialog
+          open={tavernDialogOpen}
+          projectId={currentProjectId}
+          onOpenChange={setTavernDialogOpen}
+          onImported={() => {
+            queryClient.invalidateQueries({ queryKey: ["world-info-entries", currentWorldInfoId] });
+            queryClient.invalidateQueries({ queryKey: ["characters", currentProjectId] });
+          }}
+        />
+      ) : null}
 
       {/* 删除确认对话框 */}
       <Dialog.Root

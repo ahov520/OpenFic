@@ -18,6 +18,7 @@ import {
   ListChecks,
   Pencil,
   Plus,
+  Library,
   Search,
   Star,
   StarOff,
@@ -48,6 +49,7 @@ interface CharacterListProps {
   isCreating?: boolean;
   onSelectProject: (projectId: string) => void;
   onCreateCharacter: () => void;
+  onImportTavern?: () => void;
   onSelectCharacter: (characterId: string) => void;
   onEditProfile: (character: CharacterListItem) => void;
   onDeleteCharacter: (character: CharacterListItem) => void;
@@ -133,6 +135,7 @@ export function CharacterList({
   isCreating = false,
   onSelectProject,
   onCreateCharacter,
+  onImportTavern,
   onSelectCharacter,
   onEditProfile,
   onDeleteCharacter,
@@ -592,6 +595,21 @@ export function CharacterList({
                 </IconButton>
               </Tooltip>
             ) : (
+              <>
+              {onImportTavern ? (
+                <Tooltip content={t("worldInfo.tavernImport")}>
+                  <IconButton
+                    variant="ghost"
+                    color="gray"
+                    highContrast
+                    size="2"
+                    aria-label={t("worldInfo.tavernImport")}
+                    onClick={onImportTavern}
+                  >
+                    <Library size={16} />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
               <Tooltip content={t("characters.newCharacter")}>
                 <IconButton
                   size="2"
@@ -609,6 +627,7 @@ export function CharacterList({
                   </Text>
                 </IconButton>
               </Tooltip>
+              </>
             )}
           </Flex>
         </Box>

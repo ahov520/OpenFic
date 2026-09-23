@@ -5,6 +5,7 @@
  * 注意：父组件应使用 key={entry.id} 来确保 entry 变化时组件重新挂载。
  */
 
+import { Flex, Switch, Text, TextField } from "@radix-ui/themes";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -57,12 +58,16 @@ export function EntryEditor({
   const queryClient = useQueryClient();
 
   const [name, setName] = useState(entry.name);
+  const [keywordText, setKeywordText] = useState(entry.keywords.join(", "));
+  const [isConstant, setIsConstant] = useState(entry.isConstant);
   const [tokenCount, setTokenCount] = useState<number>(entry.tokenCount || 0);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const savedContentRef = useRef(entry.content);
   const savedNameRef = useRef(entry.name);
+  const savedKeywordsRef = useRef(entry.keywords.join(", "));
+  const savedConstantRef = useRef(entry.isConstant);
   const hasChangesRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingRef = useRef(false);
@@ -102,6 +107,8 @@ export function EntryEditor({
                     ...item,
                     name: updated.name,
                     tokenCount: updated.tokenCount,
+                    keywords: updated.keywords,
+                    isConstant: updated.isConstant,
                   }
                 : item,
             ),
@@ -119,6 +126,10 @@ export function EntryEditor({
 
     const content = savedContentRef.current;
     const newName = savedNameRef.current.trim();
+    const keywords = savedKeywordsRef.current
+      .split(/[,，]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
     const contentLimit = getEditorContentLimit(content);
     if (!contentLimit.isWithinLimit) {
       showContentLimitToast(content);
@@ -143,6 +154,8 @@ export function EntryEditor({
         name: newName,
         content,
         tokenCount: newTokenCount,
+        keywords,
+        isConstant: savedConstantRef.current,
       });
       updateCaches(updated);
       hasChangesRef.current = false;
@@ -259,20 +272,53 @@ export function EntryEditor({
   }, [entry.id]);
 
   return (
-    <MarkdownEditor
-      title={name}
-      onTitleChange={handleTitleChange}
-      content={entry.content}
-      onContentChange={handleContentChange}
-      onSave={handleSave}
-      isSaving={isSaving}
-      hasChanges={hasChanges}
-      placeholder={t("worldInfo.contentPlaceholder")}
-      titlePlaceholder={t("worldInfo.entryNamePlaceholder")}
-      wordCount={tokenCount}
-      wordCountLabel={t("worldInfo.tokenCount")}
-      editorRef={editorRef}
-      isLocked={isAgentLocked}
-    />
+    <Flex direction="column" height="100%" minHeight="0">
+      <Flex align="center" gap="3" px="3" py="2" wrap="wrap">
+        <Text as="label" size="2">
+          <Flex align="center" gap="2">
+            <Switch
+              checked={isConstant}
+              disabled={isAgentLocked}
+              onCheckedChange={(checked) => {
+                setIsConstant(checked);
+                savedConstantRef.current = checked;
+                hasChangesRef.current = true;
+                setHasChanges(true);
+                triggerAutoSave();
+              }}
+            />
+            {t("worldInfo.constantEntry")}
+          </Flex>
+        </Text>
+        <TextField.Root
+          value={keywordText}
+          disabled={isAgentLocked}
+          placeholder={t("worldInfo.keywordsPlaceholder")}
+          style={{ flex: 1, minWidth: 180 }}
+          onChange={(event) => {
+            setKeywordText(event.target.value);
+            savedKeywordsRef.current = event.target.value;
+            hasChangesRef.current = true;
+            setHasChanges(true);
+            triggerAutoSave();
+          }}
+        />
+      </Flex>
+      <MarkdownEditor
+        title={name}
+        onTitleChange={handleTitleChange}
+        content={entry.content}
+        onContentChange={handleContentChange}
+        onSave={handleSave}
+        isSaving={isSaving}
+        hasChanges={hasChanges}
+        placeholder={t("worldInfo.contentPlaceholder")}
+        titlePlaceholder={t("worldInfo.entryNamePlaceholder")}
+        wordCount={tokenCount}
+        wordCountLabel={t("worldInfo.tokenCount")}
+        editorRef={editorRef}
+        isLocked={isAgentLocked}
+      />
+    </Flex>
   );
 }

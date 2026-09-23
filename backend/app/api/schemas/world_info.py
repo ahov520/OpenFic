@@ -40,6 +40,8 @@ class WorldInfoEntryCreate(BaseModel):
     content: str = Field(default="", description="条目内容")
     token_count: int = Field(default=0, ge=0, description="Token 数量")
     is_enabled: bool = Field(default=True, description="开关状态")
+    keywords: list[str] = Field(default_factory=list, description="触发关键词")
+    is_constant: bool = Field(default=True, description="是否常驻注入")
 
 
 class WorldInfoEntryUpdate(BaseModel):
@@ -49,6 +51,8 @@ class WorldInfoEntryUpdate(BaseModel):
     content: str | None = None
     token_count: int | None = Field(default=None, ge=0)
     is_enabled: bool | None = None
+    keywords: list[str] | None = None
+    is_constant: bool | None = None
 
 
 class WorldInfoEntryMoveRequest(BaseModel):
@@ -93,6 +97,9 @@ class WorldInfoEntryResponse(BaseModel):
     content: str = Field(description="条目内容")
     token_count: int = Field(description="Token 数量")
     is_enabled: bool = Field(description="开关状态")
+    keywords: list[str] = Field(default_factory=list, description="触发关键词")
+    is_constant: bool = Field(description="是否常驻注入")
+    source: str = Field(default="", description="条目来源")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="更新时间")
 
@@ -109,6 +116,8 @@ class WorldInfoEntryBriefResponse(BaseModel):
     order: int = Field(description="排序序号")
     token_count: int = Field(description="Token 数量")
     is_enabled: bool = Field(description="开关状态")
+    keywords: list[str] = Field(default_factory=list, description="触发关键词")
+    is_constant: bool = Field(description="是否常驻注入")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="更新时间")
 
@@ -129,6 +138,8 @@ class WorldInfoImportPreviewEntry(BaseModel):
     name: str = Field(description="导入后的条目名称")
     content_preview: str = Field(description="内容预览")
     is_enabled: bool = Field(description="导入后的启用状态")
+    keywords: list[str] = Field(default_factory=list, description="触发关键词")
+    is_constant: bool = Field(description="是否常驻注入")
 
 
 class WorldInfoImportPreviewResponse(BaseModel):
@@ -136,6 +147,8 @@ class WorldInfoImportPreviewResponse(BaseModel):
 
     entry_count: int = Field(description="条目总数")
     enabled_count: int = Field(description="启用条目数")
+    constant_count: int = Field(description="常驻条目数")
+    keyword_count: int = Field(description="关键词条目数")
     entries: list[WorldInfoImportPreviewEntry] = Field(description="预览条目列表")
 
 

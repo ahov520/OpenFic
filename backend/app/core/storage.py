@@ -105,20 +105,23 @@ def get_cover_url(cover_path: str | None) -> str | None:
     return f"/covers/{cover_path}?t={timestamp}"
 
 
-async def save_character_image(character_id: str, image_file: UploadFile) -> str:
-    """保存角色头像文件。"""
+def save_character_image_bytes(character_id: str, content: bytes) -> str:
+    """保存角色头像字节。"""
     ensure_character_images_dir()
-    content = await image_file.read()
     image = Image.open(io.BytesIO(content))
-
     if image.mode != "RGB":
         image = image.convert("RGB")  # type: ignore[assignment]
-
     image = image.resize((256, 256), Image.Resampling.LANCZOS)  # type: ignore[assignment]
     filename = f"{character_id}-{time.time_ns()}.jpg"
     filepath = settings.character_images_dir / filename
     image.save(filepath, "JPEG", quality=88, optimize=True)
     return filename
+
+
+async def save_character_image(character_id: str, image_file: UploadFile) -> str:
+    """保存角色头像文件。"""
+    content = await image_file.read()
+    return save_character_image_bytes(character_id, content)
 
 
 def delete_character_image(image_path: str) -> None:

@@ -31,6 +31,7 @@ from app.api.schemas.world_info import (
 from app.core.errors import NotFoundError
 from app.storage.database import get_session
 from app.storage.services import world_info_entry_service
+from app.tavern.keywords import load_keywords
 
 router = APIRouter(tags=["world-info"])
 
@@ -56,6 +57,9 @@ def _entry_to_response(entry) -> WorldInfoEntryResponse:
         content=entry.content,
         token_count=entry.token_count,
         is_enabled=entry.is_enabled,
+        keywords=load_keywords(entry.keywords_json),
+        is_constant=entry.is_constant,
+        source=entry.source,
         created_at=entry.created_at,
         updated_at=entry.updated_at,
     )
@@ -70,6 +74,8 @@ def _preview_entry_to_response(
         name=entry.name,
         content_preview=entry.content[:200],
         is_enabled=entry.is_enabled,
+        keywords=entry.keywords,
+        is_constant=entry.is_constant,
     )
 
 
@@ -83,6 +89,8 @@ def _entry_to_brief_response(entry) -> WorldInfoEntryBriefResponse:
         order=entry.order,
         token_count=entry.token_count,
         is_enabled=entry.is_enabled,
+        keywords=load_keywords(entry.keywords_json),
+        is_constant=entry.is_constant,
         created_at=entry.created_at,
         updated_at=entry.updated_at,
     )
@@ -126,6 +134,8 @@ async def preview_world_info_import(
     return WorldInfoImportPreviewResponse(
         entry_count=len(preview.entries),
         enabled_count=sum(1 for entry in preview.entries if entry.is_enabled),
+        constant_count=sum(1 for entry in preview.entries if entry.is_constant),
+        keyword_count=sum(1 for entry in preview.entries if entry.keywords and not entry.is_constant),
         entries=[_preview_entry_to_response(entry) for entry in preview.entries],
     )
 
@@ -236,6 +246,8 @@ async def create_entry(
             content=data.content,
             token_count=data.token_count,
             is_enabled=data.is_enabled,
+            keywords=data.keywords,
+            is_constant=data.is_constant,
         )
         return _entry_to_response(entry)
     except NotFoundError as e:
@@ -337,6 +349,8 @@ async def update_entry(
             content=data.content,
             token_count=data.token_count,
             is_enabled=data.is_enabled,
+            keywords=data.keywords,
+            is_constant=data.is_constant,
         )
         return _entry_to_response(entry)
     except NotFoundError as e:

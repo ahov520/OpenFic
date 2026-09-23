@@ -158,3 +158,15 @@ async def update(session: AsyncSession, skill: Skill) -> Skill:
 async def delete(session: AsyncSession, skill: Skill) -> None:
     await session.delete(skill)
     await session.flush()
+
+
+async def delete_by_origin_key(session: AsyncSession, origin_key: str) -> int:
+    if not origin_key:
+        return 0
+    result = await session.execute(select(Skill).where(col(Skill.origin_key) == origin_key))
+    skills = list(result.scalars().all())
+    for skill in skills:
+        await session.delete(skill)
+    if skills:
+        await session.flush()
+    return len(skills)

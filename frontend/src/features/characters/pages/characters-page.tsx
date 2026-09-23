@@ -27,6 +27,8 @@ import type { Character, CharacterListItem, CharacterListResponse } from "@/lib/
 import { getPreference, setPreference } from "@/lib/local-db";
 import { countTokens } from "@/lib/tiktoken-utils";
 
+import { TavernImportDialog } from "@/features/world-info/components/tavern-import-dialog";
+
 import { CharacterEditor } from "../components/character-editor";
 import { CharacterList } from "../components/character-list";
 import { CharacterProfileDialog } from "../components/character-profile-dialog";
@@ -81,6 +83,7 @@ export function CharactersPage() {
     onClose: () => setListOpen(false),
   });
   const [profileCharacter, setProfileCharacter] = useState<CharacterListItem | null>(null);
+  const [tavernDialogOpen, setTavernDialogOpen] = useState(false);
   const [deleteCharacterTarget, setDeleteCharacterTarget] = useState<CharacterListItem | null>(
     null,
   );
@@ -381,6 +384,7 @@ export function CharactersPage() {
       currentProjectId={currentProjectId ?? ""}
       onSelectProject={handleSelectProject}
       onCreateCharacter={handleCreateCharacter}
+      onImportTavern={currentProjectId ? () => setTavernDialogOpen(true) : undefined}
       onSelectCharacter={handleSelectCharacter}
       onEditProfile={setProfileCharacter}
       onDeleteCharacter={setDeleteCharacterTarget}
@@ -604,6 +608,17 @@ export function CharactersPage() {
           </Flex>
         </AlertDialog.Content>
       </AlertDialog.Root>
+      {currentProjectId ? (
+        <TavernImportDialog
+          open={tavernDialogOpen}
+          projectId={currentProjectId}
+          onOpenChange={setTavernDialogOpen}
+          onImported={() => {
+            queryClient.invalidateQueries({ queryKey: ["characters", currentProjectId] });
+            queryClient.invalidateQueries({ queryKey: ["world-info"] });
+          }}
+        />
+      ) : null}
     </Flex>
   );
 }

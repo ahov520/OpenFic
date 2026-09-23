@@ -136,6 +136,7 @@ async def create_skill(
     summary: str = "",
     content: str = "",
     is_enabled: bool = False,
+    origin_key: str = "",
 ) -> Skill:
     unique_name = await _ensure_unique_name(session, name.strip())
     skill = Skill(
@@ -143,6 +144,7 @@ async def create_skill(
         summary=summary,
         content=content,
         is_enabled=is_enabled,
+        origin_key=origin_key,
     )
     if skill.is_enabled and not is_skill_complete(skill):
         raise SkillValidationError("Skill 信息未完整填写，无法启用。")

@@ -264,6 +264,32 @@ export function ImportWorldInfoDialog({
                       {previewData.enabledCount}
                     </Text>
                   </Card>
+                  <Card className="world-info-import-stat-card">
+                    <Text
+                      size="2"
+                      color="gray"
+                      mb="1"
+                      className="world-info-import-block-label"
+                    >
+                      {t("worldInfo.importConstantCount")}
+                    </Text>
+                    <Text size="5" weight="bold">
+                      {previewData.constantCount}
+                    </Text>
+                  </Card>
+                  <Card className="world-info-import-stat-card">
+                    <Text
+                      size="2"
+                      color="gray"
+                      mb="1"
+                      className="world-info-import-block-label"
+                    >
+                      {t("worldInfo.importKeywordCount")}
+                    </Text>
+                    <Text size="5" weight="bold">
+                      {previewData.keywordCount}
+                    </Text>
+                  </Card>
                 </Flex>
 
                 <Text

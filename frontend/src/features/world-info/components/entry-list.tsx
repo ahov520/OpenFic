@@ -30,6 +30,7 @@ import {
   Search,
   Plus,
   Upload,
+  Library,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -74,6 +75,7 @@ interface EntryListProps {
   currentProjectId: string;
   onSelectProject: (projectId: string) => void;
   onImport: () => void;
+  onImportTavern?: () => void;
   /** 条目列表 */
   entries: WorldInfoEntryBrief[];
   /** 新建条目回调 */
@@ -116,6 +118,7 @@ export function EntryList({
   currentProjectId,
   onSelectProject,
   onImport,
+  onImportTavern,
   entries,
   onCreateEntry,
   onSelectEntry,
@@ -726,6 +729,20 @@ export function EntryList({
                       <Upload size={16} />
                     </IconButton>
                   </Tooltip>
+                  {onImportTavern ? (
+                    <Tooltip content={t("worldInfo.tavernImport")}>
+                      <IconButton
+                        variant="ghost"
+                        color="gray"
+                        highContrast
+                        size="2"
+                        aria-label={t("worldInfo.tavernImport")}
+                        onClick={onImportTavern}
+                      >
+                        <Library size={16} />
+                      </IconButton>
+                    </Tooltip>
+                  ) : null}
 
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger>

@@ -35,6 +35,7 @@ async def create_rule(
     content: str = "",
     scope: str = "global",
     project_id: str | None = None,
+    origin_key: str = "",
 ) -> AgentRule:
     if scope == "project":
         if not project_id or await project_repo.get_by_id(session, project_id) is None:
@@ -48,6 +49,7 @@ async def create_rule(
         project_id=resolved_project_id,
         token_count=count_tokens(content),
         order_index=max_order + 1,
+        origin_key=origin_key,
     )
     return await agent_rule_repo.create(session, rule)
 

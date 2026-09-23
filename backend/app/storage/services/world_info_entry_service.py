@@ -3,8 +3,7 @@
 WorldInfo Entry Service - 世界书条目业务逻辑层。
 """
 
-import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +14,8 @@ from app.core.utils.tiktoken import get_encoding
 from app.storage.models.world_info_entry import WorldInfoEntry
 from app.storage.repos import world_info_entry_repo
 from app.storage.services.world_info_service import get_world_info
+from app.tavern.keywords import dump_keywords
+from app.tavern.parse import parse_worldbook_bytes
 
 
 class WorldInfoEntryNameConflictError(ValueError):
@@ -30,6 +31,9 @@ class WorldInfoImportEntry:
     content: str
     is_enabled: bool
     order: int
+    keywords: list[str] = field(default_factory=list)
+    is_constant: bool = True
+    source: str = ""
 
 
 @dataclass
@@ -72,15 +76,6 @@ class WorldInfoEntrySearchResponse:
     results: list[WorldInfoEntrySearchResult]
     total_entries: int
     total_matches: int
-
-
-def _build_entry_name(comment: object, uid: int) -> str:
-    """根据 comment 生成条目名称。"""
-    if isinstance(comment, str):
-        comment_clean = comment.strip()
-        if comment_clean:
-            return comment_clean[:200]
-    return f"条目 {uid}"
 
 
 def _calculate_token_count(content: str) -> int:
@@ -128,58 +123,22 @@ async def ensure_entry_name_available(
 
 def parse_sillytavern_worldbook(raw_payload: bytes) -> WorldInfoImportPreviewResult:
     """解析 SillyTavern 世界书 JSON 并归一化为当前项目结构。"""
-    try:
-        payload = json.loads(raw_payload.decode("utf-8"))
-    except UnicodeDecodeError as exc:
-        raise ValueError("文件编码无效，请使用 UTF-8 编码的 JSON 文件") from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError("JSON 解析失败，请检查世界书导出文件格式") from exc
-
-    if not isinstance(payload, dict):
-        raise ValueError("世界书文件格式无效：顶层必须是对象")
-
-    raw_entries = payload.get("entries")
-    if not isinstance(raw_entries, dict):
-        raise ValueError("世界书文件格式无效：缺少 entries 对象")
-
-    entries: list[WorldInfoImportEntry] = []
-    for entry_key, raw_entry in raw_entries.items():
-        if not isinstance(raw_entry, dict):
-            continue
-
-        raw_uid = raw_entry.get("uid")
-        if isinstance(raw_uid, bool):
-            uid = 0
-        elif isinstance(raw_uid, int):
-            uid = raw_uid
-        else:
-            try:
-                uid = int(entry_key)
-            except (TypeError, ValueError):
-                uid = len(entries)
-
-        content = raw_entry.get("content")
-        content_text = content if isinstance(content, str) else ""
-        comment = raw_entry.get("comment")
-        disable = bool(raw_entry.get("disable", False))
-        order = raw_entry.get("order")
-        order_value = order if isinstance(order, int) else uid + 1
-
-        entries.append(
+    drafts = parse_worldbook_bytes(raw_payload)
+    return WorldInfoImportPreviewResult(
+        entries=[
             WorldInfoImportEntry(
-                uid=uid,
-                name=_build_entry_name(comment, uid),
-                content=content_text,
-                is_enabled=not disable,
-                order=order_value,
+                uid=draft.uid,
+                name=draft.name,
+                content=draft.content,
+                is_enabled=draft.is_enabled,
+                order=draft.order,
+                keywords=draft.keywords,
+                is_constant=draft.is_constant,
+                source=draft.source,
             )
-        )
-
-    if not entries:
-        raise ValueError("世界书中没有可导入的条目")
-
-    entries.sort(key=lambda entry: (entry.order, entry.uid))
-    return WorldInfoImportPreviewResult(entries=entries)
+            for draft in drafts
+        ]
+    )
 
 
 async def import_entries(
@@ -215,6 +174,9 @@ async def import_entries(
             existing.content = entry.content
             existing.token_count = token_count
             existing.is_enabled = entry.is_enabled
+            existing.keywords_json = dump_keywords(entry.keywords)
+            existing.is_constant = entry.is_constant
+            existing.source = entry.source
             existing.updated_at = datetime.now(UTC)
             await world_info_entry_repo.update_entry(session, existing)
             imported_count += 1
@@ -232,6 +194,9 @@ async def import_entries(
                 content=entry.content,
                 token_count=token_count,
                 is_enabled=entry.is_enabled,
+                keywords_json=dump_keywords(entry.keywords),
+                is_constant=entry.is_constant,
+                source=entry.source,
             ),
         )
         existing_by_name[created.name] = created
@@ -253,6 +218,8 @@ async def create_entry(
     content: str = "",
     token_count: int = 0,
     is_enabled: bool = True,
+    keywords: list[str] | None = None,
+    is_constant: bool = True,
 ) -> WorldInfoEntry:
     """
     创建世界书条目。
@@ -291,6 +258,8 @@ async def create_entry(
         content=content,
         token_count=token_count,
         is_enabled=is_enabled,
+        keywords_json=dump_keywords(keywords),
+        is_constant=is_constant,
     )
     return await world_info_entry_repo.create(session, entry)
 
@@ -344,6 +313,8 @@ async def update_entry(
     content: str | None = None,
     token_count: int | None = None,
     is_enabled: bool | None = None,
+    keywords: list[str] | None = None,
+    is_constant: bool | None = None,
 ) -> WorldInfoEntry:
     """
     更新世界书条目。
@@ -378,6 +349,10 @@ async def update_entry(
         entry.token_count = token_count
     if is_enabled is not None:
         entry.is_enabled = is_enabled
+    if keywords is not None:
+        entry.keywords_json = dump_keywords(keywords)
+    if is_constant is not None:
+        entry.is_constant = is_constant
 
     entry.updated_at = datetime.now(UTC)
     return await world_info_entry_repo.update_entry(session, entry)

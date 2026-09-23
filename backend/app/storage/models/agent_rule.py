@@ -20,5 +20,6 @@ class AgentRule(SQLModel, table=True):
     project_id: str | None = Field(default=None, index=True, description="project 作用域关联的项目 ID")
     token_count: int = Field(default=0, description="规则内容 Token 数")
     order_index: int = Field(default=0)
+    origin_key: str = Field(default="", max_length=200, description="素材包来源，用于整包替换")
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
