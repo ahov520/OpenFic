@@ -89,7 +89,7 @@ jobs:
   # ---------------------------------------------------------------- pypi
   pypi:
     needs: [context, build-frontend]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.repository == 'syrizelink/OpenFic'
     runs-on: ubuntu-latest
     environment: pypi
     steps:
