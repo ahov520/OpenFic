@@ -45,13 +45,16 @@ export interface CorkboardVolumeCards<TChapter> {
 }
 
 export function corkboardVolumeCards<
-  TChapter extends { title: string; synopsis: string; writingStatus: WritingStatus },
-  TVolume extends { id: string; title: string; chapters: readonly TChapter[] },
+  TVolume extends {
+    id: string;
+    title: string;
+    chapters: readonly { title: string; synopsis: string; writingStatus: WritingStatus }[];
+  },
 >(
   volumes: readonly TVolume[],
   filter: CorkboardStatusFilter,
   normalizedQuery: string,
-): CorkboardVolumeCards<TChapter>[] {
+): CorkboardVolumeCards<TVolume["chapters"][number]>[] {
   return volumes.map((volume) => ({
     id: volume.id,
     title: volume.title,
