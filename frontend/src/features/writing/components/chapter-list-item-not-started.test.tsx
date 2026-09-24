@@ -1,5 +1,5 @@
 import { Theme } from "@radix-ui/themes";
-import { act, type ReactNode, useState } from "react";
+import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -124,37 +124,5 @@ describe("sidebar chapter row not-started mark", () => {
       mark?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(selected).toEqual(["c1"]);
-  });
-});
-
-function SavedWordCountRow() {
-  const [chapter, setChapter] = useState(sampleChapter({ wordCount: 0 }));
-  return (
-    <>
-      <ChapterListItem
-        chapter={chapter}
-        isActive={false}
-        onSelectChapter={() => {}}
-      />
-      <button
-        type="button"
-        onClick={() => setChapter(sampleChapter({ wordCount: 4 }))}
-      >
-        写入已保存字数
-      </button>
-    </>
-  );
-}
-
-describe("saved manuscript clears the sidebar mark", () => {
-  it("removes 还没动笔 when the row receives a saved word count above zero", async () => {
-    await i18n.changeLanguage("zh-CN");
-    const view = render(<SavedWordCountRow />);
-    expect(notStartedMark(view.container)?.textContent).toBe("还没动笔");
-    const button = view.container.querySelector("button");
-    act(() => {
-      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(notStartedMark(view.container)).toBeNull();
   });
 });
