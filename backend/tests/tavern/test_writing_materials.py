@@ -247,4 +247,10 @@ async def test_imported_materials_enter_writer_context(client: AsyncClient) -> N
     assert "你来了" not in lore.content
     assert "思维链" not in lore.content
     assert "方法论" not in lore.content
+    assert "这一章写青云宗开门" in lore.content
+    assert "<writing_priority>" in lore.content
+    reviewer = await build_lore_pack(state, "reviewer", session)
+    composer = await build_lore_pack(state, "composer", session)
+    assert reviewer is not None and "青云宗在东边" in reviewer.content
+    assert composer is not None and "灵气复苏" in composer.content
     assert await build_lore_pack(state, "explore", session) is None
