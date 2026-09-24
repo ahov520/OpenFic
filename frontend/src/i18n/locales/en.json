@@ -278,6 +278,31 @@
       "description": "The chapter will be appended to the end of the target volume."
     },
     "words": "words",
+    "chapterPlan": {
+      "synopsis": "Synopsis",
+      "status": "Writing status",
+      "synopsisPlaceholder": "What this chapter must do: scene, conflict, and where it stops",
+      "cardPlaceholder": "What happens in this chapter?",
+      "hint": "Write the chapter's job before the prose. The agent sees this synopsis when it reads the chapter, and does not treat it as text already written.",
+      "synopsisTooLong": "Synopsis can be at most {{max}} characters",
+      "saveFailed": "Couldn't save the chapter card. Please try again.",
+      "openCorkboard": "Corkboard",
+      "corkboardTitle": "Chapter corkboard",
+      "corkboardDescription": "Lay out each chapter's synopsis and progress before you draft.",
+      "searchPlaceholder": "Search titles or synopses",
+      "filterAll": "All {{count}}",
+      "filterStatus": "{{status}} {{count}}",
+      "loading": "Loading chapters…",
+      "empty": "No chapters yet. Create one in the sidebar, then write its card.",
+      "emptyFilter": "No chapters match this filter.",
+      "cardMeta": "{{count}} words",
+      "statuses": {
+        "idea": "Idea",
+        "drafting": "Draft",
+        "revising": "Revise",
+        "done": "Done"
+      }
+    },
     "notes": "Notes",
     "newNote": "New Note",
     "importNotes": "Import notes",

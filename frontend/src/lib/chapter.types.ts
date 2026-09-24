@@ -4,6 +4,10 @@
  * 章节相关的 TypeScript 类型定义，与后端 Schema 对应。
  */
 
+import type { WritingStatus } from "./chapter-plan";
+
+export type { WritingStatus };
+
 /**
  * 章节实体（完整版，包含正文）
  */
@@ -13,6 +17,8 @@ export interface Chapter {
   volumeId: string;
   title: string;
   content: string;
+  synopsis: string;
+  writingStatus: WritingStatus;
   wordCount: number;
   order: number;
   createdAt: string;
@@ -27,6 +33,8 @@ export interface ChapterListItem {
   projectId: string;
   volumeId: string;
   title: string;
+  synopsis: string;
+  writingStatus: WritingStatus;
   wordCount: number;
   order: number;
   createdAt: string;
@@ -40,6 +48,8 @@ export interface ChapterCreate {
   volumeId: string;
   title: string;
   content?: string;
+  synopsis?: string;
+  writingStatus?: WritingStatus;
   wordCount?: number;
 }
 
@@ -49,6 +59,8 @@ export interface ChapterCreate {
 export interface ChapterUpdate {
   title?: string;
   content?: string;
+  synopsis?: string;
+  writingStatus?: WritingStatus;
   wordCount?: number;
 }
 

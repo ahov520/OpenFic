@@ -178,6 +178,8 @@ async def test_read_chapter_resolves_chapter_inside_volume() -> None:
         "title": "第二章",
         "content": "1|第一行\n2|第二行",
         "word_count": 6,
+        "synopsis": "",
+        "writing_status": "idea",
     }
     list_by_volume.assert_not_awaited()
     get_by_volume_ref.assert_awaited_once_with(

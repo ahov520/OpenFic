@@ -6,6 +6,7 @@
 
 import axios from "axios";
 
+import { normalizeWritingStatus } from "./chapter-plan";
 import { getConfiguredBackendBaseUrl, getRuntimeConfig } from "./runtime-config";
 import type { ThemeConfigResponse } from "./theme";
 
@@ -733,6 +734,8 @@ function transformChapter(raw: Record<string, unknown>): Chapter {
     volumeId: raw.volume_id as string,
     title: raw.title as string,
     content: raw.content as string,
+    synopsis: typeof raw.synopsis === "string" ? raw.synopsis : "",
+    writingStatus: normalizeWritingStatus(raw.writing_status),
     wordCount: raw.word_count as number,
     order: raw.order as number,
     createdAt: raw.created_at as string,
@@ -749,6 +752,8 @@ function transformChapterListItem(raw: Record<string, unknown>): ChapterListItem
     projectId: raw.project_id as string,
     volumeId: raw.volume_id as string,
     title: raw.title as string,
+    synopsis: typeof raw.synopsis === "string" ? raw.synopsis : "",
+    writingStatus: normalizeWritingStatus(raw.writing_status),
     wordCount: raw.word_count as number,
     order: raw.order as number,
     createdAt: raw.created_at as string,
@@ -882,6 +887,8 @@ export async function createChapter(projectId: string, data: ChapterCreate): Pro
     volume_id: data.volumeId,
     title: data.title,
     content: data.content ?? "",
+    synopsis: data.synopsis,
+    writing_status: data.writingStatus,
     word_count: data.wordCount,
   });
   return transformChapter(response.data);
@@ -933,6 +940,8 @@ export async function updateChapter(chapterId: string, data: ChapterUpdate): Pro
   const response = await apiClient.patch(`/chapters/${chapterId}`, {
     title: data.title,
     content: data.content,
+    synopsis: data.synopsis,
+    writing_status: data.writingStatus,
     word_count: data.wordCount,
   });
   return transformChapter(response.data);

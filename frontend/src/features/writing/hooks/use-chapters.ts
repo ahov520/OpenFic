@@ -14,7 +14,7 @@ import {
   reorderChapters,
   moveChapterToVolume,
 } from "@/lib/api-client";
-import type { ChapterCreate, ChapterUpdate } from "@/lib/chapter.types";
+import type { Chapter, ChapterCreate, ChapterUpdate } from "@/lib/chapter.types";
 
 /**
  * 获取单个章节（完整内容）
@@ -59,11 +59,32 @@ export function useUpdateChapter() {
   return useMutation({
     mutationFn: ({ chapterId, data }: { chapterId: string; data: ChapterUpdate }) =>
       updateChapter(chapterId, data),
-    onSuccess: (updatedChapter) => {
-      queryClient.setQueryData(["chapter", updatedChapter.id], updatedChapter);
+    onSuccess: (updatedChapter, variables) => {
+      queryClient.setQueryData<Chapter>(["chapter", updatedChapter.id], (current) => {
+        if (!current) return updatedChapter;
+        return {
+          ...current,
+          ...updatedChapter,
+          title: variables.data.title !== undefined ? updatedChapter.title : current.title,
+          content: variables.data.content !== undefined ? updatedChapter.content : current.content,
+          wordCount:
+            variables.data.wordCount !== undefined ? updatedChapter.wordCount : current.wordCount,
+          synopsis:
+            variables.data.synopsis !== undefined ? updatedChapter.synopsis : current.synopsis,
+          writingStatus:
+            variables.data.writingStatus !== undefined
+              ? updatedChapter.writingStatus
+              : current.writingStatus,
+        };
+      });
       queryClient.invalidateQueries({
         queryKey: ["volume-tree", updatedChapter.projectId],
       });
+      const touchesManuscript =
+        variables.data.title !== undefined ||
+        variables.data.content !== undefined ||
+        variables.data.wordCount !== undefined;
+      if (!touchesManuscript) return;
       queryClient.invalidateQueries({
         queryKey: ["chapter-summary-list", updatedChapter.projectId],
       });

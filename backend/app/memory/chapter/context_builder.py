@@ -10,6 +10,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.chapter.sequence import global_order_index
+from app.storage.chapter_plan import catalog_plan_fields, latest_plan_fields
 from app.storage.models.chapter import Chapter
 from app.storage.models.chapter_summary import ChapterSummary
 from app.storage.repos import chapter_repo, chapter_summary_repo, volume_repo
@@ -135,6 +136,7 @@ def _build_latest_field(
             "title": chapter.title,
             "content": chapter.content,
             "word_count": chapter.word_count,
+            **latest_plan_fields(chapter),
         }
     )
     return ContextPart(
@@ -302,6 +304,7 @@ def _build_chapter_list_field(
             {
                 "order": order_map[chapter.id],
                 "title": chapter.title,
+                **catalog_plan_fields(chapter),
             }
             for chapter in latest_chapters
         ]

@@ -61,6 +61,8 @@ async def create_chapter(
             title=data.title,
             content=data.content,
             word_count=data.word_count,
+            synopsis=data.synopsis,
+            writing_status=data.writing_status,
         )
         await background_service.commit_and_notify(session)
         return ChapterResponse.model_validate(chapter)
@@ -169,6 +171,8 @@ async def update_chapter(
             title=data.title,
             content=data.content,
             word_count=data.word_count,
+            synopsis=data.synopsis,
+            writing_status=data.writing_status,
         )
         await background_service.commit_and_notify(session)
         return ChapterResponse.model_validate(chapter)

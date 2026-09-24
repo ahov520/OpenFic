@@ -72,6 +72,8 @@ async def test_create_chapter(client: AsyncClient) -> None:
     assert data["volume_id"] == volume_id
     assert data["order"] == 1
     assert data["word_count"] > 0
+    assert data["synopsis"] == ""
+    assert data["writing_status"] == "idea"
     assert "id" in data
     assert "created_at" in data
     assert "updated_at" in data
@@ -185,6 +187,8 @@ async def test_list_chapters(client: AsyncClient) -> None:
         "id",
         "project_id",
         "title",
+        "synopsis",
+        "writing_status",
         "word_count",
         "order",
         "created_at",
@@ -276,6 +280,8 @@ async def test_get_and_update_chapter(client: AsyncClient) -> None:
     assert data["title"] == "新标题"
     assert data["content"] == "新内容"
     assert data["word_count"] == 200
+    assert data["synopsis"] == ""
+    assert data["writing_status"] == "idea"
 
 
 @pytest.mark.asyncio
@@ -639,3 +645,67 @@ async def test_project_stats_update_on_chapter_create_and_update(
     project = await client.get(f"/api/v1/projects/{project_id}")
     assert project.json()["chapter_count"] == 1
     assert project.json()["word_count"] == 200
+
+
+@pytest.mark.asyncio
+async def test_chapter_plan_roundtrip_does_not_touch_manuscript(client: AsyncClient) -> None:
+    """梗概和写作状态可以单独保存，且改正文不会冲掉卡片。"""
+    project_id, volume_id = await _create_project(client)
+    created = await _create_chapter(
+        client,
+        project_id,
+        volume_id,
+        title="夜航",
+        content="原正文",
+    )
+
+    planned = await client.patch(
+        f"/api/v1/chapters/{created['id']}",
+        json={
+            "synopsis": "主角推开门，发现灯还亮着。\n结尾停在脚步声。",
+            "writing_status": "drafting",
+        },
+    )
+    assert planned.status_code == 200
+    planned_data = planned.json()
+    assert planned_data["content"] == "原正文"
+    assert planned_data["synopsis"] == "主角推开门，发现灯还亮着。\n结尾停在脚步声。"
+    assert planned_data["writing_status"] == "drafting"
+
+    rewritten = await client.patch(
+        f"/api/v1/chapters/{created['id']}",
+        json={"content": "新正文", "word_count": 3},
+    )
+    assert rewritten.status_code == 200
+    assert rewritten.json()["synopsis"] == planned_data["synopsis"]
+    assert rewritten.json()["writing_status"] == "drafting"
+    assert rewritten.json()["content"] == "新正文"
+
+    tree = (await client.get(f"/api/v1/projects/{project_id}/chapters")).json()
+    listed = _chapters_from_tree(tree)[0]
+    assert listed["synopsis"] == planned_data["synopsis"]
+    assert listed["writing_status"] == "drafting"
+    assert "content" not in listed
+
+
+@pytest.mark.asyncio
+async def test_chapter_plan_rejects_invalid_status_and_long_synopsis(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    chapter = await _create_chapter(client, project_id, volume_id, title="夜航")
+
+    invalid_status = await client.patch(
+        f"/api/v1/chapters/{chapter['id']}",
+        json={"writing_status": "published"},
+    )
+    too_long = await client.patch(
+        f"/api/v1/chapters/{chapter['id']}",
+        json={"synopsis": "梗" * 2001},
+    )
+
+    assert invalid_status.status_code == 422
+    assert too_long.status_code == 422
+    unchanged = (await client.get(f"/api/v1/chapters/{chapter['id']}")).json()
+    assert unchanged["writing_status"] == "idea"
+    assert unchanged["synopsis"] == ""

@@ -45,6 +45,7 @@ import {
   isRemoteWritingEntityNewer,
 } from "../lib/writing-working-copy";
 import { useTabsStore } from "../store/use-tabs-store";
+import { ChapterPlanBar } from "./chapter-plan-bar";
 import { FindReplacePanel } from "./find-replace-panel";
 
 const MANUAL_SAVE_EVENT = "openfic:chapter-editor-manual-save";
@@ -674,6 +675,10 @@ function ChapterEditorContent({
             }}
             disabled={isAgentLocked}
             onDisabledClick={showLockedToast}
+          />
+          <ChapterPlanBar
+            chapter={chapter}
+            isAgentLocked={isAgentLocked}
           />
           <Box style={{ borderBottom: "1px solid var(--gray-a4)" }} />
           <Box

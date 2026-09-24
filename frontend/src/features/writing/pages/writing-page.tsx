@@ -32,6 +32,9 @@ const PANEL_IDS = ["left-sidebar", "editor", "right-sidebar"];
 const SummaryPanel = lazy(() =>
   import("../components/summary-panel").then((module) => ({ default: module.SummaryPanel })),
 );
+const ChapterCorkboard = lazy(() =>
+  import("../components/chapter-corkboard").then((module) => ({ default: module.ChapterCorkboard })),
+);
 
 function blurMobileEditorElement(): void {
   const activeElement = document.activeElement;
@@ -96,6 +99,8 @@ export function WritingPage() {
   });
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [hasOpenedSummary, setHasOpenedSummary] = useState(false);
+  const [isCorkboardOpen, setIsCorkboardOpen] = useState(false);
+  const [hasOpenedCorkboard, setHasOpenedCorkboard] = useState(false);
   const [hasEditorSelection, setHasEditorSelection] = useState(false);
   const addSelectionToConversationRef = useRef<(() => void) | null>(null);
   const [assistantState, setAssistantState] = useState<AssistantSidebarState>({
@@ -367,6 +372,24 @@ export function WritingPage() {
     setIsSummaryOpen(open);
   }, []);
 
+  const handleOpenCorkboard = useCallback(() => {
+    setHasOpenedCorkboard(true);
+    setIsCorkboardOpen(true);
+  }, []);
+
+  const handleCorkboardOpenChange = useCallback((open: boolean) => {
+    if (open) setHasOpenedCorkboard(true);
+    setIsCorkboardOpen(open);
+  }, []);
+
+  const handleOpenChapterFromCorkboard = useCallback(
+    (chapterId: string, chapterTitle: string) => {
+      handleChapterSelect(chapterId, chapterTitle);
+      setIsCorkboardOpen(false);
+    },
+    [handleChapterSelect],
+  );
+
   if (!projectId) {
     return null;
   }
@@ -380,6 +403,7 @@ export function WritingPage() {
       onAddToConversation={isViewingSubagent ? undefined : handleAddToConversation}
       initialCurrentChapterNavigationKey={initialCurrentChapterNavigationKey}
       onOpenSummary={handleOpenSummary}
+      onOpenCorkboard={handleOpenCorkboard}
     />
   );
 
@@ -585,6 +609,7 @@ export function WritingPage() {
                   compact
                   initialCurrentChapterNavigationKey={initialCurrentChapterNavigationKey}
                   onOpenSummary={handleOpenSummary}
+                  onOpenCorkboard={handleOpenCorkboard}
                 />
               </Box>
             </div>
@@ -610,6 +635,17 @@ export function WritingPage() {
             open={isSummaryOpen}
             onOpenChange={handleSummaryOpenChange}
             trigger={null}
+          />
+        </Suspense>
+      )}
+      {hasOpenedCorkboard && (
+        <Suspense fallback={null}>
+          <ChapterCorkboard
+            projectId={projectId}
+            open={isCorkboardOpen}
+            onOpenChange={handleCorkboardOpenChange}
+            onOpenChapter={handleOpenChapterFromCorkboard}
+            isAgentLocked={isAgentLocked}
           />
         </Suspense>
       )}

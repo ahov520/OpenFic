@@ -16,6 +16,7 @@ import type { ChapterListItem as ChapterListItemType } from "@/lib/chapter.types
 import { formatRelativeTime } from "@/lib/time-utils";
 
 import { CHAPTER_LIST_ITEM_HEIGHT } from "../lib/chapter-list-drag";
+import { WritingStatusMark } from "./chapter-plan-status";
 import { SummaryStatusDot } from "./summary-status-dot";
 
 function RenameInput({
@@ -176,7 +177,9 @@ function ChapterRowContent({
         <Flex
           gap="2"
           mt="1"
+          align="center"
         >
+          <WritingStatusMark status={chapter.writingStatus} />
           <Text
             size="1"
             color={textColor ? undefined : "gray"}
@@ -590,6 +593,7 @@ function areBaseRowPropsEqual(prev: ChapterListItemBaseProps, next: ChapterListI
     prev.chapter.title === next.chapter.title &&
     prev.chapter.order === next.chapter.order &&
     prev.chapter.wordCount === next.chapter.wordCount &&
+    prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
     prev.isActive === next.isActive &&
     prev.isRenaming === next.isRenaming &&
@@ -614,6 +618,7 @@ function areDraggableRowPropsEqual(
     prev.chapter.title === next.chapter.title &&
     prev.chapter.order === next.chapter.order &&
     prev.chapter.wordCount === next.chapter.wordCount &&
+    prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
     prev.isActive === next.isActive &&
     prev.summaryStatus === next.summaryStatus &&
