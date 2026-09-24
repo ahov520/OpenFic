@@ -39,6 +39,7 @@ from app.api.routers import (
     model_providers,
     models,
     notes,
+    plot_threads,
     projects,
     prompt_chains,
     retrieval_index,
@@ -95,6 +96,7 @@ def _create_test_app() -> FastAPI:
     test_app.include_router(projects.router, prefix="/api/v1")
     test_app.include_router(volumes.router, prefix="/api/v1")
     test_app.include_router(chapters.router, prefix="/api/v1")
+    test_app.include_router(plot_threads.router, prefix="/api/v1")
     test_app.include_router(notes.router, prefix="/api/v1")
     test_app.include_router(commands.router, prefix="/api/v1")
     test_app.include_router(characters.router, prefix="/api/v1")

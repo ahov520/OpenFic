@@ -15,6 +15,7 @@ interface WritingSidebarProps {
   initialCurrentChapterNavigationKey?: string | null;
   onOpenSummary?: () => void;
   onOpenCorkboard?: () => void;
+  onOpenPlotThreads?: () => void;
 }
 
 export function WritingSidebar({
@@ -27,6 +28,7 @@ export function WritingSidebar({
   initialCurrentChapterNavigationKey = null,
   onOpenSummary,
   onOpenCorkboard,
+  onOpenPlotThreads,
 }: WritingSidebarProps) {
   const { t } = useTranslation();
   const sidebarView = useWritingStore((s) => s.sidebarView);
@@ -69,6 +71,7 @@ export function WritingSidebar({
           initialCurrentChapterNavigationKey={initialCurrentChapterNavigationKey}
           onOpenSummary={onOpenSummary}
           onOpenCorkboard={onOpenCorkboard}
+          onOpenPlotThreads={onOpenPlotThreads}
         />
       ) : (
         <NoteSidebar

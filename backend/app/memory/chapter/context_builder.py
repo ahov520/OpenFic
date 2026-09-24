@@ -14,6 +14,7 @@ from app.storage.chapter_plan import catalog_plan_fields, latest_plan_fields
 from app.storage.models.chapter import Chapter
 from app.storage.models.chapter_summary import ChapterSummary
 from app.storage.repos import chapter_repo, chapter_summary_repo, volume_repo
+from app.storage.services.plot_thread_service import context_for_chapter
 
 
 @dataclass
@@ -83,8 +84,18 @@ async def build_context(
         )
 
     current_global_order = order_map[current_chapter.id]
-
-    latest_field = _build_latest_field(current_chapter, current_global_order)
+    plot_plan = await context_for_chapter(
+        session,
+        project_id,
+        current_chapter.id,
+        chapters=all_chapters,
+        volumes=volumes,
+    )
+    latest_field = _build_latest_field(
+        current_chapter,
+        current_global_order,
+        plot_plan,
+    )
 
     near_field = _build_near_field(
         chapter_by_global_order=chapter_by_global_order,
@@ -129,16 +140,18 @@ async def build_context(
 def _build_latest_field(
     chapter: Chapter,
     global_order: int,
+    plot_plan: dict[str, object] | None = None,
 ) -> ContextPart:
-    content = _to_json(
-        {
-            "order": global_order,
-            "title": chapter.title,
-            "content": chapter.content,
-            "word_count": chapter.word_count,
-            **latest_plan_fields(chapter),
-        }
-    )
+    payload: dict[str, object] = {
+        "order": global_order,
+        "title": chapter.title,
+        "content": chapter.content,
+        "word_count": chapter.word_count,
+        **latest_plan_fields(chapter),
+    }
+    if plot_plan:
+        payload["plot_threads"] = plot_plan
+    content = _to_json(payload)
     return ContextPart(
         content=content,
         token_count=_estimate_tokens(content),
@@ -256,8 +269,10 @@ async def _build_far_field(
     if max_end_order < 1:
         return _empty_part()
 
-    long_term_summaries = await chapter_summary_repo.list_long_term_summaries_by_project(
-        session, project_id, ready_only=True
+    long_term_summaries = (
+        await chapter_summary_repo.list_long_term_summaries_by_project(
+            session, project_id, ready_only=True
+        )
     )
 
     if not long_term_summaries:

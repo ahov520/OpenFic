@@ -40,6 +40,7 @@ from app.storage.models.task_message import TaskMessage
 from app.storage.models.volume import Volume
 from app.storage.models.writing_activity_event import WritingActivityEvent
 from app.storage.models.note import Note, NoteCategory
+from app.storage.models.plot_thread import PlotBeat, PlotThread
 from app.storage.models.world_info import WorldInfo
 from app.storage.models.world_info_entry import WorldInfoEntry
 
@@ -61,6 +62,8 @@ __all__ = [
     "ModelProvider",
     "Note",
     "NoteCategory",
+    "PlotBeat",
+    "PlotThread",
     "Project",
     "PromptChainVersion",
     "PromptEntry",

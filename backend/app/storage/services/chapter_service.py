@@ -20,6 +20,7 @@ from app.storage.models.volume import Volume
 from app.storage.repos import (
     chapter_repo,
     chapter_summary_repo,
+    plot_beat_repo,
     project_repo,
     volume_repo,
 )
@@ -591,6 +592,8 @@ async def delete_chapter(
             session, project_id, affected_ranges
         )
 
+    await plot_beat_repo.delete_by_chapter_ids(session, [chapter_id])
+
     # 删除章节
     await chapter_repo.delete(session, chapter)
 
@@ -633,9 +636,7 @@ async def delete_chapters_in_volume(session: AsyncSession, volume_id: str) -> No
     volumes = await volume_repo.list_by_project(session, project_id)
     global_orders = global_order_index(project_chapters, volumes)
     deleted_global_orders = [
-        global_orders[chapter.id]
-        for chapter in chapters
-        if chapter.id in global_orders
+        global_orders[chapter.id] for chapter in chapters if chapter.id in global_orders
     ]
 
     from app.retrieval.chapter_index import ChapterIndexIntegrationService
@@ -667,6 +668,9 @@ async def delete_chapters_in_volume(session: AsyncSession, volume_id: str) -> No
             session, project_id, affected_ranges
         )
 
+    await plot_beat_repo.delete_by_chapter_ids(
+        session, [chapter.id for chapter in chapters]
+    )
     await chapter_repo.delete_by_volume(session, volume_id)
     for chapter in chapters:
         await writing_activity_service.record_activity(

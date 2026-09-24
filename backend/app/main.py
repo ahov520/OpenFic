@@ -43,6 +43,7 @@ from app.api.routers import (
     model_providers,
     models,
     notes,
+    plot_threads,
     projects,
     prompt_chains,
     retrieval_index,
@@ -710,6 +711,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router, prefix=app_settings.api_v1_prefix)
     app.include_router(volumes.router, prefix=app_settings.api_v1_prefix)
     app.include_router(chapters.router, prefix=app_settings.api_v1_prefix)
+    app.include_router(plot_threads.router, prefix=app_settings.api_v1_prefix)
     app.include_router(notes.router, prefix=app_settings.api_v1_prefix)
     app.include_router(commands.router, prefix=app_settings.api_v1_prefix)
     app.include_router(characters.router, prefix=app_settings.api_v1_prefix)

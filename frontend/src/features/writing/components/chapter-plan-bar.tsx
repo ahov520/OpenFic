@@ -8,15 +8,21 @@ import type { Chapter } from "@/lib/chapter.types";
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { useVolumeTree } from "../hooks/use-volumes";
 import { WritingStatusSelect } from "./chapter-plan-status";
+import { ChapterPlotBeats } from "./chapter-plot-beats";
 
 import "./chapter-plan.css";
 
 interface ChapterPlanBarProps {
   chapter: Chapter;
   isAgentLocked?: boolean;
+  onOpenPlotThreads?: () => void;
 }
 
-export function ChapterPlanBar({ chapter, isAgentLocked = false }: ChapterPlanBarProps) {
+export function ChapterPlanBar({
+  chapter,
+  isAgentLocked = false,
+  onOpenPlotThreads,
+}: ChapterPlanBarProps) {
   const { t } = useTranslation();
   const { data: tree } = useVolumeTree(chapter.projectId);
   const listed = useMemo(
@@ -68,6 +74,12 @@ export function ChapterPlanBar({ chapter, isAgentLocked = false }: ChapterPlanBa
       ) : (
         <p className="chapter-plan-bar__hint">{t("writing.chapterPlan.hint")}</p>
       )}
+      <ChapterPlotBeats
+        projectId={chapter.projectId}
+        chapterId={chapter.id}
+        disabled={isAgentLocked}
+        onOpenBoard={onOpenPlotThreads}
+      />
     </section>
   );
 }

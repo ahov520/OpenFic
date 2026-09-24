@@ -6,6 +6,7 @@ import {
   FilePlus,
   GripVertical,
   LayoutGrid,
+  GitBranch,
   Search,
   Summary,
   X,
@@ -28,6 +29,7 @@ interface SidebarToolbarProps {
   onCreateVolume: () => void;
   onOpenSummary?: () => void;
   onOpenCorkboard?: () => void;
+  onOpenPlotThreads?: () => void;
   onExport: () => void;
   onSaveOrder: () => void;
   onCancelOrder: () => void;
@@ -44,6 +46,7 @@ export function SidebarToolbar({
   onCreateVolume,
   onOpenSummary,
   onOpenCorkboard,
+  onOpenPlotThreads,
   onExport,
   onSaveOrder,
   onCancelOrder,
@@ -365,6 +368,21 @@ export function SidebarToolbar({
                       onClick={onOpenCorkboard}
                     >
                       <LayoutGrid size={16} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {onOpenPlotThreads && (
+                  <Tooltip content={t("writing.plotThreads.open")}>
+                    <IconButton
+                      variant="ghost"
+                      color="gray"
+                      highContrast
+                      size="2"
+                      aria-label={t("writing.plotThreads.open")}
+                      data-testid="open-plot-threads"
+                      onClick={onOpenPlotThreads}
+                    >
+                      <GitBranch size={16} />
                     </IconButton>
                   </Tooltip>
                 )}
