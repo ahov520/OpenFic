@@ -423,6 +423,33 @@ def _assess_one(
     )
 
 
+def open_planted_names_by_chapter(
+    assessments: list[ThreadAssessment],
+) -> dict[str, list[str]]:
+    """各章埋下、且到全书最后仍没有回收节拍的情节线名称。
+
+    Plottr 的情节线在章节列上能看见卡。软木板只借用这个交集，
+    而且只交给还没写完的章去显示：这一章有 kind=plant，
+    这条线没有放弃，全书也没有任何 payoff。只推进过的章不算。
+    已有回收节拍的线整条都不进名单。名称按 sort_order、名称、id 排，
+    同一章同一条线只出现一次。前端按这份名单展示，不要自己用章节顺序判断回收。
+    """
+    grouped: dict[str, list[str]] = {}
+    ordered = sorted(
+        assessments, key=lambda item: (item.sort_order, item.name, item.id)
+    )
+    for item in ordered:
+        if item.status == "abandoned" or item.has_payoff:
+            continue
+        seen: set[str] = set()
+        for beat in item.beats:
+            if beat.kind != "plant" or beat.chapter_id in seen:
+                continue
+            seen.add(beat.chapter_id)
+            grouped.setdefault(beat.chapter_id, []).append(item.name)
+    return grouped
+
+
 def board_problem_rank(issues: tuple[str, ...]) -> int:
     """结构对不上的线最前，未回收其次。没有问题的线排在后面。"""
     if ISSUE_PAYOFF_WITHOUT_PLANT in issues or ISSUE_PAYOFF_BEFORE_PLANT in issues:

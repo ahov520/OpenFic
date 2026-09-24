@@ -1130,6 +1130,17 @@ export async function fetchPlotGapsThroughChapter(
   };
 }
 
+function transformOpenPlantsByChapter(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const grouped: Record<string, string[]> = {};
+  for (const [chapterId, names] of Object.entries(value)) {
+    if (!Array.isArray(names)) continue;
+    const cleaned = names.filter((name): name is string => typeof name === "string" && name !== "");
+    if (cleaned.length > 0) grouped[chapterId] = cleaned;
+  }
+  return grouped;
+}
+
 export async function fetchPlotThreads(projectId: string): Promise<PlotBoard> {
   const response = await apiClient.get(`/projects/${projectId}/plot-threads`);
   const raw = response.data as Record<string, unknown>;
@@ -1140,6 +1151,7 @@ export async function fetchPlotThreads(projectId: string): Promise<PlotBoard> {
     chapters: Array.isArray(raw.chapters)
       ? raw.chapters.map((chapter) => transformPlotChapter(chapter as Record<string, unknown>))
       : [],
+    openPlantsByChapter: transformOpenPlantsByChapter(raw.open_plants_by_chapter),
   };
 }
 

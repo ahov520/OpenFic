@@ -197,6 +197,45 @@
   min-height: 88px;
 }
 
+.chapter-corkboard-card__threads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.chapter-corkboard-card__threads-label,
+.chapter-corkboard-card__threads-more {
+  flex-shrink: 0;
+  color: var(--gray-11);
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.4;
+}
+
+.chapter-corkboard-card__threads-more {
+  border: none;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-1, 12px);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.chapter-corkboard-card__thread {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--amber-a3);
+  color: var(--amber-11);
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chapter-corkboard-card__meta {
   color: var(--gray-10);
   font-size: var(--font-size-1, 12px);

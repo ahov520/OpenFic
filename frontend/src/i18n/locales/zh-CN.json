@@ -296,6 +296,9 @@
       "empty": "还没有章节。先在侧栏新建章节，再为它写一张卡片。",
       "emptyFilter": "没有符合筛选的章节。",
       "cardMeta": "{{count}} 字",
+      "openThreadsLabel": "未回收",
+      "openThreadsMore": "还有 {{count}} 条",
+      "openThreadsLess": "收起",
       "statuses": {
         "idea": "构思",
         "drafting": "草稿",

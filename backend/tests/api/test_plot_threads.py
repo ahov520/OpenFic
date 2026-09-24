@@ -85,6 +85,57 @@ async def test_plot_thread_board_tracks_plant_and_payoff(client: AsyncClient) ->
     body = board.json()
     assert body["threads"][0]["name"] == "铜镜"
     assert [chapter["title"] for chapter in body["chapters"]] == ["夜航", "对上"]
+    assert body["open_plants_by_chapter"] == {}
+
+
+@pytest.mark.asyncio
+async def test_plot_board_groups_unpaid_plants_by_chapter(client: AsyncClient) -> None:
+    project_id, volume_id = await _create_project(client)
+    first = await _create_chapter(client, project_id, volume_id, "夜航")
+    second = await _create_chapter(client, project_id, volume_id, "对上")
+
+    async def _thread(name: str, status: str = "active") -> str:
+        created = await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": name, "status": status},
+        )
+        assert created.status_code == 201
+        return created.json()["id"]
+
+    mirror_id = await _thread("铜镜")
+    letter_id = await _thread("旧信")
+    dropped_id = await _thread("弃线", "abandoned")
+    pushed_id = await _thread("只推进")
+
+    for thread_id, chapter_id, kind in (
+        (mirror_id, first["id"], "plant"),
+        (letter_id, second["id"], "plant"),
+        (dropped_id, first["id"], "plant"),
+        (pushed_id, first["id"], "advance"),
+    ):
+        planted = await client.post(
+            f"/api/v1/plot-threads/{thread_id}/beats",
+            json={"chapter_id": chapter_id, "kind": kind, "note": "记一笔"},
+        )
+        assert planted.status_code == 201
+
+    board = await client.get(f"/api/v1/projects/{project_id}/plot-threads")
+    assert board.status_code == 200
+    grouped = board.json()["open_plants_by_chapter"]
+    assert grouped[first["id"]] == ["铜镜"]
+    assert grouped[second["id"]] == ["旧信"]
+    assert "弃线" not in grouped[first["id"]]
+    assert "只推进" not in grouped[first["id"]]
+
+    paid = await client.post(
+        f"/api/v1/plot-threads/{mirror_id}/beats",
+        json={"chapter_id": second["id"], "kind": "payoff", "note": "镜子里是凶手"},
+    )
+    assert paid.status_code == 201
+    after = await client.get(f"/api/v1/projects/{project_id}/plot-threads")
+    regrouped = after.json()["open_plants_by_chapter"]
+    assert first["id"] not in regrouped
+    assert regrouped[second["id"]] == ["旧信"]
 
 
 @pytest.mark.asyncio
