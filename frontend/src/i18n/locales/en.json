@@ -295,6 +295,7 @@
       "loading": "Loading chapters…",
       "empty": "No chapters yet. Create one in the sidebar, then write its card.",
       "emptyFilter": "No chapters match this filter.",
+      "nextChapter": "Next chapter",
       "cardMeta": "{{count}} words",
       "statuses": {
         "idea": "Idea",
