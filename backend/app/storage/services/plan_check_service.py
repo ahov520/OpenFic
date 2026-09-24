@@ -3,6 +3,7 @@
 
 没有可用模型或钥匙时，改用字面锚点，不另接供应商。
 正文、梗概或本章节拍变化后，已保存的结果标成过期，直到作者再检查一次。
+再次检查时对照上一份开口缺口。第一次检查，或上次还没有计划，都不标「不再出现」。
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from app.storage.plan_coverage import (
     PresentedCheck,
     StoredPlanCheck,
     UncheckedLine,
+    annotate_gap_changes,
     build_plan_items,
     dump_payload,
     has_author_plan,
@@ -58,6 +60,7 @@ async def run_plan_check_with_generate(
     generate: PlanCheckGenerate | None,
 ) -> PresentedCheck:
     chapter = await _get_chapter(session, chapter_id)
+    previous = _stored_from_chapter(chapter)
     beats, fingerprint, items, has_plan = await _load_plan(session, chapter)
     del beats
     if not has_plan:
@@ -66,6 +69,8 @@ async def run_plan_check_with_generate(
         unchecked: list[UncheckedLine] = []
     else:
         source, gaps, unchecked = await _evaluate(chapter.content, items, generate)
+        if previous is not None and previous.source in {"model", "literal"}:
+            gaps = annotate_gap_changes(previous.gaps, gaps, items)
     checked_at = datetime.now(UTC)
     chapter.plan_check_fingerprint = fingerprint
     chapter.plan_check_source = source
@@ -162,6 +167,7 @@ async def _load_plan(
                 note=row.note,
                 thread_name=thread.name,
                 intent=thread.intent,
+                thread_id=thread.id,
             )
         )
     return (

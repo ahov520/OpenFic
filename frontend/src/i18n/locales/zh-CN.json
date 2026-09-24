@@ -322,7 +322,13 @@
       "uncheckedItem": "无法用字面判断",
       "synopsisLine": "梗概：{{text}}",
       "beatLine": "{{kind}} · {{name}}：{{text}}",
-      "failed": "对照计划失败，请重试"
+      "failed": "对照计划失败，请重试",
+      "change": {
+        "still": "仍未写上",
+        "new": "这次新出现",
+        "gone": "上次的这条在本次结果里不再出现",
+        "invalidated": "这条计划的原文已经改了，对不齐，不能当成已经写上"
+      }
     },
     "chapterLength": {
       "target": "目标",

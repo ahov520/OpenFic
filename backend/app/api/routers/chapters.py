@@ -52,6 +52,8 @@ def _plan_check_response(
                     "detail": gap.detail,
                     "beat_kind": gap.beat_kind,
                     "thread_name": gap.thread_name,
+                    "thread_id": gap.thread_id,
+                    "change": gap.change,
                 }
                 for gap in presented.gaps
             ],

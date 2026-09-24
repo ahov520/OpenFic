@@ -4,6 +4,8 @@
 只看挂在当前章上的节拍。后文章节的备注不参与检查。
 结果留在章节上；正文、梗概或本章节拍一旦变化，旧结果标成过期，不自动删掉。
 没有梗概、也没有本章节拍时，结果是「没有可对照的计划」，不是检查通过。
+再次检查时，用梗概原句、或节拍的情节线 id 加类型，对照上一份开口缺口。
+对不上的旧句子单独标成失效，不把它算成已经写上。
 """
 
 from __future__ import annotations
@@ -103,6 +105,20 @@ _SINGLE_SURNAME_CHARS = frozenset(
 )
 SINGLE_SURNAMES = _SINGLE_SURNAME_CHARS - COLLISION_SURNAMES
 PAYLOAD_VERSION = 1
+GAP_CHANGE_STILL = "still"
+GAP_CHANGE_NEW = "new"
+GAP_CHANGE_GONE = "gone"
+GAP_CHANGE_INVALIDATED = "invalidated"
+GAP_CHANGES = frozenset(
+    {
+        GAP_CHANGE_STILL,
+        GAP_CHANGE_NEW,
+        GAP_CHANGE_GONE,
+        GAP_CHANGE_INVALIDATED,
+    }
+)
+# 这两类不是这一次的开口缺口。再对照时不把它们当成「上一份还没写上的」。
+CLOSED_GAP_CHANGES = frozenset({GAP_CHANGE_GONE, GAP_CHANGE_INVALIDATED})
 PROSE_LIMIT = 16000
 BECAUSE_LIMIT = 160
 
@@ -116,6 +132,7 @@ class BeatInput:
     note: str
     thread_name: str
     intent: str
+    thread_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -129,6 +146,7 @@ class PlanItem:
     thread_name: str | None = None
     note: str = ""
     intent: str = ""
+    thread_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -143,6 +161,8 @@ class CoverageGap:
     detail: str = ""
     beat_kind: str | None = None
     thread_name: str | None = None
+    thread_id: str | None = None
+    change: str | None = None
 
 
 @dataclass(frozen=True)
@@ -259,6 +279,7 @@ def literal_report(
                 missing=missing,
                 beat_kind=item.beat_kind,
                 thread_name=item.thread_name,
+                thread_id=item.thread_id or None,
             )
         )
     return gaps, unchecked
@@ -319,6 +340,7 @@ def parse_model_gaps(raw: str, items: list[PlanItem]) -> list[CoverageGap] | Non
                 detail=detail[:BECAUSE_LIMIT],
                 beat_kind=item.beat_kind,
                 thread_name=item.thread_name,
+                thread_id=item.thread_id or None,
             )
         )
     if raw_gaps and not accepted and invalid:
@@ -357,6 +379,60 @@ def render_check_prompt(prose: str, items: list[PlanItem]) -> list[dict[str, str
         {"role": "system", "content": system},
         {"role": "user", "content": user},
     ]
+
+
+def annotate_gap_changes(
+    previous: tuple[CoverageGap, ...],
+    current: list[CoverageGap],
+    items: list[PlanItem],
+) -> list[CoverageGap]:
+    """把上一份开口缺口和这一次的结果对齐。
+
+    梗概用那一句的原文对齐，不用会随插入句子而变的序号。
+    节拍用情节线 id 加类型对齐，不用备注或线名。
+    对得上且这次仍是缺口：仍未写上。这次才有：新出现。
+    计划条目还在、但这次结果里没有这条：不再出现。这不是通过。
+    原文改写、删掉或节拍类型变了，对不上当前计划：旧条目失效，不算已经写上。
+    上一份里已经标成不再出现或失效的，不参与这一次对照。
+    """
+    prior = [gap for gap in previous if gap.change not in CLOSED_GAP_CHANGES]
+    plan_keys = {key for item in items if (key := _plan_key(item)) is not None}
+    current_keys: set[tuple[str, str]] = set()
+    for gap in current:
+        key = _gap_key(gap)
+        if key is not None:
+            current_keys.add(key)
+
+    still_keys: set[tuple[str, str]] = set()
+    gone: list[CoverageGap] = []
+    invalidated: list[CoverageGap] = []
+    seen: set[tuple[str, str]] = set()
+    for old in prior:
+        key = _gap_key(old)
+        if key is not None:
+            if key in seen:
+                continue
+            seen.add(key)
+        if key is None or key not in plan_keys:
+            invalidated.append(_with_change(old, GAP_CHANGE_INVALIDATED))
+            continue
+        if key in current_keys:
+            still_keys.add(key)
+            continue
+        gone.append(_with_change(old, GAP_CHANGE_GONE))
+
+    annotated: list[CoverageGap] = []
+    for gap in current:
+        key = _gap_key(gap)
+        change = (
+            GAP_CHANGE_STILL
+            if key is not None and key in still_keys
+            else GAP_CHANGE_NEW
+        )
+        annotated.append(_with_change(gap, change))
+    annotated.extend(gone)
+    annotated.extend(invalidated)
+    return annotated
 
 
 def dump_payload(gaps: list[CoverageGap], unchecked: list[UncheckedLine]) -> str:
@@ -432,7 +508,8 @@ def present_check(
             unchecked=(),
             checked_at=stored.checked_at,
         )
-    outcome = "gaps" if stored.gaps else "partial" if stored.unchecked else "clear"
+    open_gaps = [gap for gap in stored.gaps if gap.change not in CLOSED_GAP_CHANGES]
+    outcome = "gaps" if open_gaps else "partial" if stored.unchecked else "clear"
     return PresentedCheck(
         has_plan=True,
         freshness=freshness,
@@ -480,6 +557,7 @@ def _beat_item(beat: BeatInput) -> PlanItem:
         thread_name=beat.thread_name,
         note=note,
         intent=intent,
+        thread_id=beat.thread_id,
     )
 
 
@@ -630,6 +708,43 @@ def _clip_prose(prose: str) -> str:
     return prose[:12000] + "\n……（中间略去）……\n" + prose[-4000:]
 
 
+def _plan_key(item: PlanItem) -> tuple[str, str] | None:
+    if item.origin == "synopsis":
+        text = normalize_for_search(item.plan_text)
+        if not text:
+            return None
+        return ("synopsis", text)
+    if not item.thread_id or not item.beat_kind:
+        return None
+    return ("beat", f"{item.thread_id}\0{item.beat_kind}")
+
+
+def _gap_key(gap: CoverageGap) -> tuple[str, str] | None:
+    if gap.origin == "synopsis":
+        text = normalize_for_search(gap.plan_text)
+        if not text:
+            return None
+        return ("synopsis", text)
+    if not gap.thread_id or not gap.beat_kind:
+        return None
+    return ("beat", f"{gap.thread_id}\0{gap.beat_kind}")
+
+
+def _with_change(gap: CoverageGap, change: str) -> CoverageGap:
+    return CoverageGap(
+        ref=gap.ref,
+        origin=gap.origin,
+        plan_text=gap.plan_text,
+        basis=gap.basis,
+        missing=gap.missing,
+        detail=gap.detail,
+        beat_kind=gap.beat_kind,
+        thread_name=gap.thread_name,
+        thread_id=gap.thread_id,
+        change=change,
+    )
+
+
 def _gap_dict(gap: CoverageGap) -> dict[str, object]:
     return {
         "ref": gap.ref,
@@ -640,6 +755,8 @@ def _gap_dict(gap: CoverageGap) -> dict[str, object]:
         "detail": gap.detail,
         "beat_kind": gap.beat_kind,
         "thread_name": gap.thread_name,
+        "thread_id": gap.thread_id,
+        "change": gap.change,
     }
 
 
@@ -674,9 +791,15 @@ def _gap_from_dict(raw: object) -> CoverageGap | None:
         return None
     beat_kind = raw.get("beat_kind")
     thread_name = raw.get("thread_name")
+    thread_id = raw.get("thread_id")
+    change = raw.get("change")
     if beat_kind is not None and not isinstance(beat_kind, str):
         return None
     if thread_name is not None and not isinstance(thread_name, str):
+        return None
+    if thread_id is not None and not isinstance(thread_id, str):
+        return None
+    if change is not None and change not in GAP_CHANGES:
         return None
     return CoverageGap(
         ref=ref,
@@ -687,6 +810,8 @@ def _gap_from_dict(raw: object) -> CoverageGap | None:
         detail=detail,
         beat_kind=beat_kind,
         thread_name=thread_name,
+        thread_id=thread_id,
+        change=change,
     )
 
 

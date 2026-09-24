@@ -322,7 +322,13 @@
       "uncheckedItem": "Cannot check literally",
       "synopsisLine": "Synopsis: {{text}}",
       "beatLine": "{{kind}} · {{name}}: {{text}}",
-      "failed": "Couldn't check the plan. Please try again."
+      "failed": "Couldn't check the plan. Please try again.",
+      "change": {
+        "still": "Still missing",
+        "new": "New this check",
+        "gone": "This item from the last check no longer appears in this result",
+        "invalidated": "This plan line was rewritten and no longer lines up, so it is not counted as written"
+      }
     },
     "chapterLength": {
       "target": "Target",

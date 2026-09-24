@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/components";
 import { fetchPlanCheck, runPlanCheck } from "@/lib/api-client";
 import type { Chapter } from "@/lib/chapter.types";
-import type { PlanCheck, PlanCheckGap, PlanCheckLine } from "@/lib/plan-check";
+import type { PlanCheck, PlanCheckGap, PlanCheckLine, PlanGapChange } from "@/lib/plan-check";
 
 import { usePlotThreads } from "../hooks/use-plot-threads";
 
@@ -146,10 +146,10 @@ function PlanCheckBody({ result }: { result: PlanCheck }) {
       {result.freshness === "stale" && (
         <p className="chapter-plan-check__stale">{t("writing.planCheck.stale")}</p>
       )}
-      {result.outcome === "clear" && result.source === "model" && (
+      {result.outcome === "clear" && result.source === "model" && !hasClosedGap(result) && (
         <p className="chapter-plan-check__clear">{t("writing.planCheck.modelClear")}</p>
       )}
-      {result.outcome === "clear" && result.source === "literal" && (
+      {result.outcome === "clear" && result.source === "literal" && !hasClosedGap(result) && (
         <p className="chapter-plan-check__clear">{t("writing.planCheck.literalClear")}</p>
       )}
       {result.outcome === "partial" && (
@@ -159,7 +159,7 @@ function PlanCheckBody({ result }: { result: PlanCheck }) {
         <ul className="chapter-plan-check__list">
           {result.gaps.map((gap) => (
             <GapItem
-              key={gap.ref}
+              key={gapKey(gap)}
               gap={gap}
             />
           ))}
@@ -181,24 +181,35 @@ function PlanCheckBody({ result }: { result: PlanCheck }) {
 
 function GapItem({ gap }: { gap: PlanCheckGap }) {
   const { t } = useTranslation();
+  const closed = gap.change === "gone" || gap.change === "invalidated";
   return (
     <li
       className="chapter-plan-check__gap"
       data-basis={gap.basis}
+      data-change={gap.change ?? "none"}
     >
-      <p className="chapter-plan-check__basis">
-        {gap.basis === "model"
-          ? t("writing.planCheck.modelBadge")
-          : t("writing.planCheck.literalBadge")}
-      </p>
+      {gap.change && <p className="chapter-plan-check__change">{changeLabel(t, gap.change)}</p>}
+      {!closed && (
+        <p className="chapter-plan-check__basis">
+          {gap.basis === "model"
+            ? t("writing.planCheck.modelBadge")
+            : t("writing.planCheck.literalBadge")}
+        </p>
+      )}
       <p className="chapter-plan-check__plan">{planLabel(t, gap)}</p>
-      <p className="chapter-plan-check__detail">
-        {gap.basis === "literal"
-          ? t("writing.planCheck.missingLiteral", { items: gap.missing.join("、") })
-          : gap.detail}
-      </p>
+      {!closed && (
+        <p className="chapter-plan-check__detail">
+          {gap.basis === "literal"
+            ? t("writing.planCheck.missingLiteral", { items: gap.missing.join("、") })
+            : gap.detail}
+        </p>
+      )}
     </li>
   );
+}
+
+function hasClosedGap(result: PlanCheck) {
+  return result.gaps.some((gap) => gap.change === "gone" || gap.change === "invalidated");
 }
 
 function UncheckedItem({ line }: { line: PlanCheckLine }) {
@@ -209,6 +220,29 @@ function UncheckedItem({ line }: { line: PlanCheckLine }) {
       <p className="chapter-plan-check__plan">{planLabel(t, line)}</p>
     </li>
   );
+}
+
+function gapKey(gap: PlanCheckGap) {
+  return [
+    gap.change ?? "none",
+    gap.origin,
+    gap.threadId ?? "",
+    gap.beatKind ?? "",
+    gap.planText,
+  ].join("\0");
+}
+
+function changeLabel(t: TFunction, change: PlanGapChange) {
+  switch (change) {
+    case "still":
+      return t("writing.planCheck.change.still");
+    case "new":
+      return t("writing.planCheck.change.new");
+    case "gone":
+      return t("writing.planCheck.change.gone");
+    case "invalidated":
+      return t("writing.planCheck.change.invalidated");
+  }
 }
 
 function planLabel(

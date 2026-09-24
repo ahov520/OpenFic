@@ -12,6 +12,7 @@ PlanFreshness = Literal["unchecked", "current", "stale"]
 PlanSource = Literal["model", "literal", "empty"]
 PlanOutcome = Literal["unchecked", "no_plan", "gaps", "partial", "clear"]
 BeatKind = Literal["plant", "advance", "payoff"]
+PlanGapChange = Literal["still", "new", "gone", "invalidated"]
 
 
 class PlanCheckGap(BaseModel):
@@ -25,6 +26,11 @@ class PlanCheckGap(BaseModel):
     detail: str = Field(description="模型说明；字面检查为空")
     beat_kind: BeatKind | None = Field(description="节拍类型")
     thread_name: str | None = Field(description="情节线名称")
+    thread_id: str | None = Field(default=None, description="情节线 id。梗概缺口为空")
+    change: PlanGapChange | None = Field(
+        default=None,
+        description="与上一份开口缺口的对照。第一次检查为空；不再出现不是通过",
+    )
 
 
 class PlanCheckLine(BaseModel):

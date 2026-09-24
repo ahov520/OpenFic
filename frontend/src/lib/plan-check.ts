@@ -6,6 +6,7 @@ export type PlanCheckBasis = "literal" | "model";
 export type PlanCheckFreshness = "unchecked" | "current" | "stale";
 export type PlanCheckSource = "model" | "literal" | "empty";
 export type PlanCheckOutcome = "unchecked" | "no_plan" | "gaps" | "partial" | "clear";
+export type PlanGapChange = "still" | "new" | "gone" | "invalidated";
 
 export interface PlanCheckGap {
   ref: string;
@@ -16,6 +17,8 @@ export interface PlanCheckGap {
   detail: string;
   beatKind: PlotBeatKind | null;
   threadName: string | null;
+  threadId: string | null;
+  change: PlanGapChange | null;
 }
 
 export interface PlanCheckLine {
@@ -40,6 +43,7 @@ export interface PlanCheck {
 const FRESHNESS = new Set<PlanCheckFreshness>(["unchecked", "current", "stale"]);
 const SOURCES = new Set<PlanCheckSource>(["model", "literal", "empty"]);
 const OUTCOMES = new Set<PlanCheckOutcome>(["unchecked", "no_plan", "gaps", "partial", "clear"]);
+const CHANGES = new Set<PlanGapChange>(["still", "new", "gone", "invalidated"]);
 
 function readOrigin(value: unknown): PlanCheckOrigin {
   return value === "beat" ? "beat" : "synopsis";
@@ -57,6 +61,10 @@ function readStringList(value: unknown): string[] {
 function readBeatKind(value: unknown): PlotBeatKind | null {
   if (typeof value !== "string") return null;
   return normalizePlotBeatKind(value);
+}
+
+function readChange(value: unknown): PlanGapChange | null {
+  return CHANGES.has(value as PlanGapChange) ? (value as PlanGapChange) : null;
 }
 
 export function transformPlanCheck(raw: Record<string, unknown>): PlanCheck {
@@ -88,6 +96,8 @@ export function transformPlanCheck(raw: Record<string, unknown>): PlanCheck {
         detail: typeof item.detail === "string" ? item.detail : "",
         beatKind: readBeatKind(item.beat_kind),
         threadName: typeof item.thread_name === "string" ? item.thread_name : null,
+        threadId: typeof item.thread_id === "string" ? item.thread_id : null,
+        change: readChange(item.change),
       })),
     unchecked: unchecked
       .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")

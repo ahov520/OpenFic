@@ -3,9 +3,13 @@
 
 from app.storage.plan_coverage import (
     BeatInput,
+    CoverageGap,
+    PlanItem,
     StoredPlanCheck,
+    annotate_gap_changes,
     build_plan_items,
     literal_report,
+    load_payload,
     parse_model_gaps,
     plan_fingerprint,
     present_check,
@@ -150,3 +154,208 @@ def test_missing_plan_is_not_reported_as_clear() -> None:
     assert never.outcome == "no_plan"
     assert never.freshness == "unchecked"
     assert never.source is None
+
+
+def test_recheck_keeps_still_marks_new_and_does_not_call_a_rewrite_written() -> None:
+    """梗概按原句对齐，节拍按线 id 加类型。原文改了是失效，不是不再出现。"""
+    previous = (
+        _gap("synopsis:0", "synopsis", "门外是林晚棠。", missing=("林晚棠",)),
+        _gap("synopsis:1", "synopsis", "沈照发现「铜钥匙」。", missing=("铜钥匙",)),
+        _gap(
+            "beat:old",
+            "beat",
+            "灯还亮着",
+            missing=("灯还亮着",),
+            beat_kind="plant",
+            thread_name="铜镜",
+            thread_id="thread-1",
+        ),
+    )
+    current = [
+        _gap("synopsis:4", "synopsis", "门外是林晚棠。", missing=("林晚棠",)),
+        _gap("synopsis:5", "synopsis", "桌上是周明远。", missing=("周明远",)),
+        _gap(
+            "beat:old",
+            "beat",
+            "窗还开着",
+            missing=("窗还开着",),
+            beat_kind="plant",
+            thread_name="另一面镜子",
+            thread_id="thread-1",
+        ),
+    ]
+    items = [
+        PlanItem("synopsis:3", "synopsis", "天亮以前。"),
+        PlanItem("synopsis:4", "synopsis", "门外是林晚棠。"),
+        PlanItem("synopsis:5", "synopsis", "桌上是周明远。"),
+        PlanItem("synopsis:6", "synopsis", "沈照发现「铜钥匙」。"),
+        PlanItem(
+            "beat:old",
+            "beat",
+            "窗还开着",
+            beat_kind="plant",
+            thread_name="另一面镜子",
+            thread_id="thread-1",
+        ),
+    ]
+    aligned = annotate_gap_changes(previous, current, items)
+    by_text = {gap.plan_text: gap.change for gap in aligned}
+    assert by_text["门外是林晚棠。"] == "still"
+    assert by_text["桌上是周明远。"] == "new"
+    assert by_text["沈照发现「铜钥匙」。"] == "gone"
+    assert by_text["窗还开着"] == "still"
+    assert "灯还亮着" not in by_text
+    assert aligned[0].ref == "synopsis:4"
+
+    rewritten = annotate_gap_changes(
+        (_gap("synopsis:0", "synopsis", "门外是林晚棠。", missing=("林晚棠",)),),
+        [],
+        [PlanItem("synopsis:0", "synopsis", "门口只剩风声。")],
+    )
+    assert [gap.change for gap in rewritten] == ["invalidated"]
+    assert rewritten[0].plan_text == "门外是林晚棠。"
+
+    kind_changed = annotate_gap_changes(
+        (
+            _gap(
+                "beat:old",
+                "beat",
+                "灯还亮着",
+                missing=("灯还亮着",),
+                beat_kind="plant",
+                thread_id="thread-1",
+            ),
+        ),
+        [
+            _gap(
+                "beat:old",
+                "beat",
+                "灯还亮着",
+                missing=("灯还亮着",),
+                beat_kind="advance",
+                thread_id="thread-1",
+            )
+        ],
+        [
+            PlanItem(
+                "beat:old",
+                "beat",
+                "灯还亮着",
+                beat_kind="advance",
+                thread_id="thread-1",
+            )
+        ],
+    )
+    assert [(gap.beat_kind, gap.change) for gap in kind_changed] == [
+        ("advance", "new"),
+        ("plant", "invalidated"),
+    ]
+
+
+def test_closed_rows_are_not_treated_as_the_previous_open_gaps() -> None:
+    previous = (
+        _gap(
+            "synopsis:0",
+            "synopsis",
+            "门外是林晚棠。",
+            missing=("林晚棠",),
+            change="gone",
+        ),
+        _gap(
+            "synopsis:1",
+            "synopsis",
+            "沈照发现「铜钥匙」。",
+            missing=("铜钥匙",),
+            change="still",
+        ),
+    )
+    items = [
+        PlanItem("synopsis:0", "synopsis", "门外是林晚棠。"),
+        PlanItem("synopsis:1", "synopsis", "沈照发现「铜钥匙」。"),
+    ]
+    aligned = annotate_gap_changes(previous, [], items)
+    assert [(gap.plan_text, gap.change) for gap in aligned] == [
+        ("沈照发现「铜钥匙」。", "gone")
+    ]
+
+
+def test_gap_without_a_thread_id_cannot_be_counted_as_written() -> None:
+    previous = (
+        _gap(
+            "beat:old",
+            "beat",
+            "灯还亮着",
+            missing=("灯还亮着",),
+            beat_kind="plant",
+            thread_name="铜镜",
+        ),
+    )
+    items = [
+        PlanItem(
+            "beat:old",
+            "beat",
+            "灯还亮着",
+            beat_kind="plant",
+            thread_name="铜镜",
+            thread_id="thread-1",
+        )
+    ]
+    aligned = annotate_gap_changes(previous, [], items)
+    assert [gap.change for gap in aligned] == ["invalidated"]
+
+
+def test_old_payload_without_change_still_loads() -> None:
+    loaded = load_payload(
+        '{"version":1,"gaps":[{"ref":"synopsis:0","origin":"synopsis",'
+        '"plan_text":"门外是林晚棠。","basis":"literal","missing":["林晚棠"],'
+        '"detail":"","beat_kind":null,"thread_name":null}],"unchecked":[]}'
+    )
+    assert loaded is not None
+    gap = loaded[0][0]
+    assert gap.change is None
+    assert gap.thread_id is None
+    assert gap.missing == ("林晚棠",)
+
+
+def test_only_gone_gaps_are_not_an_open_failure() -> None:
+    stored = StoredPlanCheck(
+        fingerprint="same",
+        source="literal",
+        gaps=(
+            _gap(
+                "synopsis:0",
+                "synopsis",
+                "门外是林晚棠。",
+                missing=("林晚棠",),
+                change="gone",
+            ),
+        ),
+        unchecked=(),
+    )
+    presented = present_check(stored, fingerprint="same", has_plan=True)
+    assert presented.outcome == "clear"
+    assert presented.gaps[0].change == "gone"
+
+
+def _gap(
+    ref: str,
+    origin: str,
+    plan_text: str,
+    *,
+    missing: tuple[str, ...] = (),
+    beat_kind: str | None = None,
+    thread_name: str | None = None,
+    thread_id: str | None = None,
+    change: str | None = None,
+) -> CoverageGap:
+    return CoverageGap(
+        ref=ref,
+        origin=origin,
+        plan_text=plan_text,
+        basis="literal",
+        missing=missing,
+        beat_kind=beat_kind,
+        thread_name=thread_name,
+        thread_id=thread_id,
+        change=change,
+    )
