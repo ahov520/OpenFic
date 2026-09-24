@@ -143,6 +143,7 @@ function ChapterEditorContent({
     isChapterEditorDraftDirty(lastSavedDraftRef.current, initialDraft),
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [manuscriptRevision, setManuscriptRevision] = useState(0);
   const [findReplaceMode, setFindReplaceMode] = useState<"closed" | "find" | "replace">("closed");
   const [wordCount, setWordCount] = useState(() => wordsCount(initialDraft.content));
   const [lineNumberDigits, setLineNumberDigits] = useState(1);
@@ -357,6 +358,7 @@ function ChapterEditorContent({
           content: updatedChapter.content,
         });
         baseUpdatedAtRef.current = updatedChapter.updatedAt;
+        setManuscriptRevision((revision) => revision + 1);
         void clearWorkingCopy(draftToSave, draftUpdatedAt);
         syncDirtyStateFromEditor(editor);
         onChapterUpdate?.(updatedChapter);
@@ -682,8 +684,14 @@ function ChapterEditorContent({
           />
           <ChapterPlanBar
             chapter={chapter}
+            manuscriptRevision={manuscriptRevision}
             isAgentLocked={isAgentLocked}
             onOpenPlotThreads={onOpenPlotThreads}
+            onPrepareCheck={async () => {
+              if (hasChangesRef.current) {
+                await handleSave(false);
+              }
+            }}
           />
           <Box style={{ borderBottom: "1px solid var(--gray-a4)" }} />
           <Box

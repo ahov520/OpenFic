@@ -303,6 +303,27 @@
         "done": "完成"
       }
     },
+    "planCheck": {
+      "title": "对照计划",
+      "run": "对照计划检查",
+      "running": "正在对照…",
+      "hint": "看梗概和这一章的节拍里，哪些还没有写进正文。",
+      "noPlan": "没有可对照的计划。先写这一章的梗概，或在这一章挂上埋下、推进、回收。",
+      "noPlanStale": "现在没有可对照的计划。上次的检查已经作废。",
+      "prompt": "还没对照过这一章。",
+      "planAdded": "上次检查时还没有计划。梗概或节拍已经有了，再对照一次。",
+      "stale": "正文、梗概或这一章的节拍已经变了，下面是过期结果。",
+      "modelBadge": "模型判断",
+      "literalBadge": "字面未出现",
+      "missingLiteral": "正文里完全没有：{{items}}",
+      "modelClear": "模型判断：这些计划在正文里都有依据。",
+      "literalClear": "字面检查：列出的专名、引号短句和节拍短句都出现在正文里。换一种说法的情节，字面检查看不出来。",
+      "partial": "这些计划里没有专名或引号，字面检查判断不了，不能算通过。",
+      "uncheckedItem": "无法用字面判断",
+      "synopsisLine": "梗概：{{text}}",
+      "beatLine": "{{kind}} · {{name}}：{{text}}",
+      "failed": "对照计划失败，请重试"
+    },
     "chapterLength": {
       "target": "目标",
       "targetPlaceholder": "不设",

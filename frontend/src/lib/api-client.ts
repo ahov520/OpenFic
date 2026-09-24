@@ -724,6 +724,8 @@ import type {
   VolumeUpdate,
   VolumeWithChapters,
 } from "./chapter.types";
+import type { PlanCheck } from "./plan-check";
+import { transformPlanCheck } from "./plan-check";
 import type {
   PlotBeat,
   PlotBeatCreate,
@@ -891,6 +893,20 @@ export async function fetchAgentComposerItems(projectId: string): Promise<AgentC
 export async function fetchChapter(chapterId: string): Promise<Chapter> {
   const response = await apiClient.get(`/chapters/${chapterId}`);
   return transformChapter(response.data);
+}
+
+export async function fetchPlanCheck(chapterId: string): Promise<PlanCheck> {
+  const response = await apiClient.get<Record<string, unknown>>(
+    `/chapters/${chapterId}/plan-check`,
+  );
+  return transformPlanCheck(response.data);
+}
+
+export async function runPlanCheck(chapterId: string): Promise<PlanCheck> {
+  const response = await apiClient.post<Record<string, unknown>>(
+    `/chapters/${chapterId}/plan-check`,
+  );
+  return transformPlanCheck(response.data);
 }
 
 /**

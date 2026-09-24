@@ -44,6 +44,15 @@ async def list_by_project(session: AsyncSession, project_id: str) -> list[PlotBe
     return list(result.scalars().all())
 
 
+async def list_by_chapter(session: AsyncSession, chapter_id: str) -> list[PlotBeat]:
+    result = await session.execute(
+        select(PlotBeat)
+        .where(col(PlotBeat.chapter_id) == chapter_id)
+        .order_by(col(PlotBeat.created_at).asc())
+    )
+    return list(result.scalars().all())
+
+
 async def list_by_thread(session: AsyncSession, thread_id: str) -> list[PlotBeat]:
     result = await session.execute(
         select(PlotBeat).where(col(PlotBeat.thread_id) == thread_id)

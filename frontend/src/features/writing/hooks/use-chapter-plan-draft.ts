@@ -145,7 +145,7 @@ export function useChapterPlanDraft(source: ChapterPlanDraftSource, isAgentLocke
 
   const flush = useCallback(() => {
     clearTimer();
-    void persist();
+    return persist();
   }, [clearTimer, persist]);
 
   const setSynopsis = useCallback(

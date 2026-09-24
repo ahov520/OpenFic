@@ -303,6 +303,27 @@
         "done": "Done"
       }
     },
+    "planCheck": {
+      "title": "Check against the plan",
+      "run": "Check this chapter",
+      "running": "Checking…",
+      "hint": "See which synopsis lines and beats on this chapter are still missing from the prose.",
+      "noPlan": "There is no plan to check. Write a synopsis, or attach a plant, advance, or payoff to this chapter.",
+      "noPlanStale": "There is no plan to check now. The previous result no longer applies.",
+      "prompt": "This chapter has not been checked yet.",
+      "planAdded": "The last check had no plan. A synopsis or beat is here now, so check again.",
+      "stale": "The prose, synopsis, or this chapter's beats changed. The result below is out of date.",
+      "modelBadge": "Model",
+      "literalBadge": "Not on the page",
+      "missingLiteral": "Missing from the prose: {{items}}",
+      "modelClear": "The model finds evidence in the prose for these plans.",
+      "literalClear": "Every listed name, quoted phrase, and short beat note appears in the prose. A reworded event can still be missed without a model.",
+      "partial": "These lines have no name or quotation to match, so this is not a pass.",
+      "uncheckedItem": "Cannot check literally",
+      "synopsisLine": "Synopsis: {{text}}",
+      "beatLine": "{{kind}} · {{name}}: {{text}}",
+      "failed": "Couldn't check the plan. Please try again."
+    },
     "chapterLength": {
       "target": "Target",
       "targetPlaceholder": "None",

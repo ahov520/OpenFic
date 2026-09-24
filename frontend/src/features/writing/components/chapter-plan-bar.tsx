@@ -7,6 +7,7 @@ import type { Chapter } from "@/lib/chapter.types";
 
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { useVolumeTree } from "../hooks/use-volumes";
+import { ChapterPlanCheck } from "./chapter-plan-check";
 import { WritingStatusSelect } from "./chapter-plan-status";
 import { ChapterPlotBeats } from "./chapter-plot-beats";
 
@@ -14,14 +15,18 @@ import "./chapter-plan.css";
 
 interface ChapterPlanBarProps {
   chapter: Chapter;
+  manuscriptRevision?: number;
   isAgentLocked?: boolean;
   onOpenPlotThreads?: () => void;
+  onPrepareCheck?: () => Promise<void>;
 }
 
 export function ChapterPlanBar({
   chapter,
+  manuscriptRevision = 0,
   isAgentLocked = false,
   onOpenPlotThreads,
+  onPrepareCheck,
 }: ChapterPlanBarProps) {
   const { t } = useTranslation();
   const { data: tree } = useVolumeTree(chapter.projectId);
@@ -79,6 +84,13 @@ export function ChapterPlanBar({
         chapterId={chapter.id}
         disabled={isAgentLocked}
         onOpenBoard={onOpenPlotThreads}
+      />
+      <ChapterPlanCheck
+        chapter={chapter}
+        manuscriptRevision={manuscriptRevision}
+        disabled={isAgentLocked}
+        onPrepareCheck={onPrepareCheck}
+        onFlushPlan={() => draft.flush()}
       />
     </section>
   );
