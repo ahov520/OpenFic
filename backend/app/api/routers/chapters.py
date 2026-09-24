@@ -15,6 +15,7 @@ from app.api.schemas.chapter import (
     ChapterMoveToVolume,
     ChapterReorder,
     ChapterResponse,
+    PreviousChapterEndingResponse,
     ChapterSearchMatch,
     ChapterSearchResponse,
     ChapterSearchResult,
@@ -25,6 +26,7 @@ from app.api.schemas.chapter import (
 from app.api.schemas.plan_check import PlanCheckResponse
 from app.background.jobs import service as background_service
 from app.core.errors import NotFoundError
+from app.storage.chapter_ending import load_previous_chapter_ending
 from app.storage.database import get_session
 from app.storage.plan_coverage import PresentedCheck
 from app.storage.services import chapter_service, plan_check_service
@@ -180,6 +182,29 @@ async def get_chapter(
         return ChapterResponse.model_validate(chapter)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get(
+    "/chapters/{chapter_id}/previous-ending",
+    response_model=PreviousChapterEndingResponse | None,
+    summary="上一章结尾",
+)
+async def get_previous_chapter_ending(
+    chapter_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> PreviousChapterEndingResponse | None:
+    """按阅读顺序返回紧邻上一章的结尾摘录。没有则返回 null，不改当前章。"""
+    try:
+        ending = await load_previous_chapter_ending(session, chapter_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    if ending is None:
+        return None
+    return PreviousChapterEndingResponse(
+        chapter_id=ending.chapter_id,
+        title=ending.title,
+        excerpt=ending.excerpt,
+    )
 
 
 @router.patch(

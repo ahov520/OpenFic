@@ -345,6 +345,13 @@
       "saveFailed": "Couldn't save the word target. Please try again.",
       "aria": "Chapter word target"
     },
+    "previousEnding": {
+      "label": "Previous ending",
+      "hint": "Read only. Open {{title}} from this passage. It is not written into this chapter and is not part of the word count.",
+      "open": "Open the previous chapter: {{title}}",
+      "untitled": "Untitled chapter",
+      "aria": "Previous chapter ending"
+    },
     "marginNotes": {
       "title": "Margin notes",
       "hint": "Select a sentence and leave the question beside it. Notes stay out of the manuscript and the word count.",

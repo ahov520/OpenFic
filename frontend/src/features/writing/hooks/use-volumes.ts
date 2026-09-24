@@ -51,6 +51,7 @@ export function useDeleteVolume(projectId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["volume-tree", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      void queryClient.invalidateQueries({ queryKey: ["previous-ending"] });
     },
   });
 }
@@ -63,6 +64,7 @@ export function useMoveVolume(projectId: string) {
       moveVolume(volumeId, { newOrder }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["volume-tree", projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["previous-ending"] });
     },
   });
 }

@@ -10,6 +10,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.chapter.sequence import global_order_index
+from app.storage.chapter_ending import previous_ending_for_agent
 from app.storage.chapter_plan import catalog_plan_fields, latest_plan_fields
 from app.storage.models.chapter import Chapter
 from app.storage.models.chapter_summary import ChapterSummary
@@ -93,11 +94,13 @@ async def build_context(
         volumes=volumes,
     )
     margin_notes = await margin_notes_for_agent(session, current_chapter.id)
+    previous_chapter = chapter_by_global_order.get(current_global_order - 1)
     latest_field = _build_latest_field(
         current_chapter,
         current_global_order,
         plot_plan,
         margin_notes,
+        previous_ending_for_agent(previous_chapter),
     )
 
     near_field = _build_near_field(
@@ -145,6 +148,7 @@ def _build_latest_field(
     global_order: int,
     plot_plan: dict[str, object] | None = None,
     margin_notes: dict[str, object] | None = None,
+    previous_ending: dict[str, str] | None = None,
 ) -> ContextPart:
     payload: dict[str, object] = {
         "order": global_order,
@@ -157,6 +161,8 @@ def _build_latest_field(
         payload["plot_threads"] = plot_plan
     if margin_notes:
         payload["author_margin_notes"] = margin_notes
+    if previous_ending:
+        payload["previous_chapter_ending"] = previous_ending
     content = _to_json(payload)
     return ContextPart(
         content=content,

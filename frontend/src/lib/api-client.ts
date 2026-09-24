@@ -718,6 +718,7 @@ import type {
   ChapterUpdate,
   ChapterListItem,
   ChapterMoveToVolume,
+  PreviousChapterEnding,
   Volume,
   VolumeCreate,
   VolumeMove,
@@ -896,6 +897,22 @@ export async function fetchAgentComposerItems(projectId: string): Promise<AgentC
 export async function fetchChapter(chapterId: string): Promise<Chapter> {
   const response = await apiClient.get(`/chapters/${chapterId}`);
   return transformChapter(response.data);
+}
+
+export async function fetchPreviousChapterEnding(
+  chapterId: string,
+): Promise<PreviousChapterEnding | null> {
+  const response = await apiClient.get<Record<string, unknown> | null>(
+    `/chapters/${chapterId}/previous-ending`,
+  );
+  if (!response.data) return null;
+  const excerpt = response.data.excerpt;
+  if (typeof excerpt !== "string" || excerpt.length === 0) return null;
+  return {
+    chapterId: String(response.data.chapter_id),
+    title: typeof response.data.title === "string" ? response.data.title : "",
+    excerpt,
+  };
 }
 
 export async function fetchPlanCheck(chapterId: string): Promise<PlanCheck> {

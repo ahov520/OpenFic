@@ -185,3 +185,11 @@ class ChapterSearchResponse(BaseModel):
     results: list[ChapterSearchResult] = Field(description="搜索结果列表")
     total_chapters: int = Field(description="匹配章节数")
     total_matches: int = Field(description="匹配行总数")
+
+
+class PreviousChapterEndingResponse(BaseModel):
+    """上一章结尾。只读摘录，不属于当前章正文。"""
+
+    chapter_id: str = Field(description="上一章 ID")
+    title: str = Field(description="上一章标题")
+    excerpt: str = Field(description="上一章结尾摘录")

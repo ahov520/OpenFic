@@ -49,6 +49,7 @@ import { ChapterMarginNotes } from "./chapter-margin-notes";
 import { ChapterPlanBar } from "./chapter-plan-bar";
 import { ChapterWordTarget } from "./chapter-word-target";
 import { FindReplacePanel } from "./find-replace-panel";
+import { PreviousChapterEnding } from "./previous-chapter-ending";
 
 const MANUAL_SAVE_EVENT = "openfic:chapter-editor-manual-save";
 
@@ -742,6 +743,10 @@ function ChapterEditorContent({
             }}
           />
           <Box style={{ borderBottom: "1px solid var(--gray-a4)" }} />
+          <PreviousChapterEnding
+            chapterId={chapter.id}
+            onOpenChapter={onOpenChapter}
+          />
           <Box
             py="5"
             ref={editorContentRef}
