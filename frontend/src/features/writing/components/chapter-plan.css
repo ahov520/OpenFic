@@ -170,6 +170,13 @@
 .chapter-corkboard-filters {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chapter-corkboard-filters__status {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -196,6 +203,26 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px 12px;
+}
+
+.chapter-corkboard-owing {
+  margin-inline-start: 4px;
+  border-style: dashed;
+}
+
+.chapter-corkboard-owing-note,
+.chapter-corkboard-volume__empty {
+  margin: 0;
+  color: var(--gray-10);
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.45;
+}
+
+.chapter-corkboard-return {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .chapter-corkboard-body {

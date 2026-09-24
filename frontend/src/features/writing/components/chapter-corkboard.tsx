@@ -19,6 +19,7 @@ import {
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { usePlotThreads } from "../hooks/use-plot-threads";
 import { useVolumeTree } from "../hooks/use-volumes";
+import { chapterOwesOpenPlant } from "../lib/corkboard-owing";
 import {
   type CorkboardStatusFilter,
   type CorkboardVolumeCards,
@@ -44,6 +45,7 @@ interface ChapterCorkboardProps {
 
 const EMPTY_VOLUMES: VolumeWithChapters[] = [];
 const EMPTY_OPEN_PLANTS: Record<string, readonly string[]> = {};
+const EMPTY_THREADS: readonly [] = [];
 
 function CorkboardOpenPlants({ names }: { names: readonly string[] }) {
   const { t } = useTranslation();
@@ -197,9 +199,12 @@ export function ChapterCorkboard({
 }: ChapterCorkboardProps) {
   const { t } = useTranslation();
   const { data, isLoading } = useVolumeTree(projectId);
-  const { data: plotBoard } = usePlotThreads(open ? projectId : null);
+  const plotThreads = usePlotThreads(open ? projectId : null);
+  const plotBoard = plotThreads.data;
   const openPlantsByChapter = plotBoard?.openPlantsByChapter ?? EMPTY_OPEN_PLANTS;
+  const threads = plotBoard?.threads ?? EMPTY_THREADS;
   const [statusFilter, setStatusFilter] = useState<CorkboardStatusFilter>("all");
+  const [owingOnly, setOwingOnly] = useState(false);
   const [chapterSort, setChapterSort] = useState<CorkboardChapterSort>("reading");
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
@@ -220,24 +225,38 @@ export function ChapterCorkboard({
   }, [allChapters]);
   useEffect(() => {
     setChapterSort("reading");
+    setOwingOnly(false);
   }, [projectId]);
 
-  const visibleVolumes = useMemo(
-    () => arrangeCorkboardVolumes(corkboardVolumeCards(volumes, statusFilter, normalizedQuery), chapterSort),
-    [chapterSort, normalizedQuery, statusFilter, volumes],
-  );
+  const owingApplied = owingOnly && plotThreads.isSuccess;
+  const owingPending = owingOnly && plotThreads.isLoading;
+  const owingCount = useMemo(() => {
+    if (!plotThreads.isSuccess) return 0;
+    return allChapters.filter((chapter) => chapterOwesOpenPlant(chapter, threads)).length;
+  }, [allChapters, plotThreads.isSuccess, threads]);
+
+  const visibleVolumes = useMemo(() => {
+    const filtered = corkboardVolumeCards(volumes, statusFilter, normalizedQuery);
+    const owing = owingApplied
+      ? filtered.map((volume) => ({
+          ...volume,
+          chapters: volume.chapters.filter((chapter) => chapterOwesOpenPlant(chapter, threads)),
+        }))
+      : filtered;
+    return arrangeCorkboardVolumes(owing, chapterSort);
+  }, [chapterSort, normalizedQuery, owingApplied, statusFilter, threads, volumes]);
   const currentChapter = useMemo(
     () => allChapters.find((chapter) => chapter.id === currentChapterId) ?? null,
     [allChapters, currentChapterId],
   );
-  const currentChapterHidden = isChapterOutsideCorkboardView(
-    currentChapter,
-    statusFilter,
-    normalizedQuery,
-  );
+  const currentChapterHidden =
+    !owingPending &&
+    (isChapterOutsideCorkboardView(currentChapter, statusFilter, normalizedQuery) ||
+      (owingApplied && currentChapter != null && !chapterOwesOpenPlant(currentChapter, threads)));
 
   const showAllChapters = () => {
     setStatusFilter("all");
+    setOwingOnly(false);
     setQuery("");
   };
 
@@ -320,7 +339,23 @@ export function ChapterCorkboard({
                 })}
               </button>
             ))}
+            <button
+              type="button"
+              className="chapter-corkboard-filter chapter-corkboard-owing"
+              data-active={owingOnly ? "true" : "false"}
+              aria-pressed={owingOnly}
+              title={t("writing.chapterPlan.filterOwingHint")}
+              onClick={() => setOwingOnly((current) => !current)}
+            >
+              {t("writing.chapterPlan.filterOwing", { count: owingCount })}
+            </button>
           </div>
+          {owingOnly ? (
+            <p className="chapter-corkboard-owing-note">{t("writing.chapterPlan.owingActiveNote")}</p>
+          ) : null}
+          {plotThreads.isError && owingOnly ? (
+            <p className="chapter-corkboard-owing-note">{t("writing.chapterPlan.owingFailed")}</p>
+          ) : null}
           {currentChapterHidden && currentChapter ? (
             <div className="chapter-corkboard-outside">
               <Text
@@ -377,12 +412,12 @@ export function ChapterCorkboard({
           ) : null}
         </div>
         <ScrollArea className="chapter-corkboard-body">
-          {isLoading ? (
+          {isLoading || owingPending ? (
             <Text
               size="2"
               color="gray"
             >
-              {t("writing.chapterPlan.loading")}
+              {owingPending ? t("writing.plotThreads.loading") : t("writing.chapterPlan.loading")}
             </Text>
           ) : volumes.length === 0 ? (
             <Text
