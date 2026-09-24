@@ -30,7 +30,9 @@ class MarginNoteView:
 
 
 def _view(note: ChapterMarginNote, content: str) -> MarginNoteView:
-    hit = locate_anchor(content, note.anchor_text, note.context_before, note.context_after)
+    hit = locate_anchor(
+        content, note.anchor_text, note.context_before, note.context_after
+    )
     return MarginNoteView(note=note, aligned=hit.aligned, start=hit.start, end=hit.end)
 
 
@@ -41,7 +43,9 @@ async def _chapter_or_raise(session: AsyncSession, chapter_id: str):
     return chapter
 
 
-async def list_margin_notes(session: AsyncSession, chapter_id: str) -> list[MarginNoteView]:
+async def list_margin_notes(
+    session: AsyncSession, chapter_id: str
+) -> list[MarginNoteView]:
     chapter = await _chapter_or_raise(session, chapter_id)
     notes = await margin_note_repo.list_by_chapter(session, chapter_id)
     return [_view(note, chapter.content) for note in notes]
@@ -76,6 +80,9 @@ async def update_margin_note(
     *,
     status: str | None = None,
     body: str | None = None,
+    anchor_text: str | None = None,
+    context_before: str | None = None,
+    context_after: str | None = None,
 ) -> MarginNoteView:
     chapter = await _chapter_or_raise(session, chapter_id)
     note = await margin_note_repo.get_by_id(session, note_id)
@@ -92,13 +99,29 @@ async def update_margin_note(
         if normalized_body != note.body:
             note.body = normalized_body
             changed = True
+    if anchor_text is not None:
+        # 先校验再写入，空选区失败时不要改掉原来的锚。
+        next_anchor = normalize_anchor(anchor_text)
+        next_before = normalize_context(context_before or "", keep_end=True)
+        next_after = normalize_context(context_after or "", keep_end=False)
+        if (
+            next_anchor != note.anchor_text
+            or next_before != note.context_before
+            or next_after != note.context_after
+        ):
+            note.anchor_text = next_anchor
+            note.context_before = next_before
+            note.context_after = next_after
+            changed = True
     if changed:
         note.updated_at = datetime.now(UTC)
         note = await margin_note_repo.save(session, note)
     return _view(note, chapter.content)
 
 
-async def delete_margin_note(session: AsyncSession, chapter_id: str, note_id: str) -> None:
+async def delete_margin_note(
+    session: AsyncSession, chapter_id: str, note_id: str
+) -> None:
     await _chapter_or_raise(session, chapter_id)
     note = await margin_note_repo.get_by_id(session, note_id)
     if note is None or note.chapter_id != chapter_id:

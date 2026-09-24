@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """旁注锚点：对得上才给出位置，对不上就不要指向另一句。"""
 
+from pathlib import Path
+
 from app.storage.margin_notes import (
     MARGIN_NOTE_NOTICE,
     agent_margin_payload,
     locate_anchor,
+    mark_kind,
     normalize_anchor,
 )
 from app.storage.models.margin_note import ChapterMarginNote
@@ -50,6 +53,37 @@ def test_empty_selection_is_rejected() -> None:
         assert "选中" in str(error)
     else:
         raise AssertionError("空选区应该被拒绝")
+
+
+def test_struck_mark_is_weaker_than_an_open_mark() -> None:
+    assert mark_kind("open", True) == "faint"
+    assert mark_kind("struck", True) == "weak"
+    assert mark_kind("struck", True) != mark_kind("open", True)
+    assert mark_kind("open", False) is None
+    assert mark_kind("struck", False) is None
+
+
+def test_editor_keeps_struck_marks_on_a_weaker_class() -> None:
+    """划掉的旁注仍可点到，但样式比未划掉的淡标记更弱。"""
+    root = Path(__file__).resolve().parents[3]
+    source = (root / "frontend/src/lib/margin-note.ts").read_text(encoding="utf-8")
+    css = (root / "frontend/src/styles/overrides/tiptap.css").read_text(
+        encoding="utf-8"
+    )
+    assert 'OPEN_MARGIN_MARK_CLASS = "margin-note-mark"' in source
+    assert (
+        'STRUCK_MARGIN_MARK_CLASS = "margin-note-mark margin-note-mark--struck"'
+        in source
+    )
+    assert 'return status === "struck" ? "weak" : "faint"' in source
+    struck_css = css.split(".margin-note-mark--struck", 1)[1]
+    assert "transparent" in struck_css[:500]
+    assert (
+        "margin-note-mark--struck"
+        not in source.split("OPEN_MARGIN_MARK_CLASS", 1)[1].split(
+            "STRUCK_MARGIN_MARK_CLASS", 1
+        )[0]
+    )
 
 
 def test_agent_payload_keeps_open_notes_out_of_a_body_field() -> None:

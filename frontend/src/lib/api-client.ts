@@ -924,6 +924,7 @@ function transformMarginNote(raw: Record<string, unknown>): MarginNote {
     body: typeof raw.body === "string" ? raw.body : "",
     status,
     alignment,
+    mark: raw.mark === "faint" || raw.mark === "weak" ? raw.mark : null,
     start: typeof raw.start === "number" ? raw.start : null,
     end: typeof raw.end === "number" ? raw.end : null,
     createdAt: String(raw.created_at ?? ""),
@@ -959,12 +960,17 @@ export async function updateMarginNote(
   noteId: string,
   data: MarginNoteUpdate,
 ): Promise<MarginNote> {
+  const payload: Record<string, string> = {};
+  if (data.status) payload.status = data.status;
+  if (data.body !== undefined) payload.body = data.body;
+  if (data.anchorText !== undefined) {
+    payload.anchor_text = data.anchorText;
+    payload.context_before = data.contextBefore ?? "";
+    payload.context_after = data.contextAfter ?? "";
+  }
   const response = await apiClient.patch<Record<string, unknown>>(
     `/chapters/${chapterId}/margin-notes/${noteId}`,
-    {
-      status: data.status,
-      body: data.body,
-    },
+    payload,
   );
   return transformMarginNote(response.data);
 }

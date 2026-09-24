@@ -17,6 +17,9 @@ class MarginNoteCreate(BaseModel):
 class MarginNoteUpdate(BaseModel):
     status: Literal["open", "struck"] | None = None
     body: str | None = None
+    anchor_text: str | None = Field(default=None, description="改钉到的新选区原文")
+    context_before: str | None = None
+    context_after: str | None = None
 
 
 class MarginNoteResponse(BaseModel):
@@ -28,6 +31,10 @@ class MarginNoteResponse(BaseModel):
     body: str
     status: Literal["open", "struck"]
     alignment: Literal["aligned", "misaligned"]
+    mark: Literal["faint", "weak"] | None = Field(
+        default=None,
+        description="句上阅读标记。未划掉且对得上为 faint，已划掉为 weak，对不齐不标。不是正文。",
+    )
     start: int | None = None
     end: int | None = None
     created_at: datetime

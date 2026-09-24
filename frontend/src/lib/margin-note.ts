@@ -8,6 +8,12 @@ export const MARGIN_CONTEXT_MAX = 40;
 
 export type MarginNoteStatus = "open" | "struck";
 export type MarginAlignment = "aligned" | "misaligned";
+export type MarginMark = "faint" | "weak";
+
+/** 未划掉、且能对上的句子。只是阅读提示，不进入正文。 */
+export const OPEN_MARGIN_MARK_CLASS = "margin-note-mark";
+/** 已划掉但仍对得上：保留可点击的痕迹，不用未划掉那一档的底色。 */
+export const STRUCK_MARGIN_MARK_CLASS = "margin-note-mark margin-note-mark--struck";
 
 export interface MarginNote {
   id: string;
@@ -18,6 +24,7 @@ export interface MarginNote {
   body: string;
   status: MarginNoteStatus;
   alignment: MarginAlignment;
+  mark: MarginMark | null;
   start: number | null;
   end: number | null;
   createdAt: string;
@@ -34,6 +41,19 @@ export interface MarginNoteCreate {
 export interface MarginNoteUpdate {
   status?: MarginNoteStatus;
   body?: string;
+  anchorText?: string;
+  contextBefore?: string;
+  contextAfter?: string;
+}
+
+/** 与后端 mark_kind 一致。划掉的对得上只给 weak，不用 faint。对不齐不标。 */
+export function marginMarkKind(status: MarginNoteStatus, aligned: boolean): MarginMark | null {
+  if (!aligned) return null;
+  return status === "struck" ? "weak" : "faint";
+}
+
+export function marginMarkClass(kind: MarginMark): string {
+  return kind === "weak" ? STRUCK_MARGIN_MARK_CLASS : OPEN_MARGIN_MARK_CLASS;
 }
 
 export interface AnchorHit {
