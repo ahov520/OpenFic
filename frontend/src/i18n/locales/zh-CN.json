@@ -309,6 +309,7 @@
       "filterOwingHint": "在当前状态筛选上再收一层：只留草稿和修订里，这一章埋下、全书还没回收的线。已放弃的不算。",
       "owingActiveNote": "状态筛选照旧。这里再只留草稿和修订里，这一章埋下、全书还没回收的线。",
       "owingFailed": "情节线没有载入，还欠线暂时没法筛。",
+      "nextChapter": "下一章",
       "cardMeta": "{{count}} 字",
       "notStarted": "还没动笔",
       "openThreadsLabel": "未回收",

@@ -309,6 +309,7 @@
       "filterOwingHint": "Keeps the status filter, then shows only draft and revise chapters that planted a thread the book has not paid off. Abandoned threads stay out.",
       "owingActiveNote": "The status filter still applies. This also keeps only draft and revise chapters that planted a thread the book has not paid off.",
       "owingFailed": "Plot threads didn't load, so this filter can't be applied yet.",
+      "nextChapter": "Next chapter",
       "cardMeta": "{{count}} words",
       "notStarted": "Not started",
       "openThreadsLabel": "Unpaid",

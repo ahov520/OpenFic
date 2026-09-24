@@ -3,7 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { corkboardLengthLabel } from "@/lib/chapter-length";
-import { SYNOPSIS_MAX_LENGTH, WRITING_STATUSES, corkboardMissingSynopsis } from "@/lib/chapter-plan";
+import {
+  SYNOPSIS_MAX_LENGTH,
+  WRITING_STATUSES,
+  corkboardMissingSynopsis,
+  type WritingStatus,
+} from "@/lib/chapter-plan";
 import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
 import {
   CORKBOARD_OPEN_PLANT_PREVIEW,
@@ -33,6 +38,7 @@ import {
   countChaptersMatchingCorkboardStatus,
   isChapterOutsideCorkboardView,
 } from "../lib/corkboard-status-filter";
+import { visibleNextOpenChapterId } from "../lib/next-open-chapter";
 import { WritingStatusSelect } from "./chapter-plan-status";
 import { ChapterWordTarget } from "./chapter-word-target";
 import { OpenMarginNoteCount } from "./open-margin-note-count";
@@ -115,13 +121,17 @@ function ChapterCorkboardCard({
   openPlantsByChapter,
   dragReorderEnabled,
   isAgentLocked,
+  isNextChapter,
   onOpenChapter,
+  onWritingStatusChange,
 }: {
   chapter: ChapterListItem;
   openPlantsByChapter: Readonly<Record<string, readonly string[]>>;
   dragReorderEnabled: boolean;
   isAgentLocked: boolean;
+  isNextChapter: boolean;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
+  onWritingStatusChange: (chapterId: string, status: WritingStatus) => void;
 }) {
   const { t } = useTranslation();
   const draft = useChapterPlanDraft(chapter, isAgentLocked);
@@ -146,12 +156,16 @@ function ChapterCorkboardCard({
       data-testid="corkboard-card"
       data-missing-synopsis={missingSynopsis ? "true" : "false"}
       data-not-started={notStarted ? "true" : "false"}
+      data-next-chapter={isNextChapter ? "true" : "false"}
       draggable={dragReorderEnabled}
       onDragStart={(event) => {
         if (dragReorderEnabled) return;
         event.preventDefault();
       }}
     >
+      {isNextChapter ? (
+        <span className="chapter-corkboard-card__next">{t("writing.chapterPlan.nextChapter")}</span>
+      ) : null}
       <Flex
         align="center"
         gap="2"
@@ -170,7 +184,10 @@ function ChapterCorkboardCard({
         <WritingStatusSelect
           value={draft.writingStatus}
           disabled={isAgentLocked}
-          onChange={draft.setWritingStatus}
+          onChange={(status) => {
+            onWritingStatusChange(chapter.id, status);
+            draft.setWritingStatus(status);
+          }}
         />
       </Flex>
       <ChapterCorkboardLength
@@ -235,9 +252,25 @@ export function ChapterCorkboard({
   const [owingOnly, setOwingOnly] = useState(false);
   const [chapterSort, setChapterSort] = useState<CorkboardChapterSort>("reading");
   const [query, setQuery] = useState("");
+  const [statusPreview, setStatusPreview] = useState<{
+    projectId: string;
+    byChapterId: Record<string, WritingStatus>;
+  } | null>(null);
   const normalizedQuery = query.trim().toLowerCase();
   const dragReorderEnabled = corkboardDragReorderEnabled(chapterSort);
   const volumes = data?.volumes ?? EMPTY_VOLUMES;
+  const statusOverrides =
+    statusPreview?.projectId === projectId ? statusPreview.byChapterId : undefined;
+  const handleWritingStatusChange = (chapterId: string, writingStatus: WritingStatus) => {
+    setStatusPreview((current) => {
+      const byChapterId = current?.projectId === projectId ? current.byChapterId : {};
+      if (byChapterId[chapterId] === writingStatus) return current;
+      return {
+        projectId,
+        byChapterId: { ...byChapterId, [chapterId]: writingStatus },
+      };
+    });
+  };
   const allChapters = useMemo(() => volumes.flatMap((volume) => volume.chapters), [volumes]);
   const writingCount = useMemo(
     () => countChaptersMatchingCorkboardStatus(allChapters, "writing"),
@@ -285,6 +318,15 @@ export function ChapterCorkboard({
       : filtered;
     return arrangeCorkboardVolumes(owing, chapterSort);
   }, [chapterSort, missingTargetOnly, normalizedQuery, owingApplied, statusFilter, threads, volumes]);
+  const visibleChapterIds = useMemo(
+    () => new Set(visibleVolumes.flatMap((volume) => volume.chapters.map((chapter) => chapter.id))),
+    [visibleVolumes],
+  );
+  // 全书阅读顺序上的第一张未完成。筛选和搜索只决定这张卡在不在画面上。
+  const nextChapterId = useMemo(
+    () => visibleNextOpenChapterId(volumes, visibleChapterIds, statusOverrides),
+    [statusOverrides, visibleChapterIds, volumes],
+  );
   const currentChapter = useMemo(
     () => allChapters.find((chapter) => chapter.id === currentChapterId) ?? null,
     [allChapters, currentChapterId],
@@ -494,8 +536,10 @@ export function ChapterCorkboard({
                 volume={volume}
                 openPlantsByChapter={openPlantsByChapter}
                 dragReorderEnabled={dragReorderEnabled}
+                nextChapterId={nextChapterId}
                 isAgentLocked={isAgentLocked}
                 onOpenChapter={onOpenChapter}
+                onWritingStatusChange={handleWritingStatusChange}
               />
             ))
           )}
@@ -509,14 +553,18 @@ function VolumeSection({
   volume,
   openPlantsByChapter,
   dragReorderEnabled,
+  nextChapterId,
   isAgentLocked,
   onOpenChapter,
+  onWritingStatusChange,
 }: {
   volume: CorkboardVolumeCards<ChapterListItem>;
   openPlantsByChapter: Readonly<Record<string, readonly string[]>>;
   dragReorderEnabled: boolean;
+  nextChapterId: string | null;
   isAgentLocked: boolean;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
+  onWritingStatusChange: (chapterId: string, status: WritingStatus) => void;
 }) {
   const { t } = useTranslation();
   const emptyKind = corkboardVolumeEmptyKind(volume);
@@ -546,8 +594,10 @@ function VolumeSection({
               chapter={chapter}
               openPlantsByChapter={openPlantsByChapter}
               dragReorderEnabled={dragReorderEnabled}
+              isNextChapter={chapter.id === nextChapterId}
               isAgentLocked={isAgentLocked}
               onOpenChapter={onOpenChapter}
+              onWritingStatusChange={onWritingStatusChange}
             />
           ))}
         </div>

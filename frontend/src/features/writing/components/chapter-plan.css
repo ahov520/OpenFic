@@ -280,6 +280,22 @@
   border-top-color: var(--green-9);
 }
 
+.chapter-corkboard-card[data-next-chapter="true"] {
+  border-color: var(--accent-a8);
+}
+
+.chapter-corkboard-card__next {
+  align-self: flex-start;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+  font-size: var(--font-size-1, 12px);
+  font-weight: 600;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
 .chapter-corkboard-card__title {
   flex: 1;
   min-width: 0;
