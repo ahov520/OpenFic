@@ -530,12 +530,14 @@ export function useAgentSession({
           });
         }
         queryClient.invalidateQueries({ queryKey: ["projects"] });
+        void queryClient.invalidateQueries({ queryKey: ["previous-ending"] });
         return;
       }
       if (targetChapterId) {
         queryClient.invalidateQueries({ queryKey: ["chapter", targetChapterId] });
       }
       invalidateWritingEditorEntityQueries(queryClient, "chapter", targetChapterId);
+      void queryClient.invalidateQueries({ queryKey: ["previous-ending"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     [projectId, queryClient],

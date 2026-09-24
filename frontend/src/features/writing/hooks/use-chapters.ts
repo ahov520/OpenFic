@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   fetchChapter,
+  fetchPreviousChapterEnding,
   createChapter,
   updateChapter,
   deleteChapter,
@@ -15,6 +16,10 @@ import {
   moveChapterToVolume,
 } from "@/lib/api-client";
 import type { Chapter, ChapterCreate, ChapterUpdate } from "@/lib/chapter.types";
+
+function invalidatePreviousEndings(queryClient: ReturnType<typeof useQueryClient>) {
+  void queryClient.invalidateQueries({ queryKey: ["previous-ending"] });
+}
 
 /**
  * 获取单个章节（完整内容）
@@ -46,6 +51,7 @@ export function useCreateChapter(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ["chapter-summary-list", projectId] });
       queryClient.invalidateQueries({ queryKey: ["long-term-summaries-page", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      invalidatePreviousEndings(queryClient);
     },
   });
 }
@@ -128,7 +134,18 @@ export function useUpdateChapter() {
       });
       // 刷新项目信息（更新 word_count）
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      if (touchesManuscript) invalidatePreviousEndings(queryClient);
     },
+  });
+}
+
+export function usePreviousChapterEnding(chapterId: string) {
+  return useQuery({
+    queryKey: ["previous-ending", chapterId],
+    queryFn: () => fetchPreviousChapterEnding(chapterId),
+    enabled: !!chapterId,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }
 
@@ -143,6 +160,7 @@ export function useDeleteChapter(projectId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["volume-tree", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      invalidatePreviousEndings(queryClient);
     },
   });
 }
@@ -158,6 +176,7 @@ export function useReorderChapters(projectId: string) {
       reorderChapters(volumeId, chapterIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["volume-tree", projectId] });
+      invalidatePreviousEndings(queryClient);
     },
   });
 }
@@ -171,6 +190,7 @@ export function useMoveChapterToVolume(projectId: string) {
     onSuccess: (chapter) => {
       queryClient.invalidateQueries({ queryKey: ["volume-tree", projectId] });
       queryClient.invalidateQueries({ queryKey: ["chapter", chapter.id] });
+      invalidatePreviousEndings(queryClient);
     },
   });
 }

@@ -68,6 +68,13 @@ export interface ChapterUpdate {
   wordCountTarget?: number | null;
 }
 
+/** 上一章结尾摘录。不属于当前章正文。 */
+export interface PreviousChapterEnding {
+  chapterId: string;
+  title: string;
+  excerpt: string;
+}
+
 export interface Volume {
   id: string;
   projectId: string;
