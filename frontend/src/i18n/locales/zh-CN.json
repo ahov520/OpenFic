@@ -405,6 +405,8 @@
       "considerAdvance": "「{{name}}」最后出现在第 {{order}} 章「{{title}}」，到这一章中间空了 {{count}} 章，可以考虑推进。",
       "recordAdvance": "记成推进",
       "editBeatHere": "改这一章的节拍",
+      "addNote": "加一句",
+      "editNote": "改备注",
       "alreadyOnChapter": "这一章已经记过这条线，改的是原来那一条，不会再记一条。",
       "advanceKeptExisting": "「{{name}}」这一章已经记过，没有再记一条。",
       "advanceNoteSaved": "「{{name}}」这一章已经记过。备注写进了原来那一条，没有再记一条。",

@@ -5,7 +5,11 @@ import json
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
+from app.storage.models.writing_activity_event import WritingActivityEvent
 from app.storage.plot_threads import CONSIDER_ADVANCE_NOTE, PLOT_PLAN_NOTICE
 
 
@@ -566,6 +570,126 @@ async def test_record_advance_on_current_chapter_updates_gaps_without_a_second_b
     assert len(empty_current) == 1
     assert empty_current[0]["kind"] == "advance"
     assert empty_current[0]["note"] == ""
+
+
+@pytest.mark.asyncio
+async def test_patch_beat_note_is_readable_without_touching_the_chapter(
+    client: AsyncClient,
+    session: AsyncSession,
+) -> None:
+    """改备注只动原来那一条节拍。
+
+    写作界面本章节拍来自情节线总览；章节上下文里的本章节拍也能读到同一句。
+    清空后再存一次，条数不变。章节正文、字数和写作活动都不变。
+    """
+    project_id, volume_id = await _create_project(client)
+    chapter = await _create_chapter(client, project_id, volume_id, "夜航")
+    mirror = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "铜镜", "intent": "还没收"},
+        )
+    ).json()
+    created = await client.post(
+        f"/api/v1/plot-threads/{mirror['id']}/beats",
+        json={"chapter_id": chapter["id"], "kind": "advance", "note": ""},
+    )
+    assert created.status_code == 201
+    beat_id = created.json()["beats"][0]["id"]
+    detail = (await client.get(f"/api/v1/chapters/{chapter['id']}")).json()
+    content = detail["content"]
+    word_count = detail["word_count"]
+    updated_at = detail["updated_at"]
+    project_before = (await client.get(f"/api/v1/projects/{project_id}")).json()
+
+    async def board_beats() -> list[dict]:
+        board = (await client.get(f"/api/v1/projects/{project_id}/plot-threads")).json()
+        thread = next(item for item in board["threads"] if item["name"] == "铜镜")
+        return [beat for beat in thread["beats"] if beat["chapter_id"] == chapter["id"]]
+
+    async def context_beats() -> list[dict]:
+        response = await client.get(
+            f"/api/v1/projects/{project_id}/chapter-context/context",
+            params={"chapter_id": chapter["id"]},
+        )
+        assert response.status_code == 200
+        latest = json.loads(response.json()["latest_field"]["content"])
+        return [
+            beat
+            for beat in latest["plot_threads"]["chapter_beats"]
+            if beat["thread"] == "铜镜"
+        ]
+
+    edited = await client.patch(
+        f"/api/v1/plot-beats/{beat_id}",
+        json={"note": "灯又亮了一下"},
+    )
+    assert edited.status_code == 200
+    edited_beats = [
+        beat for beat in edited.json()["beats"] if beat["chapter_id"] == chapter["id"]
+    ]
+    assert len(edited_beats) == 1
+    assert edited_beats[0]["id"] == beat_id
+    assert edited_beats[0]["kind"] == "advance"
+    assert edited_beats[0]["note"] == "灯又亮了一下"
+
+    shown = await board_beats()
+    assert len(shown) == 1
+    assert shown[0]["id"] == beat_id
+    assert shown[0]["note"] == "灯又亮了一下"
+    assert shown[0]["kind"] == "advance"
+    context_shown = await context_beats()
+    assert len(context_shown) == 1
+    assert context_shown[0]["note"] == "灯又亮了一下"
+    assert context_shown[0]["kind"] == "advance"
+
+    cleared = await client.patch(f"/api/v1/plot-beats/{beat_id}", json={"note": ""})
+    assert cleared.status_code == 200
+    cleared_beats = await board_beats()
+    assert len(cleared_beats) == 1
+    assert cleared_beats[0]["id"] == beat_id
+    assert cleared_beats[0]["note"] == ""
+    assert cleared_beats[0]["kind"] == "advance"
+    cleared_context = await context_beats()
+    assert len(cleared_context) == 1
+    assert "note" not in cleared_context[0]
+    assert "灯又亮了一下" not in json.dumps(cleared_context, ensure_ascii=False)
+
+    again = await client.patch(
+        f"/api/v1/plot-beats/{beat_id}",
+        json={"note": "改成另一句"},
+    )
+    assert again.status_code == 200
+    repeated = await client.patch(
+        f"/api/v1/plot-beats/{beat_id}",
+        json={"note": "改成另一句"},
+    )
+    assert repeated.status_code == 200
+    final_beats = await board_beats()
+    assert len(final_beats) == 1
+    assert final_beats[0]["id"] == beat_id
+    assert final_beats[0]["note"] == "改成另一句"
+    assert len(repeated.json()["beats"]) == 1
+
+    chapter_after = (await client.get(f"/api/v1/chapters/{chapter['id']}")).json()
+    assert chapter_after["content"] == content
+    assert "改成另一句" not in chapter_after["content"]
+    assert chapter_after["word_count"] == word_count
+    assert chapter_after["updated_at"] == updated_at
+    project_after = (await client.get(f"/api/v1/projects/{project_id}")).json()
+    assert project_after["word_count"] == project_before["word_count"]
+    events = (
+        (
+            await session.execute(
+                select(WritingActivityEvent)
+                .where(col(WritingActivityEvent.chapter_id) == chapter["id"])
+                .order_by(col(WritingActivityEvent.created_at))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [event.operation for event in events] == ["create"]
 
 
 @pytest.mark.asyncio

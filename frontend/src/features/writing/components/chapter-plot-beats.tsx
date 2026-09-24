@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/components";
 import { fetchPlotThreads } from "@/lib/api-client";
 import type {
+  PlotBeat,
   PlotBeatKind,
   PlotChapterOption,
   PlotThread,
@@ -184,45 +185,26 @@ export function ChapterPlotBeats({
         <p className="plot-thread-quiet">{t("writing.plotThreads.noBeatsOnChapter")}</p>
       ) : (
         onChapter.map(({ thread, beat }) => (
-          <div
+          <ChapterBeatRow
             key={beat.id}
-            className="chapter-plot-beats__row"
-          >
-            <span className="chapter-plot-beats__name">{thread.name}</span>
-            <select
-              className="writing-status-select"
-              aria-label={t("writing.plotThreads.kind")}
-              value={beat.kind}
-              disabled={disabled}
-              onChange={(event) => {
-                void updateBeat
-                  .mutateAsync({
-                    beatId: beat.id,
-                    data: { kind: event.target.value as PlotBeatKind },
-                  })
-                  .catch(report);
-              }}
-            >
-              {PLOT_BEAT_KINDS.map((kind) => (
-                <option
-                  key={kind}
-                  value={kind}
-                >
-                  {t(`writing.plotThreads.kinds.${kind}`)}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="plot-thread-delete"
-              disabled={disabled}
-              onClick={() => {
-                void deleteBeat.mutateAsync(beat.id).catch(report);
-              }}
-            >
-              {t("writing.plotThreads.deleteBeat")}
-            </button>
-          </div>
+            threadName={thread.name}
+            beat={beat}
+            disabled={disabled}
+            onChangeKind={(kind) => {
+              void updateBeat
+                .mutateAsync({
+                  beatId: beat.id,
+                  data: { kind },
+                })
+                .catch(report);
+            }}
+            onDelete={() => {
+              void deleteBeat.mutateAsync(beat.id).catch(report);
+            }}
+            onSaveNote={(note) =>
+              updateBeat.mutateAsync({ beatId: beat.id, data: { note } }).then(() => undefined)
+            }
+          />
         ))
       )}
       {available.length > 0 && (
@@ -261,6 +243,205 @@ export function ChapterPlotBeats({
           </button>
         </form>
       )}
+    </div>
+  );
+}
+
+function ChapterBeatRow({
+  threadName,
+  beat,
+  disabled,
+  onChangeKind,
+  onDelete,
+  onSaveNote,
+}: {
+  threadName: string;
+  beat: PlotBeat;
+  disabled: boolean;
+  onChangeKind: (kind: PlotBeatKind) => void;
+  onDelete: () => void;
+  onSaveNote: (note: string) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState(beat.note);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const ignoreBlur = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(beat.note);
+  }, [beat.note, editing]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  const closeEditor = () => {
+    ignoreBlur.current = true;
+    setEditing(false);
+  };
+
+  const open = () => {
+    ignoreBlur.current = false;
+    setDraft(beat.note);
+    setError(null);
+    setEditing(true);
+  };
+
+  const cancel = () => {
+    setDraft(beat.note);
+    setError(null);
+    closeEditor();
+  };
+
+  const persist = async () => {
+    if (disabled || savingRef.current || ignoreBlur.current) return;
+    const trimmed = draft.trim();
+    if (trimmed === beat.note) {
+      setError(null);
+      closeEditor();
+      return;
+    }
+    savingRef.current = true;
+    setSaving(true);
+    setError(null);
+    try {
+      await onSaveNote(trimmed);
+      closeEditor();
+    } catch (caught) {
+      setError(
+        plotActionError(
+          caught,
+          t("writing.plotThreads.duplicateBeat"),
+          t("writing.plotThreads.saveFailed"),
+        ),
+      );
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="chapter-plot-beats__item"
+      data-testid="chapter-plot-beat"
+    >
+      <div className="chapter-plot-beats__row">
+        <span className="chapter-plot-beats__name">{threadName}</span>
+        <select
+          className="writing-status-select"
+          aria-label={t("writing.plotThreads.kind")}
+          value={beat.kind}
+          disabled={disabled}
+          onChange={(event) => {
+            onChangeKind(event.target.value as PlotBeatKind);
+          }}
+        >
+          {PLOT_BEAT_KINDS.map((kind) => (
+            <option
+              key={kind}
+              value={kind}
+            >
+              {t(`writing.plotThreads.kinds.${kind}`)}
+            </option>
+          ))}
+        </select>
+        {editing ? (
+          <form
+            className="chapter-plot-beats__note-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void persist();
+            }}
+          >
+            <input
+              ref={inputRef}
+              className="plot-thread-note"
+              data-testid="chapter-plot-beat-note-input"
+              aria-label={t("writing.plotThreads.note")}
+              placeholder={t("writing.plotThreads.notePlaceholder")}
+              value={draft}
+              maxLength={NOTE_MAX_LENGTH}
+              disabled={disabled}
+              readOnly={saving}
+              onChange={(event) => setDraft(event.target.value)}
+              onBlur={(event) => {
+                const next = event.relatedTarget;
+                if (next instanceof HTMLElement && next.dataset.beatNoteAction) return;
+                void persist();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancel();
+                }
+              }}
+            />
+            <button
+              type="submit"
+              className="plot-thread-text-button"
+              data-beat-note-action="save"
+              disabled={disabled || saving}
+              onMouseDown={(event) => event.preventDefault()}
+            >
+              {t("common.save")}
+            </button>
+            <button
+              type="button"
+              className="plot-thread-text-button"
+              data-beat-note-action="cancel"
+              data-testid="chapter-plot-beat-note-cancel"
+              disabled={saving}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={cancel}
+            >
+              {t("common.cancel")}
+            </button>
+          </form>
+        ) : beat.note ? (
+          <button
+            type="button"
+            className="chapter-plot-beats__note"
+            data-testid="chapter-plot-beat-note"
+            aria-label={t("writing.plotThreads.editNote")}
+            disabled={disabled}
+            onClick={open}
+          >
+            {beat.note}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="plot-thread-text-button chapter-plot-beats__add-note"
+            data-testid="chapter-plot-beat-add-note"
+            disabled={disabled}
+            onClick={open}
+          >
+            {t("writing.plotThreads.addNote")}
+          </button>
+        )}
+        <button
+          type="button"
+          className="plot-thread-delete"
+          disabled={disabled}
+          onClick={onDelete}
+        >
+          {t("writing.plotThreads.deleteBeat")}
+        </button>
+      </div>
+      {error ? (
+        <p
+          className="chapter-plot-beats__note-error"
+          role="alert"
+          data-testid="chapter-plot-beat-note-error"
+        >
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
