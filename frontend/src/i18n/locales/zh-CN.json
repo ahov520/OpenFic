@@ -294,6 +294,7 @@
       "filterAll": "全部 {{count}}",
       "filterWriting": "还在写 {{count}}",
       "filterStatus": "{{status}} {{count}}",
+      "filterMissingTarget": "还没设目标 {{count}}",
       "currentOutsideFilter": "当前章「{{title}}」不在此筛选里",
       "showAllChapters": "显示全部",
       "emptyVolumeFilter": "这一卷在此筛选下没有章节",

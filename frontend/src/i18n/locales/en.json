@@ -294,6 +294,7 @@
       "filterAll": "All {{count}}",
       "filterWriting": "Still writing {{count}}",
       "filterStatus": "{{status}} {{count}}",
+      "filterMissingTarget": "No target {{count}}",
       "currentOutsideFilter": "The open chapter “{{title}}” is not in this filter",
       "showAllChapters": "Show all",
       "emptyVolumeFilter": "No chapters in this volume match the filter",

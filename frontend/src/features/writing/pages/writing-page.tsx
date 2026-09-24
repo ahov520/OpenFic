@@ -828,6 +828,7 @@ export function WritingPage() {
       {hasOpenedCorkboard && (
         <Suspense fallback={null}>
           <ChapterCorkboard
+            key={projectId}
             projectId={projectId}
             open={isCorkboardOpen}
             onOpenChange={handleCorkboardOpenChange}

@@ -1,4 +1,4 @@
-import { Box, Dialog, Flex, ScrollArea, Text, TextField } from "@radix-ui/themes";
+import { Box, Dialog, Flex, ScrollArea, Switch, Text, TextField } from "@radix-ui/themes";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -20,6 +20,10 @@ import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { usePlotThreads } from "../hooks/use-plot-threads";
 import { useVolumeTree } from "../hooks/use-volumes";
 import { chapterOwesOpenPlant } from "../lib/corkboard-owing";
+import {
+  chapterMatchesMissingTarget,
+  countChaptersMissingWordCountTarget,
+} from "../lib/corkboard-missing-target";
 import {
   type CorkboardStatusFilter,
   type CorkboardVolumeCards,
@@ -217,6 +221,7 @@ export function ChapterCorkboard({
   const openPlantsByChapter = plotBoard?.openPlantsByChapter ?? EMPTY_OPEN_PLANTS;
   const threads = plotBoard?.threads ?? EMPTY_THREADS;
   const [statusFilter, setStatusFilter] = useState<CorkboardStatusFilter>("all");
+  const [missingTargetOnly, setMissingTargetOnly] = useState(false);
   const [owingOnly, setOwingOnly] = useState(false);
   const [chapterSort, setChapterSort] = useState<CorkboardChapterSort>("reading");
   const [query, setQuery] = useState("");
@@ -238,9 +243,14 @@ export function ChapterCorkboard({
   }, [allChapters]);
   useEffect(() => {
     setChapterSort("reading");
+    setMissingTargetOnly(false);
     setOwingOnly(false);
   }, [projectId]);
 
+  const missingTargetCount = useMemo(
+    () => countChaptersMissingWordCountTarget(allChapters),
+    [allChapters],
+  );
   const owingApplied = owingOnly && plotThreads.isSuccess;
   const owingPending = owingOnly && plotThreads.isLoading;
   const owingCount = useMemo(() => {
@@ -249,7 +259,14 @@ export function ChapterCorkboard({
   }, [allChapters, plotThreads.isSuccess, threads]);
 
   const visibleVolumes = useMemo(() => {
-    const filtered = corkboardVolumeCards(volumes, statusFilter, normalizedQuery);
+    const filtered = corkboardVolumeCards(volumes, statusFilter, normalizedQuery).map((volume) =>
+      missingTargetOnly
+        ? {
+            ...volume,
+            chapters: volume.chapters.filter((chapter) => chapterMatchesMissingTarget(chapter, true)),
+          }
+        : volume,
+    );
     const owing = owingApplied
       ? filtered.map((volume) => ({
           ...volume,
@@ -257,7 +274,7 @@ export function ChapterCorkboard({
         }))
       : filtered;
     return arrangeCorkboardVolumes(owing, chapterSort);
-  }, [chapterSort, normalizedQuery, owingApplied, statusFilter, threads, volumes]);
+  }, [chapterSort, missingTargetOnly, normalizedQuery, owingApplied, statusFilter, threads, volumes]);
   const currentChapter = useMemo(
     () => allChapters.find((chapter) => chapter.id === currentChapterId) ?? null,
     [allChapters, currentChapterId],
@@ -265,10 +282,14 @@ export function ChapterCorkboard({
   const currentChapterHidden =
     !owingPending &&
     (isChapterOutsideCorkboardView(currentChapter, statusFilter, normalizedQuery) ||
+      (missingTargetOnly &&
+        currentChapter != null &&
+        !chapterMatchesMissingTarget(currentChapter, true)) ||
       (owingApplied && currentChapter != null && !chapterOwesOpenPlant(currentChapter, threads)));
 
   const showAllChapters = () => {
     setStatusFilter("all");
+    setMissingTargetOnly(false);
     setOwingOnly(false);
     setQuery("");
   };
@@ -362,6 +383,23 @@ export function ChapterCorkboard({
             >
               {t("writing.chapterPlan.filterOwing", { count: owingCount })}
             </button>
+            <div
+              className="chapter-corkboard-missing-target"
+              data-active={missingTargetOnly ? "true" : "false"}
+            >
+              <Switch
+                id="corkboard-missing-target"
+                size="1"
+                checked={missingTargetOnly}
+                aria-label={t("writing.chapterPlan.filterMissingTarget", {
+                  count: missingTargetCount,
+                })}
+                onCheckedChange={setMissingTargetOnly}
+              />
+              <label htmlFor="corkboard-missing-target">
+                {t("writing.chapterPlan.filterMissingTarget", { count: missingTargetCount })}
+              </label>
+            </div>
           </div>
           {owingOnly ? (
             <p className="chapter-corkboard-owing-note">{t("writing.chapterPlan.owingActiveNote")}</p>
