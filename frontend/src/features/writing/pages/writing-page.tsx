@@ -666,10 +666,12 @@ export function WritingPage() {
       {hasOpenedCorkboard && (
         <Suspense fallback={null}>
           <ChapterCorkboard
+            key={projectId}
             projectId={projectId}
             open={isCorkboardOpen}
             onOpenChange={handleCorkboardOpenChange}
             onOpenChapter={handleOpenChapterFromCorkboard}
+            currentChapterId={currentChapterId}
             isAgentLocked={isAgentLocked}
           />
         </Suspense>
