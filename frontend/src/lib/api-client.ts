@@ -1014,6 +1014,7 @@ function transformPlotThread(raw: Record<string, unknown>): PlotThread {
     lastChapterTitle: typeof raw.last_chapter_title === "string" ? raw.last_chapter_title : null,
     lastGlobalOrder: typeof raw.last_global_order === "number" ? raw.last_global_order : null,
     lastKind: raw.last_kind == null ? null : normalizePlotBeatKind(raw.last_kind),
+    chaptersSinceLast: typeof raw.chapters_since_last === "number" ? raw.chapters_since_last : null,
     beats: Array.isArray(raw.beats)
       ? raw.beats.map((beat) => transformPlotBeat(beat as Record<string, unknown>))
       : [],

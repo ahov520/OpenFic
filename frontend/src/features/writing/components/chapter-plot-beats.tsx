@@ -4,7 +4,12 @@ import { useTranslation } from "react-i18next";
 
 import { toast } from "@/components";
 import type { PlotBeatKind, PlotThread } from "@/lib/plot-thread";
-import { PLOT_BEAT_KINDS } from "@/lib/plot-thread";
+import {
+  PLOT_BEAT_KINDS,
+  STALE_CHAPTER_GAP,
+  quietGapBeforeChapter,
+  readingChapterIds,
+} from "@/lib/plot-thread";
 
 import {
   useCreatePlotBeat,
@@ -36,6 +41,16 @@ export function ChapterPlotBeats({
   const updateBeat = useUpdatePlotBeat(projectId);
   const deleteBeat = useDeletePlotBeat(projectId);
   const threads = data?.threads ?? EMPTY_THREADS;
+  const readingOrder = useMemo(() => readingChapterIds(data?.chapters ?? []), [data?.chapters]);
+  const stale = useMemo(
+    () =>
+      threads.flatMap((thread) => {
+        const gap = quietGapBeforeChapter(thread, readingOrder, chapterId);
+        if (gap == null || gap.chaptersSince < STALE_CHAPTER_GAP) return [];
+        return [{ thread, gap }];
+      }),
+    [chapterId, readingOrder, threads],
+  );
   const onChapter = useMemo(
     () =>
       threads.flatMap((thread) =>
@@ -79,6 +94,23 @@ export function ChapterPlotBeats({
           </button>
         )}
       </div>
+      {stale.length > 0 && (
+        <ul
+          className="chapter-plot-stale"
+          data-testid="plot-thread-consider"
+        >
+          {stale.map(({ thread, gap }) => (
+            <li key={thread.id}>
+              {t("writing.plotThreads.considerAdvance", {
+                name: thread.name,
+                order: gap.lastOrder,
+                title: gap.lastTitle || t("writing.untitledChapter"),
+                count: gap.chaptersSince,
+              })}
+            </li>
+          ))}
+        </ul>
+      )}
       {onChapter.length === 0 ? (
         <p className="plot-thread-quiet">{t("writing.plotThreads.noBeatsOnChapter")}</p>
       ) : (

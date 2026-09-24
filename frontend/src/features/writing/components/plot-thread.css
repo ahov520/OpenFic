@@ -130,10 +130,16 @@
 }
 
 .plot-thread-last,
+.plot-thread-gap,
 .plot-thread-quiet {
   margin: 0;
   color: var(--gray-10);
   font-size: var(--font-size-1, 12px);
+}
+
+.plot-thread-gap[data-stale="true"] {
+  color: var(--amber-11);
+  font-weight: 600;
 }
 
 .plot-thread-card__actions,
@@ -183,6 +189,15 @@
   white-space: nowrap;
   font-size: var(--font-size-1, 12px);
   font-weight: 600;
+}
+
+.chapter-plot-stale {
+  margin: 8px 0 0;
+  padding: 6px 8px 6px 22px;
+  border-radius: 8px;
+  background: var(--amber-a3);
+  color: var(--amber-11);
+  font-size: var(--font-size-1, 12px);
 }
 
 .plot-thread-input:disabled,

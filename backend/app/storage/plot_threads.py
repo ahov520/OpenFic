@@ -20,10 +20,21 @@ OPEN_THREAD_LIMIT = 12
 CHAPTER_BEAT_LIMIT = 12
 CONTEXT_TEXT_LIMIT = 80
 
+# 空 0 章表示上一章刚出现过，空 1、2 章多半是故意隔开一场，不打断写作。
+# 中间空到 3 章，读者已经连续经过三章没再遇见这条线，作者该决定当前章要不要推进。
+# Plottr、Campfire、Aeon Timeline 只把空档画在时间线上，不按章计数；这个数补上那一步。
+# 写作界面和 Agent 当前章上下文共用这一阈值。
+STALE_CHAPTER_GAP = 3
+
 PLOT_PLAN_NOTICE = (
     "这些是作者计划的情节线，不是已经写进正文的事实。"
     "写当前章时只遵守本章节拍；未回收的线只说明它还开着，不要提前写出后文。"
+    "标了该考虑推进的线，可以在当前章往前推一步，仍然不要写出后文才会发生的事。"
 )
+
+CONSIDER_ADVANCE_NOTE = "到当前章已经隔了多章，可以考虑推进，不要写出后文。"
+
+BOARD_VIEWS = ("issues", "open", "quiet", "all")
 
 ISSUE_PAYOFF_WITHOUT_PLANT = "payoff_without_plant"
 ISSUE_PAYOFF_BEFORE_PLANT = "payoff_before_plant"
@@ -121,6 +132,33 @@ class ThreadAssessment:
     has_plant: bool
     has_payoff: bool
     last_beat: BeatSpot | None
+    chapters_since_last: int | None
+
+
+def chapters_between(
+    reading_order: list[str], earlier_id: str, later_id: str
+) -> int | None:
+    """按阅读顺序数两章中间空了几章。
+
+    reading_order 是章节 id，已经按卷序、卷内章节序排好。
+    数的是两者之间有几章，不用数据库 id 相减，也不用章节序号相减。
+    同一章，或 later 不在 earlier 之后，返回 None（没有空档）。
+    紧挨着的下一章返回 0，表示上一章刚出现过。
+    """
+    try:
+        earlier = reading_order.index(earlier_id)
+        later = reading_order.index(later_id)
+    except ValueError:
+        return None
+    if later <= earlier:
+        return None
+    return later - earlier - 1
+
+
+def reading_order_of(chapters: list[ChapterSpot]) -> list[str]:
+    """章节 id 的阅读顺序。global_order 只用来排序，不拿来相减。"""
+    ordered = sorted(chapters, key=lambda chapter: (chapter.global_order, chapter.id))
+    return [chapter.id for chapter in ordered]
 
 
 def assess_plot_threads(
@@ -134,6 +172,7 @@ def assess_plot_threads(
     beats: (id, thread_id, chapter_id, kind, note)
     """
     chapter_by_id = {chapter.id: chapter for chapter in chapters}
+    reading_order = reading_order_of(chapters)
     beats_by_thread: dict[str, list[BeatSpot]] = {}
     for beat_id, thread_id, chapter_id, kind, note in beats:
         chapter = chapter_by_id.get(chapter_id)
@@ -169,6 +208,7 @@ def assess_plot_threads(
                 status=status if status in THREAD_STATUSES else DEFAULT_THREAD_STATUS,
                 sort_order=sort_order,
                 beats=placed,
+                reading_order=reading_order,
             )
         )
     return assessments
@@ -182,6 +222,7 @@ def _assess_one(
     status: str,
     sort_order: int,
     beats: tuple[BeatSpot, ...],
+    reading_order: list[str],
 ) -> ThreadAssessment:
     plant_orders = [beat.global_order for beat in beats if beat.kind == "plant"]
     advance_orders = [beat.global_order for beat in beats if beat.kind == "advance"]
@@ -208,6 +249,20 @@ def _assess_one(
     if status == "active" and not has_payoff:
         issues.append(ISSUE_OPEN)
 
+    last_beat = beats[-1] if beats else None
+    # 已回收、已放弃，或已经有回收节拍的线，不标成凉了。
+    # 最后一次节拍就在全书最后一章时也没有空档。
+    chapters_since_last = None
+    if (
+        status == "active"
+        and not has_payoff
+        and last_beat is not None
+        and reading_order
+    ):
+        chapters_since_last = chapters_between(
+            reading_order, last_beat.chapter_id, reading_order[-1]
+        )
+
     return ThreadAssessment(
         id=thread_id,
         name=name,
@@ -218,8 +273,60 @@ def _assess_one(
         issues=tuple(issues),
         has_plant=has_plant,
         has_payoff=has_payoff,
-        last_beat=beats[-1] if beats else None,
+        last_beat=last_beat,
+        chapters_since_last=chapters_since_last,
     )
+
+
+def board_problem_rank(issues: tuple[str, ...]) -> int:
+    """结构对不上的线最前，未回收其次。没有问题的线排在后面。"""
+    if ISSUE_PAYOFF_WITHOUT_PLANT in issues or ISSUE_PAYOFF_BEFORE_PLANT in issues:
+        return 0
+    if ISSUE_OPEN in issues:
+        return 1
+    if issues:
+        return 2
+    return 3
+
+
+def select_board_threads(
+    assessments: list[ThreadAssessment],
+    view: str = "issues",
+) -> list[ThreadAssessment]:
+    """总览挑哪些线、按什么顺序。
+
+    issues（默认）：留下所有标了问题的线，有结构问题的排在前面。
+    只有「未回收」、没有结构错误的线也在这份名单里，隔很久不会被挡在外面。
+    同一档里隔得越久越靠前。
+    quiet：只留能量出空档的未回收线，隔得最久在前。已回收、已放弃不在这里。
+    open：未回收。all：全部。后两种仍是有问题的优先，然后按空档。
+    """
+    if view not in BOARD_VIEWS:
+        raise ValueError("情节线总览范围无效")
+    if view == "quiet":
+        chosen = [item for item in assessments if item.chapters_since_last is not None]
+    elif view == "open":
+        chosen = [item for item in assessments if ISSUE_OPEN in item.issues]
+    elif view == "all":
+        chosen = list(assessments)
+    else:
+        chosen = [item for item in assessments if item.issues]
+
+    def sort_key(item: ThreadAssessment) -> tuple[object, ...]:
+        gap = item.chapters_since_last
+        # None 表示没有可比较的空档，排在有数字的后面。
+        gap_rank = -(gap if gap is not None else -1)
+        if view == "quiet":
+            return (gap_rank, item.sort_order, item.name, item.id)
+        return (
+            board_problem_rank(item.issues),
+            gap_rank,
+            item.sort_order,
+            item.name,
+            item.id,
+        )
+
+    return sorted(chosen, key=sort_key)
 
 
 def agent_plot_context(
@@ -227,10 +334,13 @@ def agent_plot_context(
     current_chapter_id: str,
     current_global_order: int,
     assessments: list[ThreadAssessment],
+    reading_order: list[str] | None = None,
 ) -> dict[str, object] | None:
     """当前章能看见的计划：本章节拍，以及到这一章为止还没收的线。
 
     后文章节上的备注不放进来，避免把还没写到的回收泄进正文。
+    chapters_since 数的是最后一次已出现的节拍到当前章中间空了几章，
+    不是到全书最后一章。达到 STALE_CHAPTER_GAP 才提示考虑推进。
     """
     chapter_beats: list[dict[str, str]] = []
     open_threads: list[tuple[tuple[int, int, int, str], dict[str, object]]] = []
@@ -274,10 +384,17 @@ def agent_plot_context(
         on_chapter = (
             0 if any(beat.chapter_id == current_chapter_id for beat in visible) else 1
         )
-        last_order = last.global_order if last is not None else -1
+        gap = None
+        if last is not None and reading_order:
+            gap = chapters_between(reading_order, last.chapter_id, current_chapter_id)
+        if gap is not None:
+            summary["chapters_since"] = gap
+            if gap >= STALE_CHAPTER_GAP:
+                summary["consider_advance"] = CONSIDER_ADVANCE_NOTE
+        gap_rank = -(gap if gap is not None else -1)
         open_threads.append(
             (
-                (on_chapter, -last_order, thread.sort_order, thread.name),
+                (on_chapter, gap_rank, thread.sort_order, thread.name),
                 summary,
             )
         )

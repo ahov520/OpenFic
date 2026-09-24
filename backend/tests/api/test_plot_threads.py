@@ -6,7 +6,7 @@ import json
 import pytest
 from httpx import AsyncClient
 
-from app.storage.plot_threads import PLOT_PLAN_NOTICE
+from app.storage.plot_threads import CONSIDER_ADVANCE_NOTE, PLOT_PLAN_NOTICE
 
 
 async def _create_project(client: AsyncClient) -> tuple[str, str]:
@@ -214,3 +214,94 @@ async def test_chapter_context_includes_plan_without_future_payoff(
     open_names = [item["thread"] for item in closing_plan["open_threads"]]
     assert open_names == ["旧伤"]
     assert "铜镜" not in open_names
+    assert closing_plan["open_threads"][0]["chapters_since"] == 0
+    assert "consider_advance" not in closing_plan["open_threads"][0]
+
+
+@pytest.mark.asyncio
+async def test_board_reports_chapters_since_last_and_context_threshold(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    chapters = []
+    for title in ("埋下", "二", "三", "四", "五", "结局"):
+        chapters.append(await _create_chapter(client, project_id, volume_id, title))
+
+    mirror = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "铜镜", "intent": "还没收"},
+        )
+    ).json()
+    later = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "后文", "intent": "结局才收"},
+        )
+    ).json()
+    done = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "已收", "intent": "收完了", "status": "resolved"},
+        )
+    ).json()
+    await client.post(
+        f"/api/v1/plot-threads/{mirror['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "灯还亮着"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{later['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "先埋下"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{later['id']}/beats",
+        json={
+            "chapter_id": chapters[5]["id"],
+            "kind": "payoff",
+            "note": "镜子里是凶手",
+        },
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{done['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "埋"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{done['id']}/beats",
+        json={"chapter_id": chapters[1]["id"], "kind": "payoff", "note": "收"},
+    )
+
+    board = (await client.get(f"/api/v1/projects/{project_id}/plot-threads")).json()
+    by_name = {item["name"]: item for item in board["threads"]}
+    assert by_name["铜镜"]["chapters_since_last"] == 4
+    assert by_name["铜镜"]["last_chapter_title"] == "埋下"
+    assert by_name["后文"]["chapters_since_last"] is None
+    assert by_name["后文"]["issues"] == ["payoff_still_active"]
+    assert by_name["已收"]["chapters_since_last"] is None
+    assert by_name["已收"]["issues"] == []
+
+    async def context_for(index: int) -> dict:
+        response = await client.get(
+            f"/api/v1/projects/{project_id}/chapter-context/context",
+            params={"chapter_id": chapters[index]["id"]},
+        )
+        assert response.status_code == 200
+        latest = json.loads(response.json()["latest_field"]["content"])
+        return latest["plot_threads"]
+
+    below = await context_for(3)
+    below_mirror = next(
+        item for item in below["open_threads"] if item["thread"] == "铜镜"
+    )
+    assert below_mirror["chapters_since"] == 2
+    assert "consider_advance" not in below_mirror
+    assert below_mirror["chapters_since"] != by_name["铜镜"]["chapters_since_last"]
+
+    at_threshold = await context_for(4)
+    stale = next(
+        item for item in at_threshold["open_threads"] if item["thread"] == "铜镜"
+    )
+    assert stale["chapters_since"] == 3
+    assert stale["consider_advance"] == CONSIDER_ADVANCE_NOTE
+    rendered = json.dumps(at_threshold, ensure_ascii=False)
+    assert "镜子里是凶手" not in rendered
+    assert "已收" not in rendered

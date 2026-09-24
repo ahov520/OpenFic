@@ -77,6 +77,7 @@ def _thread_response(
         last_chapter_title=last.chapter_title if last else None,
         last_global_order=last.global_order if last else None,
         last_kind=_beat_kind(last.kind) if last else None,
+        chapters_since_last=assessment.chapters_since_last,
         beats=[
             _beat_response(beats[spot.id], spot)
             for spot in assessment.beats

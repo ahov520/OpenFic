@@ -98,6 +98,14 @@ class PlotThreadResponse(BaseModel):
     last_chapter_title: str | None
     last_global_order: int | None
     last_kind: BeatKind | None
+    chapters_since_last: int | None = Field(
+        default=None,
+        description=(
+            "进行中且尚未回收时，最后一次节拍到全书最后一章中间空了多少章。"
+            "0 表示上一章刚出现过。已回收、已放弃，或最后一章仍在这条线上，则为空。"
+            "这是相对全书末章，不是相对作者正在看的章。"
+        ),
+    )
     beats: list[PlotBeatResponse]
     created_at: datetime
     updated_at: datetime

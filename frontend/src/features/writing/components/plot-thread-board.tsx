@@ -4,8 +4,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { toast } from "@/components";
-import type { PlotBeat, PlotBeatKind, PlotChapterOption, PlotThread } from "@/lib/plot-thread";
-import { PLOT_BEAT_KINDS, PLOT_THREAD_STATUSES } from "@/lib/plot-thread";
+import type {
+  PlotBeat,
+  PlotBeatKind,
+  PlotBoardView,
+  PlotChapterOption,
+  PlotThread,
+} from "@/lib/plot-thread";
+import {
+  PLOT_BEAT_KINDS,
+  PLOT_THREAD_STATUSES,
+  STALE_CHAPTER_GAP,
+  selectPlotThreads,
+} from "@/lib/plot-thread";
 
 import {
   useCreatePlotBeat,
@@ -27,25 +38,11 @@ interface PlotThreadBoardProps {
   isAgentLocked?: boolean;
 }
 
-type ThreadFilter = "issues" | "open" | "all";
-
 const EMPTY_THREADS: PlotThread[] = [];
 const EMPTY_CHAPTERS: PlotChapterOption[] = [];
 
 function chapterLabel(chapter: { globalOrder: number; title: string }, untitled: string): string {
   return `${chapter.globalOrder}. ${chapter.title || untitled}`;
-}
-
-function threadRank(thread: PlotThread): number {
-  if (
-    thread.issues.includes("payoff_without_plant") ||
-    thread.issues.includes("payoff_before_plant")
-  ) {
-    return 0;
-  }
-  if (thread.issues.includes("open")) return 1;
-  if (thread.issues.length > 0) return 2;
-  return 3;
 }
 
 function reportPlotError(error: unknown, fallback: string, duplicate: string): void {
@@ -66,28 +63,15 @@ export function PlotThreadBoard({
   const { t } = useTranslation();
   const { data, isLoading } = usePlotThreads(open ? projectId : null);
   const createThread = useCreatePlotThread(projectId);
-  const [filter, setFilter] = useState<ThreadFilter>("issues");
+  const [filter, setFilter] = useState<PlotBoardView>("issues");
   const [name, setName] = useState("");
   const [intent, setIntent] = useState("");
   const threads = data?.threads ?? EMPTY_THREADS;
   const chapters = data?.chapters ?? EMPTY_CHAPTERS;
   const issueCount = threads.filter((thread) => thread.issues.length > 0).length;
   const openCount = threads.filter((thread) => thread.issues.includes("open")).length;
-  const visible = useMemo(() => {
-    const selected = threads.filter((thread) => {
-      if (filter === "all") return true;
-      if (filter === "open") return thread.issues.includes("open");
-      return thread.issues.length > 0;
-    });
-    return [...selected].sort((left, right) => {
-      const rank = threadRank(left) - threadRank(right);
-      if (rank !== 0) return rank;
-      const leftOrder = left.lastGlobalOrder ?? -1;
-      const rightOrder = right.lastGlobalOrder ?? -1;
-      if (leftOrder !== rightOrder) return leftOrder - rightOrder;
-      return left.sortOrder - right.sortOrder;
-    });
-  }, [filter, threads]);
+  const quietCount = threads.filter((thread) => thread.chaptersSinceLast != null).length;
+  const visible = useMemo(() => selectPlotThreads(threads, filter), [filter, threads]);
 
   const create = async () => {
     const trimmed = name.trim();
@@ -151,6 +135,11 @@ export function PlotThreadBoard({
               onClick={() => setFilter("open")}
             />
             <FilterButton
+              active={filter === "quiet"}
+              label={t("writing.plotThreads.filterQuiet", { count: quietCount })}
+              onClick={() => setFilter("quiet")}
+            />
+            <FilterButton
               active={filter === "all"}
               label={t("writing.plotThreads.filterAll", { count: threads.length })}
               onClick={() => setFilter("all")}
@@ -199,9 +188,11 @@ export function PlotThreadBoard({
             <p className="plot-thread-quiet">
               {filter === "open"
                 ? t("writing.plotThreads.emptyOpen")
-                : filter === "all"
-                  ? t("writing.plotThreads.emptyAll")
-                  : t("writing.plotThreads.emptyIssues")}
+                : filter === "quiet"
+                  ? t("writing.plotThreads.emptyQuiet")
+                  : filter === "all"
+                    ? t("writing.plotThreads.emptyAll")
+                    : t("writing.plotThreads.emptyIssues")}
             </p>
           ) : (
             <div className="plot-thread-list">
@@ -435,6 +426,17 @@ function ThreadCard({
               kind: t(`writing.plotThreads.kinds.${thread.lastKind}`),
             })}
       </p>
+      {thread.chaptersSinceLast != null && (
+        <p
+          className="plot-thread-gap"
+          data-stale={thread.chaptersSinceLast >= STALE_CHAPTER_GAP ? "true" : "false"}
+          data-testid="plot-thread-gap"
+        >
+          {thread.chaptersSinceLast === 0
+            ? t("writing.plotThreads.gapToEndZero")
+            : t("writing.plotThreads.gapToEnd", { count: thread.chaptersSinceLast })}
+        </p>
+      )}
       {thread.beats.length > 0 && (
         <div className="plot-thread-sequence">
           {thread.beats.map((beat) => (

@@ -193,6 +193,7 @@ async def context_for_chapter(
         current_chapter_id=chapter_id,
         current_global_order=current.global_order,
         assessments=_assess(threads, beats, spots),
+        reading_order=[spot.id for spot in spots],
     )
 
 
