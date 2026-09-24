@@ -113,6 +113,11 @@ class ChapterListItem(BaseModel):
     order: int = Field(description="排序序号")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="上次修改时间")
+    open_margin_note_count: int = Field(
+        default=0,
+        ge=0,
+        description="本章未划掉的旁注数量。已划掉不计入，0 表示没有待处理旁注",
+    )
 
     model_config = {"from_attributes": True}
 

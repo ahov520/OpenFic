@@ -26,10 +26,21 @@ from app.api.schemas.plan_check import PlanCheckResponse
 from app.background.jobs import service as background_service
 from app.core.errors import NotFoundError
 from app.storage.database import get_session
+from app.storage.models.chapter import Chapter
 from app.storage.plan_coverage import PresentedCheck
+from app.storage.repos import margin_note_repo
 from app.storage.services import chapter_service, plan_check_service
 
 router = APIRouter(tags=["chapters"])
+
+
+def _chapter_list_item(chapter: Chapter, counts: dict[str, int]) -> ChapterListItem:
+    """列表项附上未划掉旁注数。没有的章保持 0，不另查。"""
+    item = ChapterListItem.model_validate(chapter)
+    count = counts.get(chapter.id, 0)
+    if count == 0:
+        return item
+    return item.model_copy(update={"open_margin_note_count": count})
 
 
 def _plan_check_response(
@@ -141,7 +152,7 @@ async def list_chapters(
                 VolumeTreeItem(
                     **group.volume.model_dump(),
                     chapters=[
-                        ChapterListItem.model_validate(chapter)
+                        _chapter_list_item(chapter, result.open_margin_note_counts)
                         for chapter in group.chapters
                     ],
                 )
@@ -283,8 +294,11 @@ async def reorder_chapters(
         chapters = await chapter_service.reorder_chapters(
             session, data.volume_id, data.chapter_ids
         )
+        counts = await margin_note_repo.count_open_by_chapter_ids(
+            session, [chapter.id for chapter in chapters]
+        )
         await background_service.commit_and_notify(session)
-        return [ChapterListItem.model_validate(chapter) for chapter in chapters]
+        return [_chapter_list_item(chapter, counts) for chapter in chapters]
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

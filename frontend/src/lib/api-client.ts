@@ -777,6 +777,8 @@ function transformChapterListItem(raw: Record<string, unknown>): ChapterListItem
     order: raw.order as number,
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
+    openMarginNoteCount:
+      typeof raw.open_margin_note_count === "number" ? raw.open_margin_note_count : 0,
   };
 }
 

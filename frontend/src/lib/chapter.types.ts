@@ -41,6 +41,8 @@ export interface ChapterListItem {
   order: number;
   createdAt: string;
   updatedAt: string;
+  /** 未划掉的旁注数。已划掉不计入，0 表示没有待处理旁注。 */
+  openMarginNoteCount: number;
 }
 
 /**
