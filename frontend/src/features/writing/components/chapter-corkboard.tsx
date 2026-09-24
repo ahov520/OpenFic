@@ -7,6 +7,7 @@ import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
 
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { useVolumeTree } from "../hooks/use-volumes";
+import { isChapterNotStarted } from "../lib/chapter-not-started";
 import { WritingStatusSelect } from "./chapter-plan-status";
 import { ChapterWordTarget } from "./chapter-word-target";
 
@@ -35,11 +36,17 @@ function ChapterCorkboardCard({
 }) {
   const { t } = useTranslation();
   const draft = useChapterPlanDraft(chapter, isAgentLocked);
+  const notStarted = isChapterNotStarted({
+    synopsis: draft.synopsis,
+    writingStatus: draft.writingStatus,
+    wordCount: chapter.wordCount,
+  });
 
   return (
     <article
       className="chapter-corkboard-card"
       data-status={draft.writingStatus}
+      data-not-started={notStarted ? "true" : "false"}
     >
       <Flex
         align="center"
@@ -58,6 +65,9 @@ function ChapterCorkboardCard({
           onChange={draft.setWritingStatus}
         />
       </Flex>
+      {notStarted ? (
+        <p className="chapter-corkboard-card__not-started">{t("writing.chapterPlan.notStarted")}</p>
+      ) : null}
       <textarea
         className="chapter-corkboard-card__synopsis"
         value={draft.synopsis}

@@ -296,6 +296,7 @@
       "empty": "No chapters yet. Create one in the sidebar, then write its card.",
       "emptyFilter": "No chapters match this filter.",
       "cardMeta": "{{count}} words",
+      "notStarted": "Not started",
       "statuses": {
         "idea": "Idea",
         "drafting": "Draft",

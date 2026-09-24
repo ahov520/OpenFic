@@ -10,6 +10,7 @@
     "format:check": "oxfmt . --check",
     "lint": "oxlint .",
     "preview": "vp preview",
+    "test": "vp test run --dir src",
     "test:e2e": "playwright test",
     "type-check": "oxlint . --type-aware --type-check"
   },
