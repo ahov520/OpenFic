@@ -6,6 +6,8 @@
 
 import axios from "axios";
 
+import { normalizeWritingStatus } from "./chapter-plan";
+import type { MarginNote, MarginNoteCreate, MarginNoteUpdate } from "./margin-note";
 import { getConfiguredBackendBaseUrl, getRuntimeConfig } from "./runtime-config";
 import type { ThemeConfigResponse } from "./theme";
 
@@ -709,6 +711,7 @@ export async function reorderAgentMemories(memoryIds: string[]): Promise<AgentMe
 // Chapter API
 // ============================================
 
+import { readWordCountTarget } from "./chapter-length";
 import type {
   Chapter,
   ChapterCreate,
@@ -722,6 +725,21 @@ import type {
   VolumeUpdate,
   VolumeWithChapters,
 } from "./chapter.types";
+import type { PlanCheck } from "./plan-check";
+import { transformPlanCheck } from "./plan-check";
+import type {
+  PlotBeat,
+  PlotBeatCreate,
+  PlotBeatUpdate,
+  PlotBoard,
+  PlotChapterOption,
+  PlotThread,
+  PlotThreadCreate,
+  PlotThreadUpdate,
+  PlotThroughChapter,
+  PlotThroughGap,
+} from "./plot-thread";
+import { normalizePlotBeatKind, normalizePlotThreadStatus } from "./plot-thread";
 
 /**
  * 后端响应字段转换（snake_case -> camelCase）- 完整版章节
@@ -733,7 +751,10 @@ function transformChapter(raw: Record<string, unknown>): Chapter {
     volumeId: raw.volume_id as string,
     title: raw.title as string,
     content: raw.content as string,
+    synopsis: typeof raw.synopsis === "string" ? raw.synopsis : "",
+    writingStatus: normalizeWritingStatus(raw.writing_status),
     wordCount: raw.word_count as number,
+    wordCountTarget: readWordCountTarget(raw.word_count_target),
     order: raw.order as number,
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
@@ -749,7 +770,10 @@ function transformChapterListItem(raw: Record<string, unknown>): ChapterListItem
     projectId: raw.project_id as string,
     volumeId: raw.volume_id as string,
     title: raw.title as string,
+    synopsis: typeof raw.synopsis === "string" ? raw.synopsis : "",
+    writingStatus: normalizeWritingStatus(raw.writing_status),
     wordCount: raw.word_count as number,
+    wordCountTarget: readWordCountTarget(raw.word_count_target),
     order: raw.order as number,
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
@@ -874,6 +898,81 @@ export async function fetchChapter(chapterId: string): Promise<Chapter> {
   return transformChapter(response.data);
 }
 
+export async function fetchPlanCheck(chapterId: string): Promise<PlanCheck> {
+  const response = await apiClient.get<Record<string, unknown>>(
+    `/chapters/${chapterId}/plan-check`,
+  );
+  return transformPlanCheck(response.data);
+}
+
+export async function runPlanCheck(chapterId: string): Promise<PlanCheck> {
+  const response = await apiClient.post<Record<string, unknown>>(
+    `/chapters/${chapterId}/plan-check`,
+  );
+  return transformPlanCheck(response.data);
+}
+
+function transformMarginNote(raw: Record<string, unknown>): MarginNote {
+  const status = raw.status === "struck" ? "struck" : "open";
+  const alignment = raw.alignment === "misaligned" ? "misaligned" : "aligned";
+  return {
+    id: String(raw.id),
+    chapterId: String(raw.chapter_id),
+    anchorText: typeof raw.anchor_text === "string" ? raw.anchor_text : "",
+    contextBefore: typeof raw.context_before === "string" ? raw.context_before : "",
+    contextAfter: typeof raw.context_after === "string" ? raw.context_after : "",
+    body: typeof raw.body === "string" ? raw.body : "",
+    status,
+    alignment,
+    start: typeof raw.start === "number" ? raw.start : null,
+    end: typeof raw.end === "number" ? raw.end : null,
+    createdAt: String(raw.created_at ?? ""),
+    updatedAt: String(raw.updated_at ?? ""),
+  };
+}
+
+export async function fetchMarginNotes(chapterId: string): Promise<MarginNote[]> {
+  const response = await apiClient.get<Record<string, unknown>[]>(
+    `/chapters/${chapterId}/margin-notes`,
+  );
+  return response.data.map(transformMarginNote);
+}
+
+export async function createMarginNote(
+  chapterId: string,
+  data: MarginNoteCreate,
+): Promise<MarginNote> {
+  const response = await apiClient.post<Record<string, unknown>>(
+    `/chapters/${chapterId}/margin-notes`,
+    {
+      anchor_text: data.anchorText,
+      context_before: data.contextBefore,
+      context_after: data.contextAfter,
+      body: data.body,
+    },
+  );
+  return transformMarginNote(response.data);
+}
+
+export async function updateMarginNote(
+  chapterId: string,
+  noteId: string,
+  data: MarginNoteUpdate,
+): Promise<MarginNote> {
+  const response = await apiClient.patch<Record<string, unknown>>(
+    `/chapters/${chapterId}/margin-notes/${noteId}`,
+    {
+      status: data.status,
+      body: data.body,
+    },
+  );
+  return transformMarginNote(response.data);
+}
+
+export async function deleteMarginNote(chapterId: string, noteId: string): Promise<void> {
+  await apiClient.delete(`/chapters/${chapterId}/margin-notes/${noteId}`);
+}
+
 /**
  * 创建章节
  */
@@ -882,7 +981,10 @@ export async function createChapter(projectId: string, data: ChapterCreate): Pro
     volume_id: data.volumeId,
     title: data.title,
     content: data.content ?? "",
+    synopsis: data.synopsis,
+    writing_status: data.writingStatus,
     word_count: data.wordCount,
+    word_count_target: data.wordCountTarget,
   });
   return transformChapter(response.data);
 }
@@ -933,7 +1035,10 @@ export async function updateChapter(chapterId: string, data: ChapterUpdate): Pro
   const response = await apiClient.patch(`/chapters/${chapterId}`, {
     title: data.title,
     content: data.content,
+    synopsis: data.synopsis,
+    writing_status: data.writingStatus,
     word_count: data.wordCount,
+    word_count_target: data.wordCountTarget,
   });
   return transformChapter(response.data);
 }
@@ -943,6 +1048,150 @@ export async function updateChapter(chapterId: string, data: ChapterUpdate): Pro
  */
 export async function deleteChapter(chapterId: string): Promise<void> {
   await apiClient.delete(`/chapters/${chapterId}`);
+}
+
+function transformPlotBeat(raw: Record<string, unknown>): PlotBeat {
+  return {
+    id: raw.id as string,
+    threadId: raw.thread_id as string,
+    chapterId: raw.chapter_id as string,
+    chapterTitle: typeof raw.chapter_title === "string" ? raw.chapter_title : "",
+    volumeTitle: typeof raw.volume_title === "string" ? raw.volume_title : "",
+    globalOrder: raw.global_order as number,
+    kind: normalizePlotBeatKind(raw.kind),
+    note: typeof raw.note === "string" ? raw.note : "",
+  };
+}
+
+function transformGapChapters(value: unknown): PlotThread["gapChapters"] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== "string" || typeof row.label !== "string") return [];
+    return [{ id: row.id, label: row.label }];
+  });
+}
+
+function transformPlotThread(raw: Record<string, unknown>): PlotThread {
+  return {
+    id: raw.id as string,
+    projectId: raw.project_id as string,
+    name: typeof raw.name === "string" ? raw.name : "",
+    intent: typeof raw.intent === "string" ? raw.intent : "",
+    status: normalizePlotThreadStatus(raw.status),
+    sortOrder: typeof raw.sort_order === "number" ? raw.sort_order : 0,
+    issues: Array.isArray(raw.issues) ? raw.issues.filter((item) => typeof item === "string") : [],
+    hasPlant: raw.has_plant === true,
+    hasPayoff: raw.has_payoff === true,
+    lastChapterId: typeof raw.last_chapter_id === "string" ? raw.last_chapter_id : null,
+    lastChapterTitle: typeof raw.last_chapter_title === "string" ? raw.last_chapter_title : null,
+    lastGlobalOrder: typeof raw.last_global_order === "number" ? raw.last_global_order : null,
+    lastKind: raw.last_kind == null ? null : normalizePlotBeatKind(raw.last_kind),
+    chaptersSinceLast: typeof raw.chapters_since_last === "number" ? raw.chapters_since_last : null,
+    gapChapters: transformGapChapters(raw.gap_chapters),
+    gapRange:
+      typeof raw.gap_range === "string" && raw.gap_range.trim() !== "" ? raw.gap_range : null,
+    beats: Array.isArray(raw.beats)
+      ? raw.beats.map((beat) => transformPlotBeat(beat as Record<string, unknown>))
+      : [],
+  };
+}
+
+function transformPlotChapter(raw: Record<string, unknown>): PlotChapterOption {
+  return {
+    id: raw.id as string,
+    title: typeof raw.title === "string" ? raw.title : "",
+    globalOrder: raw.global_order as number,
+    volumeTitle: typeof raw.volume_title === "string" ? raw.volume_title : "",
+  };
+}
+
+function transformThroughGap(raw: Record<string, unknown>): PlotThroughGap {
+  return {
+    id: raw.id as string,
+    chaptersSince: typeof raw.chapters_since === "number" ? raw.chapters_since : 0,
+    gapChapters: transformGapChapters(raw.gap_chapters),
+    gapRange:
+      typeof raw.gap_range === "string" && raw.gap_range.trim() !== "" ? raw.gap_range : null,
+  };
+}
+
+export async function fetchPlotGapsThroughChapter(
+  projectId: string,
+  chapterId: string,
+): Promise<PlotThroughChapter> {
+  const response = await apiClient.get(`/projects/${projectId}/plot-threads/through/${chapterId}`);
+  const raw = response.data as Record<string, unknown>;
+  return {
+    threads: Array.isArray(raw.threads)
+      ? raw.threads.map((thread) => transformThroughGap(thread as Record<string, unknown>))
+      : [],
+  };
+}
+
+export async function fetchPlotThreads(projectId: string): Promise<PlotBoard> {
+  const response = await apiClient.get(`/projects/${projectId}/plot-threads`);
+  const raw = response.data as Record<string, unknown>;
+  return {
+    threads: Array.isArray(raw.threads)
+      ? raw.threads.map((thread) => transformPlotThread(thread as Record<string, unknown>))
+      : [],
+    chapters: Array.isArray(raw.chapters)
+      ? raw.chapters.map((chapter) => transformPlotChapter(chapter as Record<string, unknown>))
+      : [],
+  };
+}
+
+export async function createPlotThread(
+  projectId: string,
+  data: PlotThreadCreate,
+): Promise<PlotThread> {
+  const response = await apiClient.post(`/projects/${projectId}/plot-threads`, {
+    name: data.name,
+    intent: data.intent ?? "",
+    status: data.status,
+  });
+  return transformPlotThread(response.data as Record<string, unknown>);
+}
+
+export async function updatePlotThread(
+  threadId: string,
+  data: PlotThreadUpdate,
+): Promise<PlotThread> {
+  const response = await apiClient.patch(`/plot-threads/${threadId}`, {
+    name: data.name,
+    intent: data.intent,
+    status: data.status,
+  });
+  return transformPlotThread(response.data as Record<string, unknown>);
+}
+
+export async function deletePlotThread(threadId: string): Promise<void> {
+  await apiClient.delete(`/plot-threads/${threadId}`);
+}
+
+export async function createPlotBeat(threadId: string, data: PlotBeatCreate): Promise<PlotThread> {
+  const response = await apiClient.post(`/plot-threads/${threadId}/beats`, {
+    chapter_id: data.chapterId,
+    kind: data.kind,
+    note: data.note ?? "",
+  });
+  return transformPlotThread(response.data as Record<string, unknown>);
+}
+
+export async function updatePlotBeat(beatId: string, data: PlotBeatUpdate): Promise<PlotThread> {
+  const response = await apiClient.patch(`/plot-beats/${beatId}`, {
+    chapter_id: data.chapterId,
+    kind: data.kind,
+    note: data.note,
+  });
+  return transformPlotThread(response.data as Record<string, unknown>);
+}
+
+export async function deletePlotBeat(beatId: string): Promise<PlotThread> {
+  const response = await apiClient.delete(`/plot-beats/${beatId}`);
+  return transformPlotThread(response.data as Record<string, unknown>);
 }
 
 /**
@@ -1807,7 +2056,9 @@ export async function previewWorldInfoImport(file: File): Promise<WorldInfoImpor
   return transformWorldInfoImportPreview(response.data as Record<string, unknown>);
 }
 
-function transformTavernPreview(raw: Record<string, unknown>): import("./tavern.types").TavernPreview {
+function transformTavernPreview(
+  raw: Record<string, unknown>,
+): import("./tavern.types").TavernPreview {
   return {
     kind: raw.kind as string,
     characterName: (raw.character_name as string) || "",

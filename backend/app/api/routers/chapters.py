@@ -22,12 +22,54 @@ from app.api.schemas.chapter import (
     VolumeTreeItem,
     VolumeTreeResponse,
 )
+from app.api.schemas.plan_check import PlanCheckResponse
 from app.background.jobs import service as background_service
 from app.core.errors import NotFoundError
 from app.storage.database import get_session
-from app.storage.services import chapter_service
+from app.storage.plan_coverage import PresentedCheck
+from app.storage.services import chapter_service, plan_check_service
 
 router = APIRouter(tags=["chapters"])
+
+
+def _plan_check_response(
+    chapter_id: str, presented: PresentedCheck
+) -> PlanCheckResponse:
+    return PlanCheckResponse.model_validate(
+        {
+            "chapter_id": chapter_id,
+            "has_plan": presented.has_plan,
+            "freshness": presented.freshness,
+            "source": presented.source,
+            "outcome": presented.outcome,
+            "gaps": [
+                {
+                    "ref": gap.ref,
+                    "origin": gap.origin,
+                    "plan_text": gap.plan_text,
+                    "basis": gap.basis,
+                    "missing": list(gap.missing),
+                    "detail": gap.detail,
+                    "beat_kind": gap.beat_kind,
+                    "thread_name": gap.thread_name,
+                    "thread_id": gap.thread_id,
+                    "change": gap.change,
+                }
+                for gap in presented.gaps
+            ],
+            "unchecked": [
+                {
+                    "ref": line.ref,
+                    "origin": line.origin,
+                    "plan_text": line.plan_text,
+                    "beat_kind": line.beat_kind,
+                    "thread_name": line.thread_name,
+                }
+                for line in presented.unchecked
+            ],
+            "checked_at": presented.checked_at,
+        }
+    )
 
 
 @router.post(
@@ -61,6 +103,9 @@ async def create_chapter(
             title=data.title,
             content=data.content,
             word_count=data.word_count,
+            synopsis=data.synopsis,
+            writing_status=data.writing_status,
+            word_count_target=data.word_count_target,
         )
         await background_service.commit_and_notify(session)
         return ChapterResponse.model_validate(chapter)
@@ -169,6 +214,13 @@ async def update_chapter(
             title=data.title,
             content=data.content,
             word_count=data.word_count,
+            synopsis=data.synopsis,
+            writing_status=data.writing_status,
+            word_count_target=(
+                data.word_count_target
+                if "word_count_target" in data.model_fields_set
+                else chapter_service.UNSET
+            ),
         )
         await background_service.commit_and_notify(session)
         return ChapterResponse.model_validate(chapter)
@@ -272,6 +324,40 @@ async def search_chapters(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get(
+    "/chapters/{chapter_id}/plan-check",
+    response_model=PlanCheckResponse,
+    summary="读取对照计划检查",
+)
+async def get_plan_check(
+    chapter_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> PlanCheckResponse:
+    """读取留在这一章上的对照结果。计划或正文变了会标成过期。"""
+    try:
+        presented = await plan_check_service.get_plan_check(session, chapter_id)
+        return _plan_check_response(chapter_id, presented)
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post(
+    "/chapters/{chapter_id}/plan-check",
+    response_model=PlanCheckResponse,
+    summary="对照梗概和本章节拍检查正文",
+)
+async def run_plan_check(
+    chapter_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> PlanCheckResponse:
+    """指出梗概或本章节拍里写了、正文里还没有依据的事。"""
+    try:
+        presented = await plan_check_service.run_plan_check(session, chapter_id)
+        return _plan_check_response(chapter_id, presented)
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.post(

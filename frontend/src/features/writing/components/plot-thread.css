@@ -1,0 +1,286 @@
+.plot-thread-content {
+  display: flex;
+  flex-direction: column;
+  height: min(820px, calc(100vh - 48px));
+  padding: 0 !important;
+}
+
+.plot-thread-header,
+.plot-thread-create {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.plot-thread-create {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.plot-thread-create__fields,
+.plot-thread-beat-row,
+.plot-thread-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plot-thread-create__fields {
+  flex-wrap: wrap;
+}
+
+.plot-thread-input,
+.plot-thread-note {
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--gray-a6);
+  border-radius: 8px;
+  background: var(--color-background);
+  color: var(--gray-12);
+  font: inherit;
+  font-size: var(--font-size-2, 14px);
+}
+
+.plot-thread-input {
+  flex: 1;
+}
+
+.plot-thread-note {
+  flex: 1.4;
+}
+
+.plot-thread-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 20px 20px;
+}
+
+.plot-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plot-thread-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--gray-a5);
+  border-left: 3px solid var(--amber-9);
+  border-radius: 12px;
+  background: var(--gray-2);
+}
+
+.plot-thread-card[data-status="resolved"] {
+  border-left-color: var(--green-9);
+}
+
+.plot-thread-card[data-status="abandoned"] {
+  border-left-color: var(--gray-8);
+}
+
+.plot-thread-card[data-clean="true"] {
+  border-left-color: var(--gray-8);
+}
+
+.plot-thread-card__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.plot-thread-issues,
+.plot-thread-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.plot-thread-issue,
+.plot-thread-chip {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.4;
+}
+
+.plot-thread-issue {
+  background: var(--amber-a3);
+  color: var(--amber-11);
+}
+
+.plot-thread-issue[data-issue="open"] {
+  background: var(--blue-a3);
+  color: var(--blue-11);
+}
+
+.plot-thread-issue[data-issue="payoff_without_plant"],
+.plot-thread-issue[data-issue="payoff_before_plant"] {
+  background: var(--red-a3);
+  color: var(--red-11);
+}
+
+.plot-thread-chip {
+  background: var(--gray-a3);
+  color: var(--gray-12);
+}
+
+.plot-thread-chip--gap {
+  border: 1px dashed var(--amber-a8);
+  background: transparent;
+  color: var(--amber-11);
+  cursor: pointer;
+}
+
+.plot-thread-gap-chapters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.plot-thread-gap-range {
+  color: var(--gray-12);
+  font-size: var(--font-size-1, 12px);
+}
+
+.plot-thread-last,
+.plot-thread-gap,
+.plot-thread-quiet {
+  margin: 0;
+  color: var(--gray-10);
+  font-size: var(--font-size-1, 12px);
+}
+
+.plot-thread-gap[data-stale="true"] {
+  color: var(--amber-11);
+  font-weight: 600;
+}
+
+.plot-thread-card__actions,
+.plot-thread-chapter__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plot-thread-text-button,
+.plot-thread-delete {
+  border: none;
+  background: transparent;
+  color: var(--gray-11);
+  font: inherit;
+  font-size: var(--font-size-1, 12px);
+  cursor: pointer;
+}
+
+.plot-thread-text-button:hover,
+.plot-thread-delete:hover {
+  color: var(--gray-12);
+}
+
+.plot-thread-delete[data-confirm="true"] {
+  color: var(--red-11);
+}
+
+.chapter-plot-beats {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--gray-a4);
+}
+
+.chapter-plot-beats__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.chapter-plot-beats__name {
+  flex: 0 0 auto;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-1, 12px);
+  font-weight: 600;
+}
+
+.chapter-plot-stale {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  list-style: none;
+  border-radius: 8px;
+  background: var(--amber-a3);
+  color: var(--amber-11);
+  font-size: var(--font-size-1, 12px);
+}
+
+.chapter-plot-stale__item + .chapter-plot-stale__item {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--amber-a5);
+}
+
+.chapter-plot-stale__item .plot-thread-gap-chapters {
+  margin-top: 6px;
+}
+
+.chapter-plot-stale__text,
+.chapter-plot-stale__hint,
+.chapter-plot-stale__error {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.chapter-plot-stale__hint {
+  margin-top: 4px;
+  color: var(--gray-11);
+}
+
+.chapter-plot-stale__error {
+  margin-top: 4px;
+  color: var(--red-11);
+}
+
+.chapter-plot-stale__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.chapter-plot-stale__form .plot-thread-note {
+  flex: 1 1 10rem;
+  height: 28px;
+  font-size: var(--font-size-1, 12px);
+}
+
+.chapter-plot-advance-errors {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.4;
+}
+
+.chapter-plot-advance-errors__error {
+  color: var(--red-11);
+}
+
+.chapter-plot-advance-errors__notice {
+  color: var(--amber-11);
+}
+
+.plot-thread-input:disabled,
+.plot-thread-note:disabled,
+.plot-thread-text-button:disabled,
+.plot-thread-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}

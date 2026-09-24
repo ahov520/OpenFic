@@ -14,15 +14,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.editor_content_limits import validate_editor_content
 from app.core.errors import NotFoundError
 from app.memory.chapter.sequence import global_order_index
+from app.storage.chapter_length import normalize_word_count_target
+from app.storage.chapter_plan import normalize_synopsis, normalize_writing_status
 from app.storage.models.chapter import Chapter
 from app.storage.models.volume import Volume
 from app.storage.repos import (
     chapter_repo,
     chapter_summary_repo,
+    margin_note_repo,
+    plot_beat_repo,
     project_repo,
     volume_repo,
 )
 from app.storage.services import writing_activity_service
+
+UNSET = object()
 
 
 @dataclass
@@ -143,6 +149,9 @@ async def create_chapter(
     title: str,
     content: str = "",
     word_count: int | None = None,
+    synopsis: str = "",
+    writing_status: str | None = None,
+    word_count_target: int | None = None,
 ) -> Chapter:
     """
     创建章节。
@@ -154,6 +163,9 @@ async def create_chapter(
         title: 章节标题。
         content: 章节内容，默认为空。
         word_count: 字数（前端计算），如果为 None 则后端计算。
+        synopsis: 作者梗概。
+        writing_status: 写作状态。
+        word_count_target: 本章目标字数。空表示不设目标。
 
     Returns:
         创建的章节实例。
@@ -162,6 +174,9 @@ async def create_chapter(
         NotFoundError: 项目不存在。
     """
     validate_editor_content(content)
+    synopsis = normalize_synopsis(synopsis)
+    writing_status = normalize_writing_status(writing_status)
+    word_count_target = normalize_word_count_target(word_count_target)
 
     # 检查项目是否存在
     project = await project_repo.get_by_id(session, project_id)
@@ -183,7 +198,10 @@ async def create_chapter(
         volume_id=volume_id,
         title=title,
         content=content,
+        synopsis=synopsis,
+        writing_status=writing_status,
         word_count=final_word_count,
+        word_count_target=word_count_target,
         order=max_order + 1,
     )
     chapter = await chapter_repo.create(session, chapter)
@@ -434,6 +452,9 @@ async def update_chapter(
     title: str | None = None,
     content: str | None = None,
     word_count: int | None = None,
+    synopsis: str | None = None,
+    writing_status: str | None = None,
+    word_count_target: int | None | object = UNSET,
 ) -> Chapter:
     """
     更新章节。
@@ -444,6 +465,9 @@ async def update_chapter(
         title: 新标题，可选。
         content: 新内容，可选。
         word_count: 字数（前端计算），如果为 None 则后端计算。
+        synopsis: 作者梗概，可选。只在传入时更新。
+        writing_status: 写作状态，可选。只在传入时更新。
+        word_count_target: 本章目标字数。UNSET 表示不改，None 表示清空。
 
     Returns:
         更新后的章节实例。
@@ -474,7 +498,28 @@ async def update_chapter(
         chapter.word_count = word_count
         content_changed = True
 
-    if title_changed or content_changed:
+    plan_changed = False
+    if synopsis is not None:
+        normalized_synopsis = normalize_synopsis(synopsis)
+        if normalized_synopsis != chapter.synopsis:
+            chapter.synopsis = normalized_synopsis
+            plan_changed = True
+    if writing_status is not None:
+        normalized_status = normalize_writing_status(writing_status)
+        if normalized_status != chapter.writing_status:
+            chapter.writing_status = normalized_status
+            plan_changed = True
+
+    target_changed = False
+    if word_count_target is not UNSET:
+        normalized_target = normalize_word_count_target(
+            word_count_target if isinstance(word_count_target, int) else None
+        )
+        if normalized_target != chapter.word_count_target:
+            chapter.word_count_target = normalized_target
+            target_changed = True
+
+    if title_changed or content_changed or plan_changed or target_changed:
         chapter.updated_at = datetime.now(UTC)
     chapter = await chapter_repo.update_chapter(session, chapter)
 
@@ -566,6 +611,9 @@ async def delete_chapter(
             session, project_id, affected_ranges
         )
 
+    await plot_beat_repo.delete_by_chapter_ids(session, [chapter_id])
+    await margin_note_repo.delete_by_chapter_ids(session, [chapter_id])
+
     # 删除章节
     await chapter_repo.delete(session, chapter)
 
@@ -608,9 +656,7 @@ async def delete_chapters_in_volume(session: AsyncSession, volume_id: str) -> No
     volumes = await volume_repo.list_by_project(session, project_id)
     global_orders = global_order_index(project_chapters, volumes)
     deleted_global_orders = [
-        global_orders[chapter.id]
-        for chapter in chapters
-        if chapter.id in global_orders
+        global_orders[chapter.id] for chapter in chapters if chapter.id in global_orders
     ]
 
     from app.retrieval.chapter_index import ChapterIndexIntegrationService
@@ -642,6 +688,12 @@ async def delete_chapters_in_volume(session: AsyncSession, volume_id: str) -> No
             session, project_id, affected_ranges
         )
 
+    await plot_beat_repo.delete_by_chapter_ids(
+        session, [chapter.id for chapter in chapters]
+    )
+    await margin_note_repo.delete_by_chapter_ids(
+        session, [chapter.id for chapter in chapters]
+    )
     await chapter_repo.delete_by_volume(session, volume_id)
     for chapter in chapters:
         await writing_activity_service.record_activity(

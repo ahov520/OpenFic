@@ -5,6 +5,8 @@ import {
   Download,
   FilePlus,
   GripVertical,
+  LayoutGrid,
+  GitBranch,
   Search,
   Summary,
   X,
@@ -26,6 +28,8 @@ interface SidebarToolbarProps {
   onCreateChapter: () => void;
   onCreateVolume: () => void;
   onOpenSummary?: () => void;
+  onOpenCorkboard?: () => void;
+  onOpenPlotThreads?: () => void;
   onExport: () => void;
   onSaveOrder: () => void;
   onCancelOrder: () => void;
@@ -41,6 +45,8 @@ export function SidebarToolbar({
   onCreateChapter,
   onCreateVolume,
   onOpenSummary,
+  onOpenCorkboard,
+  onOpenPlotThreads,
   onExport,
   onSaveOrder,
   onCancelOrder,
@@ -348,6 +354,35 @@ export function SidebarToolbar({
                       onClick={onOpenSummary}
                     >
                       <Summary size={16} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {onOpenCorkboard && (
+                  <Tooltip content={t("writing.chapterPlan.openCorkboard")}>
+                    <IconButton
+                      variant="ghost"
+                      color="gray"
+                      highContrast
+                      size="2"
+                      aria-label={t("writing.chapterPlan.openCorkboard")}
+                      onClick={onOpenCorkboard}
+                    >
+                      <LayoutGrid size={16} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {onOpenPlotThreads && (
+                  <Tooltip content={t("writing.plotThreads.open")}>
+                    <IconButton
+                      variant="ghost"
+                      color="gray"
+                      highContrast
+                      size="2"
+                      aria-label={t("writing.plotThreads.open")}
+                      data-testid="open-plot-threads"
+                      onClick={onOpenPlotThreads}
+                    >
+                      <GitBranch size={16} />
                     </IconButton>
                   </Tooltip>
                 )}

@@ -8,6 +8,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.storage.chapter_length import WORD_COUNT_TARGET_MAX
+from app.storage.chapter_plan import SYNOPSIS_MAX_LENGTH
+
+WritingStatus = Literal["idea", "drafting", "revising", "done"]
+
 
 class ChapterCreate(BaseModel):
     """创建章节请求。"""
@@ -15,8 +20,23 @@ class ChapterCreate(BaseModel):
     volume_id: str = Field(description="所属卷 ID")
     title: str = Field(min_length=1, max_length=200, description="章节标题")
     content: str = Field(default="", description="章节内容")
+    synopsis: str = Field(
+        default="",
+        max_length=SYNOPSIS_MAX_LENGTH,
+        description="作者梗概，规划这一章要写什么",
+    )
+    writing_status: WritingStatus = Field(
+        default="idea",
+        description="写作状态：idea 构思 / drafting 草稿 / revising 修订 / done 完成",
+    )
     word_count: int | None = Field(
         default=None, ge=0, description="章节字数（前端计算）"
+    )
+    word_count_target: int | None = Field(
+        default=None,
+        ge=1,
+        le=WORD_COUNT_TARGET_MAX,
+        description="本章目标字数。空表示不设目标",
     )
 
 
@@ -27,8 +47,23 @@ class ChapterUpdate(BaseModel):
         default=None, min_length=1, max_length=200, description="章节标题"
     )
     content: str | None = Field(default=None, description="章节内容")
+    synopsis: str | None = Field(
+        default=None,
+        max_length=SYNOPSIS_MAX_LENGTH,
+        description="作者梗概，规划这一章要写什么",
+    )
+    writing_status: WritingStatus | None = Field(
+        default=None,
+        description="写作状态：idea 构思 / drafting 草稿 / revising 修订 / done 完成",
+    )
     word_count: int | None = Field(
         default=None, ge=0, description="章节字数（前端计算）"
+    )
+    word_count_target: int | None = Field(
+        default=None,
+        ge=1,
+        le=WORD_COUNT_TARGET_MAX,
+        description="本章目标字数。传入 null 表示清空",
     )
 
 
@@ -53,7 +88,10 @@ class ChapterResponse(BaseModel):
     volume_id: str = Field(description="所属卷 ID")
     title: str = Field(description="章节标题")
     content: str = Field(description="章节内容")
+    synopsis: str = Field(description="作者梗概")
+    writing_status: WritingStatus = Field(description="写作状态")
     word_count: int = Field(description="章节字数")
+    word_count_target: int | None = Field(description="本章目标字数，空表示不设目标")
     order: int = Field(description="排序序号")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="上次修改时间")
@@ -68,7 +106,10 @@ class ChapterListItem(BaseModel):
     project_id: str = Field(description="所属项目 ID")
     volume_id: str = Field(description="所属卷 ID")
     title: str = Field(description="章节标题")
+    synopsis: str = Field(description="作者梗概")
+    writing_status: WritingStatus = Field(description="写作状态")
     word_count: int = Field(description="章节字数")
+    word_count_target: int | None = Field(description="本章目标字数，空表示不设目标")
     order: int = Field(description="排序序号")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="上次修改时间")

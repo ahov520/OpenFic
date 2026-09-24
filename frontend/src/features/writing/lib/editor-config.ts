@@ -19,6 +19,7 @@ import { serializeClipboardText } from "@/components/editor-clipboard";
 import { createEditorShortcuts, type EditorShortcutCallbacks } from "@/components/editor-shortcuts";
 import { PARAGRAPH_INDENT } from "@/components/editor-toolbar-actions";
 
+import { MarginNoteHighlight } from "./margin-note-highlight";
 import { SearchAndReplace } from "./search-and-replace";
 
 export type { EditorShortcutCallbacks } from "@/components/editor-shortcuts";
@@ -381,6 +382,7 @@ export function createEditorExtensions(options: EditorExtensionsOptions = {}) {
     TabIndent,
     PlainTextClipboard,
     SearchAndReplace,
+    MarginNoteHighlight,
   ];
 
   // 如果提供了快捷键回调，添加快捷键扩展

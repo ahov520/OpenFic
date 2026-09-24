@@ -10,9 +10,12 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.chapter.sequence import global_order_index
+from app.storage.chapter_plan import catalog_plan_fields, latest_plan_fields
 from app.storage.models.chapter import Chapter
 from app.storage.models.chapter_summary import ChapterSummary
 from app.storage.repos import chapter_repo, chapter_summary_repo, volume_repo
+from app.storage.services.margin_note_service import margin_notes_for_agent
+from app.storage.services.plot_thread_service import context_for_chapter
 
 
 @dataclass
@@ -82,8 +85,20 @@ async def build_context(
         )
 
     current_global_order = order_map[current_chapter.id]
-
-    latest_field = _build_latest_field(current_chapter, current_global_order)
+    plot_plan = await context_for_chapter(
+        session,
+        project_id,
+        current_chapter.id,
+        chapters=all_chapters,
+        volumes=volumes,
+    )
+    margin_notes = await margin_notes_for_agent(session, current_chapter.id)
+    latest_field = _build_latest_field(
+        current_chapter,
+        current_global_order,
+        plot_plan,
+        margin_notes,
+    )
 
     near_field = _build_near_field(
         chapter_by_global_order=chapter_by_global_order,
@@ -128,15 +143,21 @@ async def build_context(
 def _build_latest_field(
     chapter: Chapter,
     global_order: int,
+    plot_plan: dict[str, object] | None = None,
+    margin_notes: dict[str, object] | None = None,
 ) -> ContextPart:
-    content = _to_json(
-        {
-            "order": global_order,
-            "title": chapter.title,
-            "content": chapter.content,
-            "word_count": chapter.word_count,
-        }
-    )
+    payload: dict[str, object] = {
+        "order": global_order,
+        "title": chapter.title,
+        "content": chapter.content,
+        "word_count": chapter.word_count,
+        **latest_plan_fields(chapter),
+    }
+    if plot_plan:
+        payload["plot_threads"] = plot_plan
+    if margin_notes:
+        payload["author_margin_notes"] = margin_notes
+    content = _to_json(payload)
     return ContextPart(
         content=content,
         token_count=_estimate_tokens(content),
@@ -254,8 +275,10 @@ async def _build_far_field(
     if max_end_order < 1:
         return _empty_part()
 
-    long_term_summaries = await chapter_summary_repo.list_long_term_summaries_by_project(
-        session, project_id, ready_only=True
+    long_term_summaries = (
+        await chapter_summary_repo.list_long_term_summaries_by_project(
+            session, project_id, ready_only=True
+        )
     )
 
     if not long_term_summaries:
@@ -302,6 +325,7 @@ def _build_chapter_list_field(
             {
                 "order": order_map[chapter.id],
                 "title": chapter.title,
+                **catalog_plan_fields(chapter),
             }
             for chapter in latest_chapters
         ]

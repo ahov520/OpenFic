@@ -12,10 +12,12 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SummaryStatus } from "@/lib/api-client";
+import { chapterLengthProgress } from "@/lib/chapter-length";
 import type { ChapterListItem as ChapterListItemType } from "@/lib/chapter.types";
 import { formatRelativeTime } from "@/lib/time-utils";
 
 import { CHAPTER_LIST_ITEM_HEIGHT } from "../lib/chapter-list-drag";
+import { WritingStatusMark } from "./chapter-plan-status";
 import { SummaryStatusDot } from "./summary-status-dot";
 
 function RenameInput({
@@ -135,6 +137,25 @@ function ChapterRowContent({
 }: ChapterRowContentProps) {
   const { t } = useTranslation();
   const showMenuTrigger = Boolean(onOpenMenu);
+  const length = chapterLengthProgress(chapter.wordCount, chapter.wordCountTarget);
+  const lengthLabel =
+    length.pace === "none"
+      ? `${chapter.wordCount} ${t("writing.words")}`
+      : `${chapter.wordCount}/${length.target} ${t(
+          length.pace === "short"
+            ? "writing.chapterLength.short"
+            : length.pace === "over"
+              ? "writing.chapterLength.long"
+              : "writing.chapterLength.onTarget",
+        )}`;
+  const lengthTitle =
+    length.pace === "short"
+      ? t("writing.chapterLength.remaining", { count: length.remaining })
+      : length.pace === "over"
+        ? t("writing.chapterLength.over", { count: length.over })
+        : length.pace === "met"
+          ? t("writing.chapterLength.met")
+          : undefined;
 
   return (
     <Flex
@@ -176,14 +197,17 @@ function ChapterRowContent({
         <Flex
           gap="2"
           mt="1"
+          align="center"
         >
-          <Text
-            size="1"
-            color={textColor ? undefined : "gray"}
-            style={{ color: textColor }}
+          <WritingStatusMark status={chapter.writingStatus} />
+          <span
+            className="chapter-length-mark"
+            data-pace={length.pace}
+            title={lengthTitle}
+            style={textColor ? { color: textColor } : undefined}
           >
-            {chapter.wordCount} {t("writing.words")}
-          </Text>
+            {lengthLabel}
+          </span>
           <Text
             size="1"
             color={textColor ? undefined : "gray"}
@@ -590,6 +614,7 @@ function areBaseRowPropsEqual(prev: ChapterListItemBaseProps, next: ChapterListI
     prev.chapter.title === next.chapter.title &&
     prev.chapter.order === next.chapter.order &&
     prev.chapter.wordCount === next.chapter.wordCount &&
+    prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
     prev.isActive === next.isActive &&
     prev.isRenaming === next.isRenaming &&
@@ -614,6 +639,7 @@ function areDraggableRowPropsEqual(
     prev.chapter.title === next.chapter.title &&
     prev.chapter.order === next.chapter.order &&
     prev.chapter.wordCount === next.chapter.wordCount &&
+    prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
     prev.isActive === next.isActive &&
     prev.summaryStatus === next.summaryStatus &&

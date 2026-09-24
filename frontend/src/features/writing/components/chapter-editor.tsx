@@ -1,7 +1,7 @@
 import { Box, Flex, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AtSign } from "lucide-react";
+import { AtSign, StickyNote } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -45,6 +45,9 @@ import {
   isRemoteWritingEntityNewer,
 } from "../lib/writing-working-copy";
 import { useTabsStore } from "../store/use-tabs-store";
+import { ChapterMarginNotes } from "./chapter-margin-notes";
+import { ChapterPlanBar } from "./chapter-plan-bar";
+import { ChapterWordTarget } from "./chapter-word-target";
 import { FindReplacePanel } from "./find-replace-panel";
 
 const MANUAL_SAVE_EVENT = "openfic:chapter-editor-manual-save";
@@ -66,6 +69,8 @@ interface ChapterEditorProps {
   onScrollPositionChange?: (chapterId: string, scrollTop: number) => void;
   onAddToConversation?: (markup: string) => void;
   isAgentLocked?: boolean;
+  onOpenPlotThreads?: () => void;
+  onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
   addSelectionToConversationRef?: React.MutableRefObject<(() => void) | null>;
 }
@@ -80,6 +85,8 @@ interface ChapterEditorContentProps {
   onScrollPositionChange?: (chapterId: string, scrollTop: number) => void;
   onAddToConversation?: (markup: string) => void;
   isAgentLocked?: boolean;
+  onOpenPlotThreads?: () => void;
+  onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
   addSelectionToConversationRef?: React.MutableRefObject<(() => void) | null>;
 }
@@ -94,6 +101,8 @@ function ChapterEditorContent({
   onScrollPositionChange,
   onAddToConversation,
   isAgentLocked = false,
+  onOpenPlotThreads,
+  onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
 }: ChapterEditorContentProps) {
@@ -138,7 +147,9 @@ function ChapterEditorContent({
     isChapterEditorDraftDirty(lastSavedDraftRef.current, initialDraft),
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [manuscriptRevision, setManuscriptRevision] = useState(0);
   const [findReplaceMode, setFindReplaceMode] = useState<"closed" | "find" | "replace">("closed");
+  const [marginComposeRequest, setMarginComposeRequest] = useState(0);
   const [wordCount, setWordCount] = useState(() => wordsCount(initialDraft.content));
   const [lineNumberDigits, setLineNumberDigits] = useState(1);
   const saveStatus = isSaving ? "saving" : hasChanges ? "unsaved" : "saved";
@@ -352,6 +363,7 @@ function ChapterEditorContent({
           content: updatedChapter.content,
         });
         baseUpdatedAtRef.current = updatedChapter.updatedAt;
+        setManuscriptRevision((revision) => revision + 1);
         void clearWorkingCopy(draftToSave, draftUpdatedAt);
         syncDirtyStateFromEditor(editor);
         onChapterUpdate?.(updatedChapter);
@@ -579,8 +591,24 @@ function ChapterEditorContent({
     };
   }, [addSelectionToConversation, addSelectionToConversationRef]);
 
+  const requestMarginNote = useCallback(() => {
+    if (isAgentLocked) {
+      showLockedToast();
+      return;
+    }
+    setMarginComposeRequest((value) => value + 1);
+  }, [isAgentLocked, showLockedToast]);
+
   const editorExtraItems = useCallback(() => {
-    if (!editor || !onAddToConversation) return [];
+    const items = [
+      {
+        id: "marginNote",
+        label: t("writing.marginNotes.add"),
+        icon: StickyNote,
+        onClick: requestMarginNote,
+      },
+    ];
+    if (!editor || !onAddToConversation) return items;
 
     const chapterLabel = chapter.title.trim() || t("writing.untitledChapter");
     const { from, to } = editor.state.selection;
@@ -588,26 +616,33 @@ function ChapterEditorContent({
       from === to ? "" : editor.state.doc.textBetween(from, to, "\n", "\n").trim();
     const hasSelection = selectedText.length > 0;
 
-    return [
-      {
-        id: "addToConversation",
-        label: hasSelection ? t("editor.addSelectedToConversation") : t("editor.addToConversation"),
-        icon: AtSign,
-        onClick: () => {
-          if (!hasSelection) {
-            onAddToConversation(
-              buildChapterMentionTag({
-                chapterId: chapter.id,
-                label: chapterLabel,
-              }),
-            );
-            return;
-          }
-          addSelectionToConversation();
-        },
+    items.push({
+      id: "addToConversation",
+      label: hasSelection ? t("editor.addSelectedToConversation") : t("editor.addToConversation"),
+      icon: AtSign,
+      onClick: () => {
+        if (!hasSelection) {
+          onAddToConversation(
+            buildChapterMentionTag({
+              chapterId: chapter.id,
+              label: chapterLabel,
+            }),
+          );
+          return;
+        }
+        addSelectionToConversation();
       },
-    ];
-  }, [addSelectionToConversation, chapter.id, chapter.title, editor, onAddToConversation, t]);
+    });
+    return items;
+  }, [
+    addSelectionToConversation,
+    chapter.id,
+    chapter.title,
+    editor,
+    onAddToConversation,
+    requestMarginNote,
+    t,
+  ]);
 
   const editorMaxWidth = 800;
   const lineNumberWidth = `max(1.5rem, calc(${lineNumberDigits}ch + 0.25rem))`;
@@ -634,6 +669,14 @@ function ChapterEditorContent({
         onOpenFind={openFind}
         onOpenReplace={openReplace}
         showChapterTools
+        extraActions={[
+          {
+            id: "margin-note",
+            icon: <StickyNote size={18} />,
+            label: t("writing.marginNotes.add"),
+            onClick: requestMarginNote,
+          },
+        ]}
       />
 
       <AnimatePresence>
@@ -675,6 +718,29 @@ function ChapterEditorContent({
             disabled={isAgentLocked}
             onDisabledClick={showLockedToast}
           />
+          <ChapterPlanBar
+            chapter={chapter}
+            manuscriptRevision={manuscriptRevision}
+            isAgentLocked={isAgentLocked}
+            onOpenPlotThreads={onOpenPlotThreads}
+            onOpenChapter={onOpenChapter}
+            onPrepareCheck={async () => {
+              if (hasChangesRef.current) {
+                await handleSave(false);
+              }
+            }}
+          />
+          <ChapterMarginNotes
+            chapterId={chapter.id}
+            editor={editor}
+            disabled={isAgentLocked}
+            composeRequest={marginComposeRequest}
+            onPrepare={async () => {
+              if (hasChangesRef.current) {
+                await handleSave(false);
+              }
+            }}
+          />
           <Box style={{ borderBottom: "1px solid var(--gray-a4)" }} />
           <Box
             py="5"
@@ -706,12 +772,12 @@ function ChapterEditorContent({
           background: "var(--theme-editor-bar-background)",
         }}
       >
-        <Text
-          size="1"
-          color="gray"
-        >
-          {wordCount} {t("writing.words")}
-        </Text>
+        <ChapterWordTarget
+          chapterId={chapter.id}
+          written={wordCount}
+          target={chapter.wordCountTarget}
+          disabled={isAgentLocked}
+        />
         <Text
           size="1"
           color="gray"
@@ -732,6 +798,8 @@ export function ChapterEditor({
   onScrollPositionChange,
   onAddToConversation,
   isAgentLocked = false,
+  onOpenPlotThreads,
+  onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
 }: ChapterEditorProps) {
@@ -782,6 +850,8 @@ export function ChapterEditor({
       onScrollPositionChange={onScrollPositionChange}
       onAddToConversation={onAddToConversation}
       isAgentLocked={isAgentLocked}
+      onOpenPlotThreads={onOpenPlotThreads}
+      onOpenChapter={onOpenChapter}
       onSelectionChange={onSelectionChange}
       addSelectionToConversationRef={addSelectionToConversationRef}
     />
@@ -797,6 +867,8 @@ function ChapterEditorWorkingCopy({
   onScrollPositionChange,
   onAddToConversation,
   isAgentLocked,
+  onOpenPlotThreads,
+  onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
 }: Omit<ChapterEditorContentProps, "workingCopy">) {
@@ -817,6 +889,8 @@ function ChapterEditorWorkingCopy({
       onScrollPositionChange={onScrollPositionChange}
       onAddToConversation={onAddToConversation}
       isAgentLocked={isAgentLocked}
+      onOpenPlotThreads={onOpenPlotThreads}
+      onOpenChapter={onOpenChapter}
       onSelectionChange={onSelectionChange}
       addSelectionToConversationRef={addSelectionToConversationRef}
     />

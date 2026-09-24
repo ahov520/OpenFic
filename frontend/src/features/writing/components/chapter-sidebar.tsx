@@ -43,6 +43,8 @@ interface ChapterSidebarProps {
   compact?: boolean;
   initialCurrentChapterNavigationKey?: string | null;
   onOpenSummary?: () => void;
+  onOpenCorkboard?: () => void;
+  onOpenPlotThreads?: () => void;
 }
 
 export function ChapterSidebar({
@@ -53,6 +55,8 @@ export function ChapterSidebar({
   compact = false,
   initialCurrentChapterNavigationKey = null,
   onOpenSummary,
+  onOpenCorkboard,
+  onOpenPlotThreads,
 }: ChapterSidebarProps) {
   const { t } = useTranslation();
 
@@ -309,7 +313,10 @@ export function ChapterSidebar({
           volumeId: originalChapter.volumeId,
           title: `${title}-副本`,
           content: originalChapter.content,
+          synopsis: originalChapter.synopsis,
+          writingStatus: originalChapter.writingStatus,
           wordCount: originalChapter.wordCount,
+          wordCountTarget: originalChapter.wordCountTarget,
         });
         setCurrentChapter(newChapter.id);
         onChapterSelect(newChapter.id, newChapter.title);
@@ -553,6 +560,8 @@ export function ChapterSidebar({
         onCreateChapter={handleCreateChapter}
         onCreateVolume={handleCreateVolume}
         onOpenSummary={onOpenSummary}
+        onOpenCorkboard={onOpenCorkboard}
+        onOpenPlotThreads={onOpenPlotThreads}
         onExport={() => setChapterExportOpen(true)}
         onSaveOrder={handleSaveOrder}
         onCancelOrder={handleCancelOrder}
