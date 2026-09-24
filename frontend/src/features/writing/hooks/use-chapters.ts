@@ -14,7 +14,14 @@ import {
   reorderChapters,
   moveChapterToVolume,
 } from "@/lib/api-client";
-import type { Chapter, ChapterCreate, ChapterUpdate } from "@/lib/chapter.types";
+import type {
+  Chapter,
+  ChapterCreate,
+  ChapterUpdate,
+  VolumeTreeResponse,
+} from "@/lib/chapter.types";
+
+import { replaceChapterWritingStatusInTree } from "../lib/sidebar-writing-status-filter";
 
 /**
  * 获取单个章节（完整内容）
@@ -110,6 +117,19 @@ export function useUpdateChapter() {
               },
             };
           },
+        );
+      }
+      if (variables.data.writingStatus !== undefined) {
+        queryClient.setQueryData<VolumeTreeResponse>(
+          ["volume-tree", updatedChapter.projectId],
+          (current) =>
+            current
+              ? replaceChapterWritingStatusInTree(
+                  current,
+                  updatedChapter.id,
+                  updatedChapter.writingStatus,
+                )
+              : current,
         );
       }
       queryClient.invalidateQueries({

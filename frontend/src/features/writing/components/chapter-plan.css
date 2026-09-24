@@ -30,6 +30,38 @@
   font-size: var(--font-size-1, 12px);
 }
 
+.sidebar-writing-status-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.sidebar-writing-status-filter__select {
+  width: 100%;
+}
+
+.sidebar-writing-status-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--gray-11);
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.4;
+}
+
+.sidebar-writing-status-current button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-11);
+  font: inherit;
+  cursor: pointer;
+}
+
 .chapter-plan-bar {
   margin-top: 14px;
   padding: 10px 12px 12px;

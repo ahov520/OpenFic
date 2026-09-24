@@ -42,6 +42,7 @@ import {
   getChapterDragOffset,
   getChapterDragTargetIndex,
 } from "../lib/chapter-list-drag";
+import { volumeHasHiddenChapters } from "../lib/sidebar-writing-status-filter";
 import { useWritingStore } from "../store/use-writing-store";
 import { ChapterListItem, DraggableChapterListItem } from "./chapter-list-item";
 import {
@@ -1178,7 +1179,14 @@ export function GroupedVolumeList({
               size="1"
               color="gray"
             >
-              {t("volume.empty")}
+              {volumeHasHiddenChapters(
+                volumes.find((volume) => volume.id === row.volumeId) ?? {
+                  chapterCount: 0,
+                  chapters: [],
+                },
+              )
+                ? t("writing.chapterPlan.emptyVolumeFilter")
+                : t("volume.empty")}
             </Text>
           </Box>
         );
@@ -1244,6 +1252,7 @@ export function GroupedVolumeList({
       summaryStatusMap,
       onOpenSummary,
       t,
+      volumes,
     ],
   );
 
