@@ -135,6 +135,14 @@
   border-color: transparent;
 }
 
+.chapter-corkboard-outside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
 .chapter-corkboard-body {
   flex: 1;
   min-height: 0;

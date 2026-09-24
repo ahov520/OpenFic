@@ -670,6 +670,7 @@ export function WritingPage() {
             open={isCorkboardOpen}
             onOpenChange={handleCorkboardOpenChange}
             onOpenChapter={handleOpenChapterFromCorkboard}
+            currentChapterId={currentChapterId}
             isAgentLocked={isAgentLocked}
           />
         </Suspense>
