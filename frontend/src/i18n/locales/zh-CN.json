@@ -278,6 +278,7 @@
       "description": "章节会追加到目标卷末尾。"
     },
     "words": "字",
+    "notStarted": "还没动笔",
     "chapterPlan": {
       "synopsis": "梗概",
       "status": "写作状态",

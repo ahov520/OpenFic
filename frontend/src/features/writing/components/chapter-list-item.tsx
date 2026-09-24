@@ -17,6 +17,7 @@ import type { ChapterListItem as ChapterListItemType } from "@/lib/chapter.types
 import { formatRelativeTime } from "@/lib/time-utils";
 
 import { CHAPTER_LIST_ITEM_HEIGHT } from "../lib/chapter-list-drag";
+import { showsNotStartedMark } from "../lib/sidebar-not-started";
 import { WritingStatusMark } from "./chapter-plan-status";
 import { SummaryStatusDot } from "./summary-status-dot";
 
@@ -137,6 +138,7 @@ function ChapterRowContent({
 }: ChapterRowContentProps) {
   const { t } = useTranslation();
   const showMenuTrigger = Boolean(onOpenMenu);
+  const notStarted = showsNotStartedMark(chapter);
   const length = chapterLengthProgress(chapter.wordCount, chapter.wordCountTarget);
   const lengthLabel =
     length.pace === "none"
@@ -166,33 +168,48 @@ function ChapterRowContent({
       {dragHandle}
 
       <Box style={{ flex: 1, minWidth: 0 }}>
-        {isRenaming && onRenameConfirm && onRenameCancel ? (
-          <Box style={{ height: "20px" }}>
-            <RenameInput
-              key={chapter.id}
-              initialValue={chapter.title}
-              onConfirm={onRenameConfirm}
-              onCancel={onRenameCancel}
-            />
+        <Flex
+          align="center"
+          gap="2"
+          style={{ minWidth: 0, height: "20px" }}
+        >
+          <Box style={{ flex: 1, minWidth: 0, height: "20px" }}>
+            {isRenaming && onRenameConfirm && onRenameCancel ? (
+              <RenameInput
+                key={chapter.id}
+                initialValue={chapter.title}
+                onConfirm={onRenameConfirm}
+                onCancel={onRenameCancel}
+              />
+            ) : (
+              <Text
+                size="2"
+                weight="medium"
+                style={{
+                  display: "block",
+                  height: "20px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  color: textColor,
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                }}
+              >
+                {chapter.title || t("writing.untitledChapter")}
+              </Text>
+            )}
           </Box>
-        ) : (
-          <Text
-            size="2"
-            weight="medium"
-            style={{
-              display: "block",
-              height: "20px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              color: textColor,
-              userSelect: "none",
-              WebkitUserSelect: "none",
-            }}
-          >
-            {chapter.title || t("writing.untitledChapter")}
-          </Text>
-        )}
+          {notStarted ? (
+            <span
+              className="chapter-not-started-mark"
+              data-not-started="true"
+              style={textColor ? { color: textColor, background: "transparent" } : undefined}
+            >
+              {t("writing.notStarted")}
+            </span>
+          ) : null}
+        </Flex>
 
         <Flex
           gap="2"
@@ -614,6 +631,7 @@ function areBaseRowPropsEqual(prev: ChapterListItemBaseProps, next: ChapterListI
     prev.chapter.title === next.chapter.title &&
     prev.chapter.order === next.chapter.order &&
     prev.chapter.wordCount === next.chapter.wordCount &&
+    prev.chapter.synopsis === next.chapter.synopsis &&
     prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
     prev.isActive === next.isActive &&
@@ -639,6 +657,7 @@ function areDraggableRowPropsEqual(
     prev.chapter.title === next.chapter.title &&
     prev.chapter.order === next.chapter.order &&
     prev.chapter.wordCount === next.chapter.wordCount &&
+    prev.chapter.synopsis === next.chapter.synopsis &&
     prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
     prev.isActive === next.isActive &&

@@ -35,6 +35,19 @@
   background: var(--gray-a8);
 }
 
+.chapter-not-started-mark {
+  flex-shrink: 0;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--amber-a3);
+  color: var(--amber-11);
+  font-size: var(--font-size-1, 12px);
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
 .chapter-list-item-row::after {
   content: "";
   position: absolute;
