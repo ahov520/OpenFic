@@ -483,6 +483,7 @@ export function WritingPage() {
                         isAgentLocked={isAgentLocked}
                         onScrollPositionChange={handleChapterScrollPositionChange}
                         onOpenPlotThreads={handleOpenPlotThreads}
+                        onOpenChapter={handleChapterSelect}
                         onAddToConversation={
                           isViewingSubagent ? undefined : handleAddToConversation
                         }
@@ -596,6 +597,7 @@ export function WritingPage() {
                       isAgentLocked={isAgentLocked}
                       onScrollPositionChange={handleChapterScrollPositionChange}
                       onOpenPlotThreads={handleOpenPlotThreads}
+                      onOpenChapter={handleChapterSelect}
                       onAddToConversation={isViewingSubagent ? undefined : handleAddToConversation}
                       onSelectionChange={setHasEditorSelection}
                       addSelectionToConversationRef={addSelectionToConversationRef}

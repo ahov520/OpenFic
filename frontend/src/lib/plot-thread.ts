@@ -56,6 +56,18 @@ export interface PlotBoard {
   chapters: PlotChapterOption[];
 }
 
+/** 参照点为某一章时的空章。顺序只认后端阅读顺序，前端不重排。 */
+export interface PlotThroughGap {
+  id: string;
+  chaptersSince: number;
+  gapChapters: PlotGapChapter[];
+  gapRange: string | null;
+}
+
+export interface PlotThroughChapter {
+  threads: PlotThroughGap[];
+}
+
 export interface PlotThreadCreate {
   name: string;
   intent?: string;

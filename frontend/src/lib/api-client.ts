@@ -735,6 +735,8 @@ import type {
   PlotThread,
   PlotThreadCreate,
   PlotThreadUpdate,
+  PlotThroughChapter,
+  PlotThroughGap,
 } from "./plot-thread";
 import { normalizePlotBeatKind, normalizePlotThreadStatus } from "./plot-thread";
 
@@ -1040,6 +1042,29 @@ function transformPlotChapter(raw: Record<string, unknown>): PlotChapterOption {
     title: typeof raw.title === "string" ? raw.title : "",
     globalOrder: raw.global_order as number,
     volumeTitle: typeof raw.volume_title === "string" ? raw.volume_title : "",
+  };
+}
+
+function transformThroughGap(raw: Record<string, unknown>): PlotThroughGap {
+  return {
+    id: raw.id as string,
+    chaptersSince: typeof raw.chapters_since === "number" ? raw.chapters_since : 0,
+    gapChapters: transformGapChapters(raw.gap_chapters),
+    gapRange:
+      typeof raw.gap_range === "string" && raw.gap_range.trim() !== "" ? raw.gap_range : null,
+  };
+}
+
+export async function fetchPlotGapsThroughChapter(
+  projectId: string,
+  chapterId: string,
+): Promise<PlotThroughChapter> {
+  const response = await apiClient.get(`/projects/${projectId}/plot-threads/through/${chapterId}`);
+  const raw = response.data as Record<string, unknown>;
+  return {
+    threads: Array.isArray(raw.threads)
+      ? raw.threads.map((thread) => transformThroughGap(thread as Record<string, unknown>))
+      : [],
   };
 }
 

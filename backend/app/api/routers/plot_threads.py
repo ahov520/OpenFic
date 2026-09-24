@@ -19,6 +19,8 @@ from app.api.schemas.plot_thread import (
     PlotThreadCreate,
     PlotThreadResponse,
     PlotThreadUpdate,
+    PlotThroughChapterResponse,
+    PlotThroughGapResponse,
     ThreadStatus,
 )
 from app.background.jobs import service as background_service
@@ -92,6 +94,41 @@ def _thread_response(
         created_at=item.thread.created_at,
         updated_at=item.thread.updated_at,
     )
+
+
+@router.get(
+    "/projects/{project_id}/plot-threads/through/{chapter_id}",
+    response_model=PlotThroughChapterResponse,
+    summary="到指定章为止的空章",
+)
+async def list_plot_gaps_through_chapter(
+    project_id: str,
+    chapter_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> PlotThroughChapterResponse:
+    """参照点是这一章。名单按阅读顺序，不含这一章、不含最后一次出现的章、不含后文。"""
+    try:
+        gaps = await plot_thread_service.gaps_for_chapter(
+            session, project_id, chapter_id
+        )
+        return PlotThroughChapterResponse(
+            threads=[
+                PlotThroughGapResponse(
+                    id=item.thread_id,
+                    chapters_since=item.chapters_since,
+                    gap_chapters=[
+                        PlotGapChapter(id=chapter.id, label=chapter.label)
+                        for chapter in item.gap_chapters
+                    ],
+                    gap_range=item.gap_range,
+                )
+                for item in gaps
+            ]
+        )
+    except NotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
 
 
 @router.get(

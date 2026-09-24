@@ -5,7 +5,13 @@ import { useTranslation } from "react-i18next";
 
 import { toast } from "@/components";
 import { fetchPlotThreads } from "@/lib/api-client";
-import type { PlotBeatKind, PlotThread, QuietGap } from "@/lib/plot-thread";
+import type {
+  PlotBeatKind,
+  PlotChapterOption,
+  PlotThread,
+  PlotThroughGap,
+  QuietGap,
+} from "@/lib/plot-thread";
 import {
   PLOT_BEAT_KINDS,
   STALE_CHAPTER_GAP,
@@ -17,13 +23,16 @@ import {
 import {
   useCreatePlotBeat,
   useDeletePlotBeat,
+  usePlotGapsThroughChapter,
   usePlotThreads,
   useUpdatePlotBeat,
 } from "../hooks/use-plot-threads";
+import { GapChapterList } from "./plot-gap-chapters";
 
 import "./plot-thread.css";
 
 const EMPTY_THREADS: PlotThread[] = [];
+const EMPTY_CHAPTERS: PlotChapterOption[] = [];
 const NOTE_MAX_LENGTH = 200;
 
 interface AdvanceFailure {
@@ -36,6 +45,7 @@ interface ChapterPlotBeatsProps {
   chapterId: string;
   disabled?: boolean;
   onOpenBoard?: () => void;
+  onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
 }
 
 export function ChapterPlotBeats({
@@ -43,14 +53,22 @@ export function ChapterPlotBeats({
   chapterId,
   disabled = false,
   onOpenBoard,
+  onOpenChapter,
 }: ChapterPlotBeatsProps) {
   const { t } = useTranslation();
   const { data } = usePlotThreads(projectId);
+  const { data: throughChapter } = usePlotGapsThroughChapter(projectId, chapterId);
   const createBeat = useCreatePlotBeat(projectId);
   const updateBeat = useUpdatePlotBeat(projectId);
   const deleteBeat = useDeletePlotBeat(projectId);
   const threads = data?.threads ?? EMPTY_THREADS;
-  const readingOrder = useMemo(() => readingChapterIds(data?.chapters ?? []), [data?.chapters]);
+  const chapters = data?.chapters ?? EMPTY_CHAPTERS;
+  const readingOrder = useMemo(() => readingChapterIds(chapters), [chapters]);
+  const throughById = useMemo(() => {
+    const found = new Map<string, PlotThroughGap>();
+    for (const item of throughChapter?.threads ?? []) found.set(item.id, item);
+    return found;
+  }, [throughChapter]);
   const stale = useMemo(
     () =>
       threads.flatMap((thread) => {
@@ -123,7 +141,10 @@ export function ChapterPlotBeats({
               chapterId={chapterId}
               thread={thread}
               gap={gap}
+              throughGap={throughById.get(thread.id) ?? null}
+              chapters={chapters}
               disabled={disabled}
+              onOpenChapter={onOpenChapter}
               onFailure={(threadIdToMark, failure) => {
                 setAdvanceFailures((current) => {
                   if (!failure) {
@@ -260,14 +281,20 @@ function ConsiderAdvanceItem({
   chapterId,
   thread,
   gap,
+  throughGap,
+  chapters,
   disabled,
+  onOpenChapter,
   onFailure,
 }: {
   projectId: string;
   chapterId: string;
   thread: PlotThread;
   gap: QuietGap;
+  throughGap: PlotThroughGap | null;
+  chapters: readonly PlotChapterOption[];
   disabled: boolean;
+  onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
   onFailure: (threadId: string, failure: AdvanceFailure | null) => void;
 }) {
   const { t } = useTranslation();
@@ -382,6 +409,16 @@ function ConsiderAdvanceItem({
           count: gap.chaptersSince,
         })}
       </p>
+      {throughGap && throughGap.gapChapters.length > 0 && (
+        <GapChapterList
+          chapters={throughGap.gapChapters}
+          range={throughGap.gapRange}
+          onOpen={(openedId) => {
+            const chapter = chapters.find((item) => item.id === openedId);
+            onOpenChapter?.(openedId, chapter?.title ?? "");
+          }}
+        />
+      )}
       {existing || blocked ? (
         <p
           className="chapter-plot-stale__hint"

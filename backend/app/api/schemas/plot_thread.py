@@ -68,7 +68,7 @@ class PlotChapterOption(BaseModel):
 
 
 class PlotGapChapter(BaseModel):
-    """最后一次节拍和全书最后一章之间、完全没有这条线的一章。"""
+    """阅读顺序里完全没有这条线节拍的一章。"""
 
     id: str
     label: str = Field(description="与总览章节称呼一致：全局阅读序. 标题")
@@ -139,3 +139,37 @@ class PlotBoardResponse(BaseModel):
 
     threads: list[PlotThreadResponse]
     chapters: list[PlotChapterOption]
+
+
+class PlotThroughGapResponse(BaseModel):
+    """一条线到参照章为止的空章。空章条目和总览同一结构。"""
+
+    id: str
+    chapters_since: int = Field(
+        description=(
+            "最后一次已出现的节拍到参照章中间空了多少章。"
+            "0 表示上一章刚出现过，此时 gap_chapters 为空。"
+            "参照章本身不计入。"
+        ),
+    )
+    gap_chapters: list[PlotGapChapter] = Field(
+        default_factory=list,
+        description=(
+            "最后一次节拍所在章到参照章之间、没有这条线节拍的章节。"
+            "按卷序和卷内章节序排列，不含这两端，也不含参照章之后的章。"
+            "条数与 chapters_since 一致；空 0 时为空列表。"
+            "前端按这个顺序展示，不要自己重排。"
+        ),
+    )
+    gap_range: str | None = Field(
+        default=None,
+        description=(
+            "空章超过 4 章时的首尾范围。不超过 4 章时为空，界面按 gap_chapters 逐章列出。"
+        ),
+    )
+
+
+class PlotThroughChapterResponse(BaseModel):
+    """参照点为某一章时，还开着的线各自空在哪些章。"""
+
+    threads: list[PlotThroughGapResponse]

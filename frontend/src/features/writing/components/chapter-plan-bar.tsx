@@ -18,6 +18,7 @@ interface ChapterPlanBarProps {
   manuscriptRevision?: number;
   isAgentLocked?: boolean;
   onOpenPlotThreads?: () => void;
+  onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
   onPrepareCheck?: () => Promise<void>;
 }
 
@@ -26,6 +27,7 @@ export function ChapterPlanBar({
   manuscriptRevision = 0,
   isAgentLocked = false,
   onOpenPlotThreads,
+  onOpenChapter,
   onPrepareCheck,
 }: ChapterPlanBarProps) {
   const { t } = useTranslation();
@@ -84,6 +86,7 @@ export function ChapterPlanBar({
         chapterId={chapter.id}
         disabled={isAgentLocked}
         onOpenBoard={onOpenPlotThreads}
+        onOpenChapter={onOpenChapter}
       />
       <ChapterPlanCheck
         chapter={chapter}

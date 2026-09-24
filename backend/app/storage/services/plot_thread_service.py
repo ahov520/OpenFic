@@ -14,8 +14,10 @@ from app.storage.models.volume import Volume
 from app.storage.plot_threads import (
     ChapterSpot,
     ThreadAssessment,
+    ThroughChapterGap,
     agent_plot_context,
     assess_plot_threads,
+    gaps_through_chapter,
     normalize_beat_kind,
     normalize_intent,
     normalize_note,
@@ -194,6 +196,29 @@ async def context_for_chapter(
         current_global_order=current.global_order,
         assessments=_assess(threads, beats, spots),
         reading_order=[spot.id for spot in spots],
+        chapters=spots,
+    )
+
+
+async def gaps_for_chapter(
+    session: AsyncSession,
+    project_id: str,
+    chapter_id: str,
+) -> list[ThroughChapterGap]:
+    """参照点为这一章时，每条还开着的线空在哪些章。顺序是阅读顺序。"""
+    project = await project_repo.get_by_id(session, project_id)
+    if project is None:
+        raise NotFoundError(f"项目不存在: {project_id}")
+    _chapters, spots = await _chapter_spots(session, project_id)
+    if not any(spot.id == chapter_id for spot in spots):
+        raise NotFoundError(f"章节不存在: {chapter_id}")
+    threads = await plot_thread_repo.list_by_project(session, project_id)
+    beats = await plot_beat_repo.list_by_project(session, project_id)
+    return gaps_through_chapter(
+        _assess(threads, beats, spots),
+        spots,
+        [spot.id for spot in spots],
+        chapter_id,
     )
 
 

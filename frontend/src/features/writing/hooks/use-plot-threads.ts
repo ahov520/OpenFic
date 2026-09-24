@@ -5,6 +5,7 @@ import {
   createPlotThread,
   deletePlotBeat,
   deletePlotThread,
+  fetchPlotGapsThroughChapter,
   fetchPlotThreads,
   updatePlotBeat,
   updatePlotThread,
@@ -30,7 +31,16 @@ function useInvalidatePlotThreads(projectId: string) {
   const queryClient = useQueryClient();
   return () => {
     queryClient.invalidateQueries({ queryKey: ["plot-threads", projectId] });
+    queryClient.invalidateQueries({ queryKey: ["plot-thread-gaps", projectId] });
   };
+}
+
+export function usePlotGapsThroughChapter(projectId: string, chapterId: string) {
+  return useQuery({
+    queryKey: ["plot-thread-gaps", projectId, chapterId],
+    queryFn: () => fetchPlotGapsThroughChapter(projectId, chapterId),
+    enabled: !!projectId && !!chapterId,
+  });
 }
 
 function useSyncPlotThread(projectId: string) {
@@ -44,6 +54,7 @@ function useSyncPlotThread(projectId: string) {
       };
     });
     void queryClient.invalidateQueries({ queryKey: ["plot-threads", projectId] });
+    void queryClient.invalidateQueries({ queryKey: ["plot-thread-gaps", projectId] });
   };
 }
 

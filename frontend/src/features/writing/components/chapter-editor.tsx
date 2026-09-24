@@ -69,6 +69,7 @@ interface ChapterEditorProps {
   onAddToConversation?: (markup: string) => void;
   isAgentLocked?: boolean;
   onOpenPlotThreads?: () => void;
+  onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
   addSelectionToConversationRef?: React.MutableRefObject<(() => void) | null>;
 }
@@ -84,6 +85,7 @@ interface ChapterEditorContentProps {
   onAddToConversation?: (markup: string) => void;
   isAgentLocked?: boolean;
   onOpenPlotThreads?: () => void;
+  onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
   addSelectionToConversationRef?: React.MutableRefObject<(() => void) | null>;
 }
@@ -99,6 +101,7 @@ function ChapterEditorContent({
   onAddToConversation,
   isAgentLocked = false,
   onOpenPlotThreads,
+  onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
 }: ChapterEditorContentProps) {
@@ -687,6 +690,7 @@ function ChapterEditorContent({
             manuscriptRevision={manuscriptRevision}
             isAgentLocked={isAgentLocked}
             onOpenPlotThreads={onOpenPlotThreads}
+            onOpenChapter={onOpenChapter}
             onPrepareCheck={async () => {
               if (hasChangesRef.current) {
                 await handleSave(false);
@@ -751,6 +755,7 @@ export function ChapterEditor({
   onAddToConversation,
   isAgentLocked = false,
   onOpenPlotThreads,
+  onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
 }: ChapterEditorProps) {
@@ -802,6 +807,7 @@ export function ChapterEditor({
       onAddToConversation={onAddToConversation}
       isAgentLocked={isAgentLocked}
       onOpenPlotThreads={onOpenPlotThreads}
+      onOpenChapter={onOpenChapter}
       onSelectionChange={onSelectionChange}
       addSelectionToConversationRef={addSelectionToConversationRef}
     />
@@ -818,6 +824,7 @@ function ChapterEditorWorkingCopy({
   onAddToConversation,
   isAgentLocked,
   onOpenPlotThreads,
+  onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
 }: Omit<ChapterEditorContentProps, "workingCopy">) {
@@ -839,6 +846,7 @@ function ChapterEditorWorkingCopy({
       onAddToConversation={onAddToConversation}
       isAgentLocked={isAgentLocked}
       onOpenPlotThreads={onOpenPlotThreads}
+      onOpenChapter={onOpenChapter}
       onSelectionChange={onSelectionChange}
       addSelectionToConversationRef={addSelectionToConversationRef}
     />

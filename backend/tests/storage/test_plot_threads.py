@@ -17,6 +17,7 @@ from app.storage.plot_threads import (
     ChapterSpot,
     agent_plot_context,
     assess_plot_threads,
+    gaps_through_chapter,
     normalize_beat_kind,
     normalize_intent,
     normalize_thread_name,
@@ -394,37 +395,50 @@ def test_agent_context_gap_differs_from_book_end_around_threshold() -> None:
         current_global_order=8,
         assessments=assessments,
         reading_order=reading,
+        chapters=chapters,
     )
     assert previous is not None
     just_seen = open_thread(previous, "铜镜")
     assert just_seen["chapters_since"] == 0
     assert "consider_advance" not in just_seen
+    assert "gap_chapters" not in just_seen
 
     below = agent_plot_context(
         current_chapter_id="c4",
         current_global_order=20,
         assessments=assessments,
         reading_order=reading,
+        chapters=chapters,
     )
     assert below is not None
     below_mirror = open_thread(below, "铜镜")
     assert below_mirror["chapters_since"] == 2
     assert "consider_advance" not in below_mirror
     assert below_mirror["chapters_since"] != by_name["铜镜"].chapters_since_last
+    assert below_mirror["gap_chapters"] == ["8. 二", "9. 三"]
+    assert "gap_more" not in below_mirror
+    assert "20. 四" not in below_mirror["gap_chapters"]
+    assert "21. 五" not in below_mirror["gap_chapters"]
+    assert "100. 结局" not in below_mirror["gap_chapters"]
 
     at_threshold = agent_plot_context(
         current_chapter_id="c5",
         current_global_order=21,
         assessments=assessments,
         reading_order=reading,
+        chapters=chapters,
     )
     assert at_threshold is not None
     stale = open_thread(at_threshold, "铜镜")
     assert stale["chapters_since"] == 3
     assert stale["consider_advance"] == CONSIDER_ADVANCE_NOTE
+    assert stale["gap_chapters"] == ["8. 二", "9. 三", "20. 四"]
+    assert "100. 结局" not in stale["gap_chapters"]
+    assert "1. 埋下" not in stale["gap_chapters"]
     later = open_thread(at_threshold, "后文")
     assert later["chapters_since"] == 3
     assert later["consider_advance"] == CONSIDER_ADVANCE_NOTE
+    assert later["gap_chapters"] == ["8. 二", "9. 三", "20. 四"]
     rendered = str(at_threshold)
     assert "镜子里是凶手" not in rendered
     assert "已收" not in rendered
@@ -440,6 +454,137 @@ def test_agent_context_gap_differs_from_book_end_around_threshold() -> None:
     planted_here = open_thread(on_the_beat, "铜镜")
     assert "chapters_since" not in planted_here
     assert "consider_advance" not in planted_here
+
+
+def test_gaps_through_chapter_stop_before_current_and_follow_inserts() -> None:
+    """到当前章的空章不含两端和后文，和数到全书末的名单不同；插章后名单变。"""
+    chapters = [
+        _spot("late", 4, "当前"),
+        _spot("after", 5, "后文"),
+        _spot("end", 6, "结局"),
+        _spot("planted", 1, "埋下"),
+        _spot("gap-a", 2, "空甲"),
+        _spot("gap-b", 3, "空乙"),
+    ]
+    reading = reading_order_of(chapters)
+    threads = [
+        ("t1", "铜镜", "还没收", "active", 1),
+        ("t2", "已收", "收完了", "resolved", 2),
+        ("t3", "放弃", "不用了", "abandoned", 3),
+        ("t4", "早收", "中途收了", "active", 4),
+        ("t5", "后文才收", "结局才收", "active", 5),
+    ]
+    beats = [
+        ("b1", "t1", "planted", "plant", "灯"),
+        ("b2", "t2", "planted", "plant", "埋"),
+        ("b3", "t2", "gap-a", "payoff", "收"),
+        ("b4", "t3", "planted", "plant", "弃"),
+        ("b5", "t4", "planted", "plant", "埋"),
+        ("b6", "t4", "gap-a", "payoff", "本章说破"),
+        ("b7", "t5", "planted", "plant", "先埋下"),
+        ("b8", "t5", "end", "payoff", "镜子里是凶手"),
+    ]
+    assessments = assess_plot_threads(threads, beats, chapters)
+    by_name = {item.name: item for item in assessments}
+    book_ids = [chapter.id for chapter in by_name["铜镜"].gap_chapters]
+    assert book_ids == ["gap-a", "gap-b", "late", "after"]
+    assert by_name["后文才收"].gap_chapters == ()
+
+    through = {
+        item.thread_id: item
+        for item in gaps_through_chapter(assessments, chapters, reading, "late")
+    }
+    mirror = through["t1"]
+    assert mirror.chapters_since == 2
+    assert [chapter.id for chapter in mirror.gap_chapters] == ["gap-a", "gap-b"]
+    assert [chapter.label for chapter in mirror.gap_chapters] == ["2. 空甲", "3. 空乙"]
+    assert mirror.gap_range is None
+    assert "planted" not in [chapter.id for chapter in mirror.gap_chapters]
+    assert "late" not in [chapter.id for chapter in mirror.gap_chapters]
+    assert "after" not in [chapter.id for chapter in mirror.gap_chapters]
+    assert "end" not in [chapter.id for chapter in mirror.gap_chapters]
+    assert [chapter.id for chapter in mirror.gap_chapters] != book_ids
+    later_payoff = through["t5"]
+    assert [chapter.id for chapter in later_payoff.gap_chapters] == ["gap-a", "gap-b"]
+    assert "t2" not in through
+    assert "t3" not in through
+    assert "t4" not in through
+
+    adjacent = {
+        item.thread_id: item
+        for item in gaps_through_chapter(assessments, chapters, reading, "gap-a")
+    }
+    assert adjacent["t1"].chapters_since == 0
+    assert adjacent["t1"].gap_chapters == ()
+    assert adjacent["t1"].gap_range is None
+    assert "t4" not in adjacent
+
+    widened = [
+        _spot("planted", 1, "埋下"),
+        _spot("inserted", 2, "插章"),
+        _spot("gap-a", 3, "空甲"),
+        _spot("gap-b", 4, "空乙"),
+        _spot("late", 5, "当前"),
+        _spot("after", 6, "后文"),
+        _spot("end", 7, "结局"),
+    ]
+    widened_reading = reading_order_of(widened)
+    widened_assessments = assess_plot_threads(threads, beats, widened)
+    widened_through = {
+        item.thread_id: item
+        for item in gaps_through_chapter(
+            widened_assessments, widened, widened_reading, "late"
+        )
+    }
+    assert [chapter.id for chapter in widened_through["t1"].gap_chapters] == [
+        "inserted",
+        "gap-a",
+        "gap-b",
+    ]
+    assert [chapter.label for chapter in widened_through["t1"].gap_chapters] == [
+        "2. 插章",
+        "3. 空甲",
+        "4. 空乙",
+    ]
+    assert "after" not in [chapter.id for chapter in widened_through["t1"].gap_chapters]
+
+
+def test_agent_context_limits_gap_names_and_hides_later_chapters() -> None:
+    chapters = [
+        _spot(f"c{index}", index, title)
+        for index, title in enumerate(
+            ("埋下", "二", "三", "四", "五", "六", "当前", "后文密章"),
+            start=1,
+        )
+    ]
+    reading = reading_order_of(chapters)
+    assessments = assess_plot_threads(
+        [("t1", "铜镜", "还没收", "active", 1)],
+        [
+            ("b1", "t1", "c1", "plant", "灯还亮着"),
+            ("b2", "t1", "c8", "payoff", "镜子里是凶手"),
+        ],
+        chapters,
+    )
+    assert assessments[0].gap_chapters == ()
+    payload = agent_plot_context(
+        current_chapter_id="c7",
+        current_global_order=7,
+        assessments=assessments,
+        reading_order=reading,
+        chapters=chapters,
+    )
+    assert payload is not None
+    mirror = next(item for item in payload["open_threads"] if item["thread"] == "铜镜")
+    assert mirror["chapters_since"] == 5
+    assert mirror["gap_chapters"] == ["2. 二", "3. 三", "4. 四", "5. 五"]
+    assert mirror["gap_more"] == "还有 1 章"
+    assert "6. 六" not in mirror["gap_chapters"]
+    assert "7. 当前" not in mirror["gap_chapters"]
+    assert "1. 埋下" not in mirror["gap_chapters"]
+    rendered = str(payload)
+    assert "后文密章" not in rendered
+    assert "镜子里是凶手" not in rendered
 
 
 def test_payoff_without_any_plant() -> None:

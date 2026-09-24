@@ -313,6 +313,9 @@ async def test_board_reports_chapters_since_last_and_context_threshold(
     assert below_mirror["chapters_since"] == 2
     assert "consider_advance" not in below_mirror
     assert below_mirror["chapters_since"] != by_name["铜镜"]["chapters_since_last"]
+    assert below_mirror["gap_chapters"] == ["2. 二", "3. 三"]
+    assert "4. 四" not in below_mirror["gap_chapters"]
+    assert "6. 结局" not in below_mirror["gap_chapters"]
 
     at_threshold = await context_for(4)
     stale = next(
@@ -320,6 +323,10 @@ async def test_board_reports_chapters_since_last_and_context_threshold(
     )
     assert stale["chapters_since"] == 3
     assert stale["consider_advance"] == CONSIDER_ADVANCE_NOTE
+    assert stale["gap_chapters"] == ["2. 二", "3. 三", "4. 四"]
+    assert "5. 五" not in stale["gap_chapters"]
+    assert "6. 结局" not in stale["gap_chapters"]
+    assert "1. 埋下" not in stale["gap_chapters"]
     rendered = json.dumps(at_threshold, ensure_ascii=False)
     assert "镜子里是凶手" not in rendered
     assert "已收" not in rendered
@@ -559,3 +566,175 @@ async def test_record_advance_on_current_chapter_updates_gaps_without_a_second_b
     assert len(empty_current) == 1
     assert empty_current[0]["kind"] == "advance"
     assert empty_current[0]["note"] == ""
+
+
+@pytest.mark.asyncio
+async def test_gaps_through_current_chapter_differ_from_book_end(
+    client: AsyncClient,
+) -> None:
+    """到当前章的空章停在当前章之前。书还没写完时，和总览数到末章的名单不同。"""
+    project_id, volume_id = await _create_project(client)
+    chapters = [
+        await _create_chapter(client, project_id, volume_id, title)
+        for title in ("埋下", "二", "三", "四", "五", "结局")
+    ]
+    current = chapters[3]
+    mirror = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "铜镜", "intent": "还没收"},
+        )
+    ).json()
+    done = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "已收", "intent": "收完了", "status": "resolved"},
+        )
+    ).json()
+    dropped = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "放弃", "intent": "不用了", "status": "abandoned"},
+        )
+    ).json()
+    paid = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "早收", "intent": "中途收了"},
+        )
+    ).json()
+    await client.post(
+        f"/api/v1/plot-threads/{mirror['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "灯"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{done['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "埋"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{dropped['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "弃"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{paid['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "埋"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{paid['id']}/beats",
+        json={"chapter_id": chapters[1]["id"], "kind": "payoff", "note": "本章说破"},
+    )
+
+    board = (await client.get(f"/api/v1/projects/{project_id}/plot-threads")).json()
+    book = next(item for item in board["threads"] if item["name"] == "铜镜")
+    through = (
+        await client.get(
+            f"/api/v1/projects/{project_id}/plot-threads/through/{current['id']}"
+        )
+    ).json()
+    assert through["threads"]
+    listed = next(item for item in through["threads"] if item["id"] == mirror["id"])
+    assert listed["chapters_since"] == 2
+    assert [item["id"] for item in listed["gap_chapters"]] == [
+        chapters[1]["id"],
+        chapters[2]["id"],
+    ]
+    assert [item["label"] for item in listed["gap_chapters"]] == ["2. 二", "3. 三"]
+    assert listed["gap_range"] is None
+    assert chapters[0]["id"] not in [item["id"] for item in listed["gap_chapters"]]
+    assert current["id"] not in [item["id"] for item in listed["gap_chapters"]]
+    assert chapters[4]["id"] not in [item["id"] for item in listed["gap_chapters"]]
+    assert chapters[5]["id"] not in [item["id"] for item in listed["gap_chapters"]]
+    assert [item["id"] for item in listed["gap_chapters"]] != [
+        item["id"] for item in book["gap_chapters"]
+    ]
+    names = {item["id"] for item in through["threads"]}
+    assert done["id"] not in names
+    assert dropped["id"] not in names
+    assert paid["id"] not in names
+
+    adjacent = (
+        await client.get(
+            f"/api/v1/projects/{project_id}/plot-threads/through/{chapters[1]['id']}"
+        )
+    ).json()
+    beside = next(item for item in adjacent["threads"] if item["id"] == mirror["id"])
+    assert beside["chapters_since"] == 0
+    assert beside["gap_chapters"] == []
+    assert beside["gap_range"] is None
+
+    missing = await client.get(
+        f"/api/v1/projects/{project_id}/plot-threads/through/missing-chapter"
+    )
+    assert missing.status_code == 404
+
+    inserted = await _create_chapter(client, project_id, volume_id, "插章")
+    reordered = await client.post(
+        "/api/v1/chapters/reorder",
+        json={
+            "volume_id": volume_id,
+            "chapter_ids": [
+                chapters[0]["id"],
+                inserted["id"],
+                chapters[1]["id"],
+                chapters[2]["id"],
+                chapters[3]["id"],
+                chapters[4]["id"],
+                chapters[5]["id"],
+            ],
+        },
+    )
+    assert reordered.status_code == 200
+    widened = (
+        await client.get(
+            f"/api/v1/projects/{project_id}/plot-threads/through/{current['id']}"
+        )
+    ).json()
+    widened_mirror = next(
+        item for item in widened["threads"] if item["id"] == mirror["id"]
+    )
+    assert [item["id"] for item in widened_mirror["gap_chapters"]] == [
+        inserted["id"],
+        chapters[1]["id"],
+        chapters[2]["id"],
+    ]
+    assert [item["label"] for item in widened_mirror["gap_chapters"]] == [
+        "2. 插章",
+        "3. 二",
+        "4. 三",
+    ]
+    assert chapters[4]["id"] not in [
+        item["id"] for item in widened_mirror["gap_chapters"]
+    ]
+    assert current["id"] not in [item["id"] for item in widened_mirror["gap_chapters"]]
+
+    long_current = chapters[5]
+    # 插章后，从埋下到结局中间是 插章、二、三、四、五，共 5 章，应收成范围。
+    # 结局本身是终点，不在名单里。
+    spanned = (
+        await client.get(
+            f"/api/v1/projects/{project_id}/plot-threads/through/{long_current['id']}"
+        )
+    ).json()
+    spanned_mirror = next(
+        item for item in spanned["threads"] if item["id"] == mirror["id"]
+    )
+    assert spanned_mirror["chapters_since"] == 5
+    assert spanned_mirror["gap_range"] == "2. 插章 → 6. 五"
+    assert len(spanned_mirror["gap_chapters"]) == 5
+    assert long_current["id"] not in [
+        item["id"] for item in spanned_mirror["gap_chapters"]
+    ]
+
+    context = await client.get(
+        f"/api/v1/projects/{project_id}/chapter-context/context",
+        params={"chapter_id": long_current["id"]},
+    )
+    plan = json.loads(context.json()["latest_field"]["content"])["plot_threads"]
+    open_mirror = next(
+        item for item in plan["open_threads"] if item["thread"] == "铜镜"
+    )
+    assert open_mirror["gap_chapters"] == ["2. 插章", "3. 二", "4. 三", "5. 四"]
+    assert open_mirror["gap_more"] == "还有 1 章"
+    assert "6. 五" not in open_mirror["gap_chapters"]
+    rendered = json.dumps(plan, ensure_ascii=False)
+    assert "本章说破" not in rendered

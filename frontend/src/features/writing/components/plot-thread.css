@@ -226,6 +226,10 @@
   border-top: 1px solid var(--amber-a5);
 }
 
+.chapter-plot-stale__item .plot-thread-gap-chapters {
+  margin-top: 6px;
+}
+
 .chapter-plot-stale__text,
 .chapter-plot-stale__hint,
 .chapter-plot-stale__error {
