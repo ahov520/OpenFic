@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from app.storage.chapter_length import read_word_count_target
+
 WRITING_STATUSES = ("idea", "drafting", "revising", "done")
 DEFAULT_WRITING_STATUS = "idea"
 SYNOPSIS_MAX_LENGTH = 2000
@@ -42,13 +44,16 @@ def read_chapter_plan(chapter: object) -> tuple[str, str]:
     return synopsis, status
 
 
-def latest_plan_fields(chapter: object) -> dict[str, str]:
+def latest_plan_fields(chapter: object) -> dict[str, str | int]:
     """当前章节上下文里带上作者计划，供写正文时遵守。"""
     synopsis, status = read_chapter_plan(chapter)
-    fields = {"writing_status": status}
+    fields: dict[str, str | int] = {"writing_status": status}
     stripped = synopsis.strip()
     if stripped:
         fields["author_synopsis"] = stripped
+    target = read_word_count_target(chapter)
+    if target is not None:
+        fields["word_count_target"] = target
     return fields
 
 

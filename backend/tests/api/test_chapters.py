@@ -5,9 +5,14 @@ Chapter API 测试。
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
+from app.storage.chapter_length import chapter_length_progress
 from app.storage.models.chapter import Chapter
 from app.storage.models.chapter_summary import ChapterSummary
+from app.storage.models.writing_activity_event import WritingActivityEvent
 from app.storage.models.project import Project
 from app.storage.models.volume import Volume
 from app.storage.repos.chapter_summary_repo import (
@@ -15,6 +20,7 @@ from app.storage.repos.chapter_summary_repo import (
     SUMMARY_TYPE_LONG_TERM,
 )
 from app.storage.services import chapter_service
+from app.storage.services.chapter_service import _count_words
 
 
 async def _create_project(client: AsyncClient) -> tuple[str, str]:
@@ -686,6 +692,139 @@ async def test_chapter_plan_roundtrip_does_not_touch_manuscript(client: AsyncCli
     assert listed["synopsis"] == planned_data["synopsis"]
     assert listed["writing_status"] == "drafting"
     assert "content" not in listed
+
+
+@pytest.mark.asyncio
+async def test_word_count_target_is_stored_without_counting_as_writing(
+    client: AsyncClient,
+    session: AsyncSession,
+) -> None:
+    """设目标只改目标。随后改正文，进度跟着现有字数变。"""
+    project_id, volume_id = await _create_project(client)
+    created = await _create_chapter(client, project_id, volume_id, title="夜航")
+    assert created["word_count_target"] is None
+    assert created["content"] == ""
+    assert created["word_count"] == 0
+    project_before = (await client.get(f"/api/v1/projects/{project_id}")).json()
+
+    targeted = await client.patch(
+        f"/api/v1/chapters/{created['id']}",
+        json={"word_count_target": 8},
+    )
+    assert targeted.status_code == 200
+    targeted_data = targeted.json()
+    assert targeted_data["word_count_target"] == 8
+    assert targeted_data["content"] == ""
+    assert targeted_data["word_count"] == 0
+    assert targeted_data["updated_at"] != created["updated_at"]
+    stored = await session.get(Chapter, created["id"])
+    assert stored is not None
+    assert stored.word_count_target == 8
+    assert stored.content == ""
+
+    project_after = (await client.get(f"/api/v1/projects/{project_id}")).json()
+    assert project_after["word_count"] == project_before["word_count"]
+    assert project_after["updated_at"] == project_before["updated_at"]
+    events = (
+        (
+            await session.execute(
+                select(WritingActivityEvent)
+                .where(col(WritingActivityEvent.chapter_id) == created["id"])
+                .order_by(col(WritingActivityEvent.created_at))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [event.operation for event in events] == ["create"]
+
+    untouched = await client.patch(
+        f"/api/v1/chapters/{created['id']}",
+        json={"title": "夜航"},
+    )
+    assert untouched.status_code == 200
+    assert untouched.json()["word_count_target"] == 8
+
+    short_body = "门后有光"
+    short = await client.patch(
+        f"/api/v1/chapters/{created['id']}",
+        json={"content": short_body},
+    )
+    assert short.status_code == 200
+    short_data = short.json()
+    assert short_data["word_count_target"] == 8
+    assert short_data["word_count"] == _count_words(short_body)
+    short_progress = chapter_length_progress(
+        short_data["word_count"],
+        short_data["word_count_target"],
+    )
+    assert short_progress.pace == "short"
+    assert short_progress.remaining == 8 - short_data["word_count"]
+
+    over_body = "门后有光灯还亮着啊"
+    over = await client.patch(
+        f"/api/v1/chapters/{created['id']}",
+        json={"content": over_body},
+    )
+    assert over.status_code == 200
+    over_data = over.json()
+    assert over_data["word_count_target"] == 8
+    assert over_data["word_count"] == _count_words(over_body)
+    over_progress = chapter_length_progress(
+        over_data["word_count"],
+        over_data["word_count_target"],
+    )
+    assert over_progress.pace == "over"
+    assert over_progress.over == over_data["word_count"] - 8
+    assert over_progress.remaining == 0
+
+    listed = _chapters_from_tree(
+        (await client.get(f"/api/v1/projects/{project_id}/chapters")).json()
+    )[0]
+    assert listed["word_count_target"] == 8
+    assert listed["word_count"] == over_data["word_count"]
+    assert "content" not in listed
+
+    cleared = await client.patch(
+        f"/api/v1/chapters/{created['id']}",
+        json={"word_count_target": None},
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["word_count_target"] is None
+    assert cleared.json()["content"] == over_body
+    assert cleared.json()["word_count"] == over_data["word_count"]
+    events_after_clear = (
+        (
+            await session.execute(
+                select(WritingActivityEvent)
+                .where(col(WritingActivityEvent.chapter_id) == created["id"])
+                .order_by(col(WritingActivityEvent.created_at))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [event.operation for event in events_after_clear] == ["create", "update", "update"]
+
+
+@pytest.mark.asyncio
+async def test_word_count_target_rejects_empty_and_absurd_values(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    chapter = await _create_chapter(client, project_id, volume_id, title="夜航")
+
+    for payload in (
+        {"word_count_target": 0},
+        {"word_count_target": -5},
+        {"word_count_target": 100_001},
+    ):
+        response = await client.patch(f"/api/v1/chapters/{chapter['id']}", json=payload)
+        assert response.status_code == 422
+
+    unchanged = (await client.get(f"/api/v1/chapters/{chapter['id']}")).json()
+    assert unchanged["word_count_target"] is None
+    assert unchanged["content"] == ""
 
 
 @pytest.mark.asyncio

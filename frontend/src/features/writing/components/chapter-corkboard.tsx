@@ -8,6 +8,7 @@ import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { useVolumeTree } from "../hooks/use-volumes";
 import { WritingStatusSelect } from "./chapter-plan-status";
+import { ChapterWordTarget } from "./chapter-word-target";
 
 import "./chapter-plan.css";
 
@@ -70,7 +71,13 @@ function ChapterCorkboardCard({
       <div className="chapter-corkboard-card__meta">
         {draft.synopsisTooLong
           ? t("writing.chapterPlan.synopsisTooLong", { max: SYNOPSIS_MAX_LENGTH })
-          : t("writing.chapterPlan.cardMeta", { count: chapter.wordCount })}
+          : null}
+        <ChapterWordTarget
+          chapterId={chapter.id}
+          written={chapter.wordCount}
+          target={chapter.wordCountTarget}
+          disabled={isAgentLocked}
+        />
       </div>
     </article>
   );

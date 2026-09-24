@@ -316,6 +316,7 @@ export function ChapterSidebar({
           synopsis: originalChapter.synopsis,
           writingStatus: originalChapter.writingStatus,
           wordCount: originalChapter.wordCount,
+          wordCountTarget: originalChapter.wordCountTarget,
         });
         setCurrentChapter(newChapter.id);
         onChapterSelect(newChapter.id, newChapter.title);

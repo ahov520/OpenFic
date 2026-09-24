@@ -303,6 +303,20 @@
         "done": "Done"
       }
     },
+    "chapterLength": {
+      "target": "Target",
+      "targetPlaceholder": "None",
+      "written": "{{count}} written",
+      "remaining": "{{count}} to go",
+      "over": "{{count}} over",
+      "met": "Exact",
+      "short": "Short",
+      "long": "Long",
+      "onTarget": "On target",
+      "invalid": "Use an integer from 1 to {{max}}, or leave it blank for no target",
+      "saveFailed": "Couldn't save the word target. Please try again.",
+      "aria": "Chapter word target"
+    },
     "plotThreads": {
       "open": "Plot threads",
       "title": "Plot threads",

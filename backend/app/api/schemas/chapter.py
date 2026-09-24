@@ -8,6 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.storage.chapter_length import WORD_COUNT_TARGET_MAX
 from app.storage.chapter_plan import SYNOPSIS_MAX_LENGTH
 
 WritingStatus = Literal["idea", "drafting", "revising", "done"]
@@ -31,6 +32,12 @@ class ChapterCreate(BaseModel):
     word_count: int | None = Field(
         default=None, ge=0, description="章节字数（前端计算）"
     )
+    word_count_target: int | None = Field(
+        default=None,
+        ge=1,
+        le=WORD_COUNT_TARGET_MAX,
+        description="本章目标字数。空表示不设目标",
+    )
 
 
 class ChapterUpdate(BaseModel):
@@ -51,6 +58,12 @@ class ChapterUpdate(BaseModel):
     )
     word_count: int | None = Field(
         default=None, ge=0, description="章节字数（前端计算）"
+    )
+    word_count_target: int | None = Field(
+        default=None,
+        ge=1,
+        le=WORD_COUNT_TARGET_MAX,
+        description="本章目标字数。传入 null 表示清空",
     )
 
 
@@ -78,6 +91,7 @@ class ChapterResponse(BaseModel):
     synopsis: str = Field(description="作者梗概")
     writing_status: WritingStatus = Field(description="写作状态")
     word_count: int = Field(description="章节字数")
+    word_count_target: int | None = Field(description="本章目标字数，空表示不设目标")
     order: int = Field(description="排序序号")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="上次修改时间")
@@ -95,6 +109,7 @@ class ChapterListItem(BaseModel):
     synopsis: str = Field(description="作者梗概")
     writing_status: WritingStatus = Field(description="写作状态")
     word_count: int = Field(description="章节字数")
+    word_count_target: int | None = Field(description="本章目标字数，空表示不设目标")
     order: int = Field(description="排序序号")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="上次修改时间")

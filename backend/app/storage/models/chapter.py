@@ -24,6 +24,7 @@ class Chapter(SQLModel, table=True):
         synopsis: 作者梗概，用来规划这一章要写什么。
         writing_status: 写作状态（idea/drafting/revising/done）。
         word_count: 章节字数，默认为 0。
+        word_count_target: 本章目标字数。空表示不设目标。
         order: 排序序号。
         created_at: 创建时间。
         updated_at: 上次修改时间。
@@ -52,6 +53,7 @@ class Chapter(SQLModel, table=True):
         ),
     )
     word_count: int = Field(default=0)
+    word_count_target: int | None = Field(default=None)
     order: int = Field(index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

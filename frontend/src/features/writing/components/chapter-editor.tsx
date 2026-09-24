@@ -46,6 +46,7 @@ import {
 } from "../lib/writing-working-copy";
 import { useTabsStore } from "../store/use-tabs-store";
 import { ChapterPlanBar } from "./chapter-plan-bar";
+import { ChapterWordTarget } from "./chapter-word-target";
 import { FindReplacePanel } from "./find-replace-panel";
 
 const MANUAL_SAVE_EVENT = "openfic:chapter-editor-manual-save";
@@ -715,12 +716,12 @@ function ChapterEditorContent({
           background: "var(--theme-editor-bar-background)",
         }}
       >
-        <Text
-          size="1"
-          color="gray"
-        >
-          {wordCount} {t("writing.words")}
-        </Text>
+        <ChapterWordTarget
+          chapterId={chapter.id}
+          written={wordCount}
+          target={chapter.wordCountTarget}
+          disabled={isAgentLocked}
+        />
         <Text
           size="1"
           color="gray"

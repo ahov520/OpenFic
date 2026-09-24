@@ -710,6 +710,7 @@ export async function reorderAgentMemories(memoryIds: string[]): Promise<AgentMe
 // Chapter API
 // ============================================
 
+import { readWordCountTarget } from "./chapter-length";
 import type {
   Chapter,
   ChapterCreate,
@@ -748,6 +749,7 @@ function transformChapter(raw: Record<string, unknown>): Chapter {
     synopsis: typeof raw.synopsis === "string" ? raw.synopsis : "",
     writingStatus: normalizeWritingStatus(raw.writing_status),
     wordCount: raw.word_count as number,
+    wordCountTarget: readWordCountTarget(raw.word_count_target),
     order: raw.order as number,
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
@@ -766,6 +768,7 @@ function transformChapterListItem(raw: Record<string, unknown>): ChapterListItem
     synopsis: typeof raw.synopsis === "string" ? raw.synopsis : "",
     writingStatus: normalizeWritingStatus(raw.writing_status),
     wordCount: raw.word_count as number,
+    wordCountTarget: readWordCountTarget(raw.word_count_target),
     order: raw.order as number,
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
@@ -901,6 +904,7 @@ export async function createChapter(projectId: string, data: ChapterCreate): Pro
     synopsis: data.synopsis,
     writing_status: data.writingStatus,
     word_count: data.wordCount,
+    word_count_target: data.wordCountTarget,
   });
   return transformChapter(response.data);
 }
@@ -954,6 +958,7 @@ export async function updateChapter(chapterId: string, data: ChapterUpdate): Pro
     synopsis: data.synopsis,
     writing_status: data.writingStatus,
     word_count: data.wordCount,
+    word_count_target: data.wordCountTarget,
   });
   return transformChapter(response.data);
 }

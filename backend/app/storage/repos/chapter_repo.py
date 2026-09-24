@@ -35,6 +35,7 @@ def _chapter_metadata_attributes() -> tuple[QueryableAttribute[Any], ...]:
             Chapter.synopsis,
             Chapter.writing_status,
             Chapter.word_count,
+            Chapter.word_count_target,
             Chapter.order,
             Chapter.created_at,
             Chapter.updated_at,

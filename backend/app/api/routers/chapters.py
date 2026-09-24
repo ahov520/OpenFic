@@ -63,6 +63,7 @@ async def create_chapter(
             word_count=data.word_count,
             synopsis=data.synopsis,
             writing_status=data.writing_status,
+            word_count_target=data.word_count_target,
         )
         await background_service.commit_and_notify(session)
         return ChapterResponse.model_validate(chapter)
@@ -173,6 +174,11 @@ async def update_chapter(
             word_count=data.word_count,
             synopsis=data.synopsis,
             writing_status=data.writing_status,
+            word_count_target=(
+                data.word_count_target
+                if "word_count_target" in data.model_fields_set
+                else chapter_service.UNSET
+            ),
         )
         await background_service.commit_and_notify(session)
         return ChapterResponse.model_validate(chapter)

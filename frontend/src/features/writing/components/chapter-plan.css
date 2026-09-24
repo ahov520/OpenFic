@@ -201,3 +201,108 @@
   color: var(--gray-10);
   font-size: var(--font-size-1, 12px);
 }
+
+.chapter-length {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: var(--gray-11);
+  font-size: var(--font-size-1, 12px);
+}
+
+.chapter-length__readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.chapter-length__badge {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--gray-a3);
+  color: var(--gray-11);
+  font-weight: 600;
+}
+
+.chapter-length[data-pace="short"] .chapter-length__badge {
+  background: var(--amber-a3);
+  color: var(--amber-11);
+}
+
+.chapter-length[data-pace="met"] .chapter-length__badge {
+  background: var(--green-a3);
+  color: var(--green-11);
+}
+
+.chapter-length[data-pace="over"] .chapter-length__badge {
+  background: var(--red-a3);
+  color: var(--red-11);
+}
+
+.chapter-length-mark[data-pace="short"] {
+  color: var(--amber-11);
+}
+
+.chapter-length-mark[data-pace="met"] {
+  color: var(--green-11);
+}
+
+.chapter-length-mark[data-pace="over"] {
+  color: var(--red-11);
+}
+
+.chapter-length__bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--gray-a4);
+}
+
+.chapter-length__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--amber-9);
+}
+
+.chapter-length[data-pace="met"] .chapter-length__bar > span {
+  background: var(--green-9);
+}
+
+.chapter-length[data-pace="over"] .chapter-length__bar > span {
+  background: var(--red-9);
+}
+
+.chapter-length__field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chapter-length__field input {
+  width: 7.5rem;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--gray-a6);
+  border-radius: 8px;
+  background: var(--color-background);
+  color: var(--gray-12);
+  font: inherit;
+}
+
+.chapter-length__field input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.chapter-length__error {
+  margin: 0;
+  color: var(--red-11);
+}
+
+.chapter-length-mark {
+  color: var(--gray-11);
+  font-size: var(--font-size-1, 12px);
+  line-height: var(--line-height-1, 16px);
+}

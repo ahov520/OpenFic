@@ -20,6 +20,7 @@ export interface Chapter {
   synopsis: string;
   writingStatus: WritingStatus;
   wordCount: number;
+  wordCountTarget: number | null;
   order: number;
   createdAt: string;
   updatedAt: string;
@@ -36,6 +37,7 @@ export interface ChapterListItem {
   synopsis: string;
   writingStatus: WritingStatus;
   wordCount: number;
+  wordCountTarget: number | null;
   order: number;
   createdAt: string;
   updatedAt: string;
@@ -51,6 +53,7 @@ export interface ChapterCreate {
   synopsis?: string;
   writingStatus?: WritingStatus;
   wordCount?: number;
+  wordCountTarget?: number | null;
 }
 
 /**
@@ -62,6 +65,7 @@ export interface ChapterUpdate {
   synopsis?: string;
   writingStatus?: WritingStatus;
   wordCount?: number;
+  wordCountTarget?: number | null;
 }
 
 export interface Volume {
