@@ -206,6 +206,12 @@ def test_recheck_keeps_still_marks_new_and_does_not_call_a_rewrite_written() -> 
     assert by_text["窗还开着"] == "still"
     assert "灯还亮着" not in by_text
     assert aligned[0].ref == "synopsis:4"
+    gone = next(gap for gap in aligned if gap.change == "gone")
+    assert gone.plan_text == "沈照发现「铜钥匙」。"
+    assert gone.missing == ("铜钥匙",)
+    still = next(gap for gap in aligned if gap.plan_text == "门外是林晚棠。")
+    assert still.change == "still"
+    assert still.missing == ("林晚棠",)
 
     rewritten = annotate_gap_changes(
         (_gap("synopsis:0", "synopsis", "门外是林晚棠。", missing=("林晚棠",)),),
@@ -315,6 +321,68 @@ def test_old_payload_without_change_still_loads() -> None:
     assert gap.change is None
     assert gap.thread_id is None
     assert gap.missing == ("林晚棠",)
+
+
+def test_gone_beat_keeps_the_previous_note() -> None:
+    """节拍不再出现时，仍留着线名、类型和上次备注，不是通过。"""
+    previous = (
+        _gap(
+            "beat:old",
+            "beat",
+            "灯还亮着",
+            missing=("灯还亮着", "铜镜"),
+            beat_kind="plant",
+            thread_name="铜镜",
+            thread_id="thread-1",
+        ),
+    )
+    items = [
+        PlanItem(
+            "beat:old",
+            "beat",
+            "灯还亮着",
+            beat_kind="plant",
+            thread_name="铜镜",
+            thread_id="thread-1",
+        )
+    ]
+    aligned = annotate_gap_changes(previous, [], items)
+    assert len(aligned) == 1
+    gap = aligned[0]
+    assert gap.change == "gone"
+    assert gap.plan_text == "灯还亮着"
+    assert gap.missing == ("灯还亮着", "铜镜")
+    assert gap.thread_name == "铜镜"
+    assert gap.beat_kind == "plant"
+
+
+def test_gone_without_a_stored_quote_stays_gone() -> None:
+    """旧数据没有可展示的原句时，仍标成不再出现，不改成通过。"""
+    previous = (
+        _gap(
+            "beat:old",
+            "beat",
+            "",
+            beat_kind="advance",
+            thread_name="铜镜",
+            thread_id="thread-1",
+        ),
+    )
+    items = [
+        PlanItem(
+            "beat:old",
+            "beat",
+            "",
+            beat_kind="advance",
+            thread_name="铜镜",
+            thread_id="thread-1",
+        )
+    ]
+    aligned = annotate_gap_changes(previous, [], items)
+    assert [
+        (gap.change, gap.plan_text, gap.missing, gap.thread_name, gap.beat_kind)
+        for gap in aligned
+    ] == [("gone", "", (), "铜镜", "advance")]
 
 
 def test_only_gone_gaps_are_not_an_open_failure() -> None:

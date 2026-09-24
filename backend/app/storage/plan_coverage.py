@@ -419,6 +419,7 @@ def annotate_gap_changes(
         if key in current_keys:
             still_keys.add(key)
             continue
+        # 带着上一份的原句和字面锚点。这只说明这次结果里没有这条，不是已经写上。
         gone.append(_with_change(old, GAP_CHANGE_GONE))
 
     annotated: list[CoverageGap] = []

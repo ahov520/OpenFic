@@ -182,6 +182,8 @@ function PlanCheckBody({ result }: { result: PlanCheck }) {
 function GapItem({ gap }: { gap: PlanCheckGap }) {
   const { t } = useTranslation();
   const closed = gap.change === "gone" || gap.change === "invalidated";
+  const goneLiteral = gap.change === "gone" ? rememberedAnchors(gap) : [];
+  const showPlan = gap.change !== "gone" || hasGonePlanQuote(gap);
   return (
     <li
       className="chapter-plan-check__gap"
@@ -196,7 +198,7 @@ function GapItem({ gap }: { gap: PlanCheckGap }) {
             : t("writing.planCheck.literalBadge")}
         </p>
       )}
-      <p className="chapter-plan-check__plan">{planLabel(t, gap)}</p>
+      {showPlan && <p className="chapter-plan-check__plan">{planLabel(t, gap)}</p>}
       {!closed && (
         <p className="chapter-plan-check__detail">
           {gap.basis === "literal"
@@ -204,8 +206,22 @@ function GapItem({ gap }: { gap: PlanCheckGap }) {
             : gap.detail}
         </p>
       )}
+      {goneLiteral.length > 0 && (
+        <p className="chapter-plan-check__gone-anchor">
+          {t("writing.planCheck.goneLiteral", { items: goneLiteral.join("、") })}
+        </p>
+      )}
     </li>
   );
+}
+
+function rememberedAnchors(gap: PlanCheckGap) {
+  return gap.missing.filter((item) => item.trim().length > 0);
+}
+
+function hasGonePlanQuote(gap: PlanCheckGap) {
+  if (gap.planText.trim()) return true;
+  return gap.origin === "beat" && Boolean(gap.beatKind) && Boolean(gap.threadName?.trim());
 }
 
 function hasClosedGap(result: PlanCheck) {

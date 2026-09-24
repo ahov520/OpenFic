@@ -414,6 +414,14 @@
   line-height: 1.45;
 }
 
+.chapter-plan-check__gone-anchor {
+  margin: 2px 0 0;
+  color: var(--gray-11);
+  font-size: var(--font-size-1, 12px);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
 .chapter-plan-check [data-freshness="stale"] .chapter-plan-check__gap {
   opacity: 0.72;
 }

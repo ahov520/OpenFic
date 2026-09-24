@@ -316,6 +316,7 @@
       "modelBadge": "Model",
       "literalBadge": "Not on the page",
       "missingLiteral": "Missing from the prose: {{items}}",
+      "goneLiteral": "Last literal check did not find: {{items}}",
       "modelClear": "The model finds evidence in the prose for these plans.",
       "literalClear": "Every listed name, quoted phrase, and short beat note appears in the prose. A reworded event can still be missed without a model.",
       "partial": "These lines have no name or quotation to match, so this is not a pass.",

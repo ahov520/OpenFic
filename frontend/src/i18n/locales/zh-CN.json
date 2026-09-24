@@ -316,6 +316,7 @@
       "modelBadge": "模型判断",
       "literalBadge": "字面未出现",
       "missingLiteral": "正文里完全没有：{{items}}",
+      "goneLiteral": "上次字面没找到：{{items}}",
       "modelClear": "模型判断：这些计划在正文里都有依据。",
       "literalClear": "字面检查：列出的专名、引号短句和节拍短句都出现在正文里。换一种说法的情节，字面检查看不出来。",
       "partial": "这些计划里没有专名或引号，字面检查判断不了，不能算通过。",

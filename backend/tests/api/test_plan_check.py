@@ -306,7 +306,11 @@ async def test_literal_recheck_separates_still_new_and_gone(
     assert by_change["gone"] == ["门外是林晚棠。"]
     assert "invalidated" not in by_change
     gone = next(gap for gap in body["gaps"] if gap["change"] == "gone")
+    assert gone["plan_text"] == "门外是林晚棠。"
     assert gone["missing"] == ["林晚棠"]
+    still = next(gap for gap in body["gaps"] if gap["change"] == "still")
+    assert still["plan_text"] == "沈照推开门，发现「铜钥匙」。"
+    assert still["missing"] == ["铜钥匙"]
 
 
 @pytest.mark.asyncio
@@ -380,6 +384,59 @@ async def test_literal_recheck_moves_a_filled_name_to_gone(
     assert [
         (gap["change"], gap["plan_text"], gap["missing"]) for gap in body["gaps"]
     ] == [("gone", "门外是林晚棠。", ["林晚棠"])]
+
+
+@pytest.mark.asyncio
+async def test_gone_beat_response_keeps_the_previous_note(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """补上节拍备注后，不再出现的那条仍带着线名、类型和上次备注。"""
+
+    async def unavailable(_session):
+        return None
+
+    monkeypatch.setattr(plan_check_service, "resolve_plan_check_generate", unavailable)
+    project_id, volume_id = await _create_project(client)
+    chapter = await _create_chapter(
+        client,
+        project_id,
+        volume_id,
+        "夜航",
+        content="屋里很静。",
+    )
+    thread = await client.post(
+        f"/api/v1/projects/{project_id}/plot-threads",
+        json={"name": "铜镜", "intent": ""},
+    )
+    assert thread.status_code == 201
+    planted = await client.post(
+        f"/api/v1/plot-threads/{thread.json()['id']}/beats",
+        json={"chapter_id": chapter["id"], "kind": "plant", "note": "灯还亮着"},
+    )
+    assert planted.status_code == 201
+
+    first = await client.post(f"/api/v1/chapters/{chapter['id']}/plan-check")
+    assert first.status_code == 200
+    assert first.json()["gaps"][0]["change"] is None
+    assert "灯还亮着" in first.json()["gaps"][0]["missing"]
+
+    filled = await client.patch(
+        f"/api/v1/chapters/{chapter['id']}",
+        json={"content": "铜镜里灯还亮着。"},
+    )
+    assert filled.status_code == 200
+    second = await client.post(f"/api/v1/chapters/{chapter['id']}/plan-check")
+    body = second.json()
+    assert body["outcome"] == "clear"
+    assert len(body["gaps"]) == 1
+    gone = body["gaps"][0]
+    assert gone["change"] == "gone"
+    assert gone["origin"] == "beat"
+    assert gone["thread_name"] == "铜镜"
+    assert gone["beat_kind"] == "plant"
+    assert "灯还亮着" in gone["plan_text"]
+    assert "灯还亮着" in gone["missing"]
 
 
 @pytest.mark.asyncio
