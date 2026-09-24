@@ -8,12 +8,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 ANCHOR_MAX_LENGTH = 1000
 BODY_MAX_LENGTH = 800
 CONTEXT_MAX_LENGTH = 40
 STATUSES = ("open", "struck")
 DEFAULT_STATUS = "open"
+MARK_FAINT: Literal["faint"] = "faint"
+MARK_WEAK: Literal["weak"] = "weak"
 EMPTY_SELECTION_MESSAGE = "请先选中要记下的文字"
 EMPTY_BODY_MESSAGE = "旁注不能为空"
 ANCHOR_TOO_LONG_MESSAGE = "选中的文字过长，请收短到一句话或一小段"
@@ -76,6 +79,19 @@ def normalize_status(value: str | None) -> str:
     return value
 
 
+def mark_kind(status: str, aligned: bool) -> Literal["faint", "weak"] | None:
+    """句上阅读标记的强度。标记不是正文，调用方不能把它写进 content。
+
+    对得上且未划掉：faint。对得上但已划掉：weak，不能再用 faint。
+    对不齐：不标，避免点到另一句。
+    """
+    if not aligned:
+        return None
+    if status == "struck":
+        return MARK_WEAK
+    return MARK_FAINT
+
+
 def locate_anchor(
     content: str,
     anchor: str,
@@ -107,7 +123,11 @@ def locate_anchor(
         start = starts[0]
         return AnchorHit(True, start, start + len(anchor))
 
-    confident = [index for index in starts if _context_matches(content, anchor, before, after, index)]
+    confident = [
+        index
+        for index in starts
+        if _context_matches(content, anchor, before, after, index)
+    ]
     if len(confident) != 1:
         return AnchorHit(False, None, None)
     start = confident[0]

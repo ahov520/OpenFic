@@ -14,6 +14,7 @@ from app.api.schemas.margin_note import (
 from app.background.jobs import service as background_service
 from app.core.errors import NotFoundError
 from app.storage.database import get_session
+from app.storage.margin_notes import mark_kind
 from app.storage.services import margin_note_service
 from app.storage.services.margin_note_service import MarginNoteView
 
@@ -22,6 +23,7 @@ router = APIRouter(tags=["margin-notes"])
 
 def _response(view: MarginNoteView) -> MarginNoteResponse:
     note = view.note
+    status = "struck" if note.status == "struck" else "open"
     return MarginNoteResponse(
         id=note.id,
         chapter_id=note.chapter_id,
@@ -29,8 +31,9 @@ def _response(view: MarginNoteView) -> MarginNoteResponse:
         context_before=note.context_before,
         context_after=note.context_after,
         body=note.body,
-        status="struck" if note.status == "struck" else "open",
+        status=status,
         alignment="aligned" if view.aligned else "misaligned",
+        mark=mark_kind(status, view.aligned),
         start=view.start,
         end=view.end,
         created_at=note.created_at,
@@ -85,7 +88,7 @@ async def create_margin_note(
 @router.patch(
     "/chapters/{chapter_id}/margin-notes/{note_id}",
     response_model=MarginNoteResponse,
-    summary="划掉或改写旁注",
+    summary="划掉、改写或改钉旁注",
 )
 async def update_margin_note(
     chapter_id: str,
@@ -100,6 +103,9 @@ async def update_margin_note(
             note_id,
             status=data.status,
             body=data.body,
+            anchor_text=data.anchor_text,
+            context_before=data.context_before,
+            context_after=data.context_after,
         )
         await background_service.commit_and_notify(session)
         return _response(view)

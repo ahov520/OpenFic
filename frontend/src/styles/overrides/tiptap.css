@@ -326,6 +326,18 @@
   text-indent: 0;
 }
 
+.tiptap-editor .margin-note-mark {
+  background-color: var(--amber-a3);
+  box-shadow: inset 0 -1px 0 var(--amber-a8);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.tiptap-editor .margin-note-mark--struck {
+  background-color: transparent;
+  box-shadow: inset 0 -1px 0 var(--gray-a6);
+}
+
 .tiptap-editor .margin-note-anchor {
   background-color: var(--amber-a5);
   border-radius: 2px;

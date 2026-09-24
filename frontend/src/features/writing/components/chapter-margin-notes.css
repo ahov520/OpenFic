@@ -108,6 +108,13 @@
   font-size: var(--font-size-1, 12px);
 }
 
+.chapter-margin-notes__item--current {
+  background: var(--amber-a3);
+  border-radius: 8px;
+  margin-inline: -4px;
+  padding-inline: 4px;
+}
+
 .chapter-margin-notes__item--struck {
   opacity: 0.72;
 }

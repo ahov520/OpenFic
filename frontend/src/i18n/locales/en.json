@@ -350,7 +350,7 @@
     },
     "marginNotes": {
       "title": "Margin notes",
-      "hint": "Select a sentence and leave the question beside it. Notes stay out of the manuscript and the word count.",
+      "hint": "Select a sentence and leave the question beside it. A matching sentence keeps a faint mark; click the mark to see the note. Notes stay out of the manuscript and the word count.",
       "add": "Add margin note",
       "emptySelection": "Select the text you want to keep a note on first.",
       "placeholder": "Leave this sentence for now. What is the problem?",
@@ -363,6 +363,8 @@
       "deleteConfirm": "Delete this note? Striking it keeps the record. Delete removes it.",
       "struckSection": "Struck {{count}}",
       "misaligned": "Out of alignment. The sentence saved with this note was:",
+      "repin": "Pin to selected sentence",
+      "repinEmpty": "Select the sentence to pin this note to first.",
       "anchor": "Sentence",
       "emptyBody": "The note cannot be empty.",
       "saveFailed": "Couldn't save the margin note. Please try again.",

@@ -19,8 +19,11 @@ import {
 } from "../hooks/use-margin-notes";
 import {
   editorPlainText,
-  rangeForPlainSlice,
+  MARGIN_NOTE_OPEN_EVENT,
+  rangeForAnchor,
+  readMarginNoteOpenId,
   readMarginSelection,
+  type MarginMarkNote,
   type MarginSelection,
 } from "../lib/margin-note-highlight";
 
@@ -32,6 +35,17 @@ interface ChapterMarginNotesProps {
   disabled?: boolean;
   composeRequest: number;
   onPrepare?: () => Promise<void>;
+}
+
+const EMPTY_NOTES: MarginNote[] = [];
+
+function editorViewReady(editor: Editor): boolean {
+  if (editor.isDestroyed) return false;
+  try {
+    return editor.view.dom.isConnected;
+  } catch {
+    return false;
+  }
 }
 
 function errorDetail(error: unknown, fallback: string): string {
@@ -54,13 +68,15 @@ export function ChapterMarginNotes({
   const createNote = useCreateMarginNote(chapterId);
   const updateNote = useUpdateMarginNote(chapterId);
   const deleteNote = useDeleteMarginNote(chapterId);
-  const notes = data ?? [];
+  const notes = data ?? EMPTY_NOTES;
   const [draft, setDraft] = useState<MarginSelection | null>(null);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [docVersion, setDocVersion] = useState(0);
+  const [openedNoteId, setOpenedNoteId] = useState<string | null>(null);
   const seenRequest = useRef(0);
   const panelRef = useRef<HTMLElement>(null);
+  const struckDetailsRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
     if (!editor) return;
@@ -112,23 +128,15 @@ export function ChapterMarginNotes({
   const focusNote = useCallback(
     (note: MarginNote) => {
       if (!editor) return;
-      const hit = locateAnchor(
-        editorPlainText(editor),
+      const plain = editorPlainText(editor);
+      const range = rangeForAnchor(
+        editor.state.doc,
+        plain,
         note.anchorText,
         note.contextBefore,
         note.contextAfter,
       );
-      if (!hit.aligned || hit.start == null || hit.end == null) {
-        editor.commands.setMarginNoteHighlight(null);
-        return;
-      }
-      const range = rangeForPlainSlice(editor.state.doc, hit.start, hit.end);
       if (!range) {
-        editor.commands.setMarginNoteHighlight(null);
-        return;
-      }
-      const slice = editor.state.doc.textBetween(range.from, range.to, "\n", "\n");
-      if (slice !== note.anchorText) {
         editor.commands.setMarginNoteHighlight(null);
         return;
       }
@@ -142,6 +150,80 @@ export function ChapterMarginNotes({
     },
     [editor],
   );
+
+  const revealNote = useCallback(
+    (noteId: string) => {
+      const note = notes.find((item) => item.id === noteId);
+      if (!note) return;
+      if (note.status === "struck" && struckDetailsRef.current) {
+        struckDetailsRef.current.open = true;
+      }
+      setOpenedNoteId(noteId);
+      window.requestAnimationFrame(() => {
+        document.getElementById(`margin-note-${noteId}`)?.scrollIntoView({ block: "nearest" });
+      });
+    },
+    [notes],
+  );
+
+  useEffect(() => {
+    if (!editor) return;
+    const marks: MarginMarkNote[] = notes.map((note) => ({
+      id: note.id,
+      anchorText: note.anchorText,
+      contextBefore: note.contextBefore,
+      contextAfter: note.contextAfter,
+      status: note.status,
+    }));
+    let frame = 0;
+    let attempts = 0;
+    let cancelled = false;
+    const apply = () => {
+      if (cancelled) return;
+      if (!editorViewReady(editor)) {
+        attempts += 1;
+        if (attempts > 60) return;
+        frame = window.requestAnimationFrame(apply);
+        return;
+      }
+      editor.commands.setMarginNoteMarks(marks);
+    };
+    apply();
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [editor, notes]);
+
+  useEffect(() => {
+    if (!editor) return;
+    let frame = 0;
+    let attempts = 0;
+    let cancelled = false;
+    let dom: HTMLElement | null = null;
+    const onOpen = (event: Event) => {
+      const noteId = readMarginNoteOpenId(event);
+      if (!noteId) return;
+      revealNote(noteId);
+    };
+    const attach = () => {
+      if (cancelled) return;
+      if (!editorViewReady(editor)) {
+        attempts += 1;
+        if (attempts > 60) return;
+        frame = window.requestAnimationFrame(attach);
+        return;
+      }
+      dom = editor.view.dom;
+      dom.addEventListener(MARGIN_NOTE_OPEN_EVENT, onOpen);
+    };
+    attach();
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      dom?.removeEventListener(MARGIN_NOTE_OPEN_EVENT, onOpen);
+    };
+  }, [editor, revealNote]);
 
   const save = async () => {
     if (!draft || disabled) return;
@@ -173,6 +255,43 @@ export function ChapterMarginNotes({
     }
   };
 
+  const repin = async (note: MarginNote) => {
+    if (disabled) return;
+    if (!editor) {
+      setError(t("writing.marginNotes.repinEmpty"));
+      panelRef.current?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    const selection = readMarginSelection(editor);
+    if (!selection) {
+      setError(t("writing.marginNotes.repinEmpty"));
+      panelRef.current?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    if (selection.anchorText.length > MARGIN_ANCHOR_MAX) {
+      setError(t("writing.marginNotes.tooLong"));
+      panelRef.current?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    try {
+      await onPrepare?.();
+      const updated = await updateNote.mutateAsync({
+        noteId: note.id,
+        data: {
+          anchorText: selection.anchorText,
+          contextBefore: selection.contextBefore,
+          contextAfter: selection.contextAfter,
+        },
+      });
+      setError(null);
+      focusNote(updated);
+    } catch (caught) {
+      const message = errorDetail(caught, t("writing.marginNotes.saveFailed"));
+      setError(message);
+      toast.error(message);
+    }
+  };
+
   const openNotes = notes.filter((note) => note.status === "open");
   const struckNotes = notes.filter((note) => note.status === "struck");
 
@@ -187,7 +306,10 @@ export function ChapterMarginNotes({
     return (
       <article
         key={note.id}
-        className={`chapter-margin-notes__item${struck ? " chapter-margin-notes__item--struck" : ""}`}
+        id={`margin-note-${note.id}`}
+        className={`chapter-margin-notes__item${struck ? " chapter-margin-notes__item--struck" : ""}${
+          openedNoteId === note.id ? " chapter-margin-notes__item--current" : ""
+        }`}
       >
         <button
           type="button"
@@ -204,6 +326,19 @@ export function ChapterMarginNotes({
         )}
         <p className="chapter-margin-notes__item-body">{note.body}</p>
         <div className="chapter-margin-notes__item-actions">
+          {!hit.aligned && (
+            <button
+              type="button"
+              className="chapter-margin-notes__button"
+              disabled={disabled || updateNote.isPending}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                void repin(note);
+              }}
+            >
+              {t("writing.marginNotes.repin")}
+            </button>
+          )}
           <button
             type="button"
             className="chapter-margin-notes__button chapter-margin-notes__button--quiet"
@@ -251,6 +386,7 @@ export function ChapterMarginNotes({
           type="button"
           className="chapter-margin-notes__button"
           disabled={disabled}
+          onMouseDown={(event) => event.preventDefault()}
           onClick={beginCompose}
         >
           {t("writing.marginNotes.add")}
@@ -308,7 +444,10 @@ export function ChapterMarginNotes({
         </div>
       )}
       {struckNotes.length > 0 && (
-        <details className="chapter-margin-notes__struck">
+        <details
+          ref={struckDetailsRef}
+          className="chapter-margin-notes__struck"
+        >
           <summary>{t("writing.marginNotes.struckSection", { count: struckNotes.length })}</summary>
           <div className="chapter-margin-notes__list">
             {struckNotes.map((note) => renderNote(note, true))}
