@@ -2,6 +2,7 @@ import { Box, Dialog, Flex, ScrollArea, Text, TextField } from "@radix-ui/themes
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { corkboardLengthLabel } from "@/lib/chapter-length";
 import { SYNOPSIS_MAX_LENGTH, WRITING_STATUSES, type WritingStatus } from "@/lib/chapter-plan";
 import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
 import {
@@ -72,6 +73,23 @@ function CorkboardOpenPlants({ names }: { names: readonly string[] }) {
   );
 }
 
+function ChapterCorkboardLength({ written, target }: { written: number; target: number | null }) {
+  const { t } = useTranslation();
+  const label = corkboardLengthLabel(written, target, (key, options) =>
+    options ? t(key, options) : t(key),
+  );
+  if (!label) return null;
+  return (
+    <p
+      className="chapter-corkboard-card__gap"
+      data-pace={label.pace}
+      data-testid="corkboard-length-mark"
+    >
+      {label.text}
+    </p>
+  );
+}
+
 function ChapterCorkboardCard({
   chapter,
   openPlantsByChapter,
@@ -113,6 +131,10 @@ function ChapterCorkboardCard({
           onChange={draft.setWritingStatus}
         />
       </Flex>
+      <ChapterCorkboardLength
+        written={chapter.wordCount}
+        target={chapter.wordCountTarget}
+      />
       <textarea
         className="chapter-corkboard-card__synopsis"
         value={draft.synopsis}

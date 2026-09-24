@@ -44,3 +44,36 @@ export function chapterLengthProgress(
   }
   return { pace: "met", written, target, remaining: 0, over: 0 };
 }
+
+type LengthTranslator = (key: string, options?: { count: number }) => string;
+
+export interface CorkboardLengthLabel {
+  pace: Exclude<ChapterPace, "none">;
+  text: string;
+}
+
+/**
+ * 软木板卡片上的字数差距。没有目标时不显示。
+ * 刚好达到标「达标」，不写成还差 0。超出用超出，不用还差。
+ */
+export function corkboardLengthLabel(
+  written: number,
+  target: number | null,
+  translate: LengthTranslator,
+): CorkboardLengthLabel | null {
+  const progress = chapterLengthProgress(written, target);
+  if (progress.pace === "none") return null;
+  if (progress.pace === "short") {
+    return {
+      pace: "short",
+      text: translate("writing.chapterLength.remaining", { count: progress.remaining }),
+    };
+  }
+  if (progress.pace === "over") {
+    return {
+      pace: "over",
+      text: translate("writing.chapterLength.over", { count: progress.over }),
+    };
+  }
+  return { pace: "met", text: translate("writing.chapterLength.onTarget") };
+}
