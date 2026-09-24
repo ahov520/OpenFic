@@ -72,6 +72,26 @@ export function useUpdateChapter() {
   return useMutation({
     mutationFn: ({ chapterId, data }: { chapterId: string; data: ChapterUpdate }) =>
       updateChapter(chapterId, data),
+    onMutate: (variables) => {
+      const writingStatus = variables.data.writingStatus;
+      if (writingStatus === undefined) return undefined;
+      const snapshots = queryClient.getQueriesData<VolumeTreeResponse>({
+        queryKey: ["volume-tree"],
+      });
+      for (const [queryKey, tree] of snapshots) {
+        if (!tree) continue;
+        const next = replaceChapterWritingStatusInTree(tree, variables.chapterId, writingStatus);
+        if (next !== tree) queryClient.setQueryData(queryKey, next);
+      }
+      void queryClient.cancelQueries({ queryKey: ["volume-tree"] });
+      return { snapshots };
+    },
+    onError: (_error, _variables, context) => {
+      if (!context?.snapshots) return;
+      for (const [queryKey, tree] of context.snapshots) {
+        queryClient.setQueryData(queryKey, tree);
+      }
+    },
     onSuccess: (updatedChapter, variables) => {
       queryClient.setQueryData<Chapter>(["chapter", updatedChapter.id], (current) => {
         if (!current) return updatedChapter;
