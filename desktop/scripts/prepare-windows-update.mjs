@@ -6,6 +6,10 @@ const outputDirectory = path.resolve(process.argv[2] ?? "dist-electron");
 const packageJson = JSON.parse(await readFile(path.resolve("package.json"), "utf8"));
 const version = process.env.OPENFIC_UPDATE_VERSION ?? packageJson.version;
 const architectures = ["x86_64", "aarch64"];
+const legacyArchitectureNames = {
+  x86_64: "x64",
+  aarch64: "arm64",
+};
 
 async function exists(filePath) {
   try {
@@ -33,12 +37,18 @@ for (const fileName of [universalInstaller, `${universalInstaller}.blockmap`]) {
   if (await exists(filePath)) await rm(filePath);
 }
 
-const files = await Promise.all(
-  architectures.map(async (architecture) => ({
+const files = [];
+for (const architecture of architectures) {
+  const fileName = `OpenFic-${version}-win-${architecture}-setup.exe`;
+  if (!(await exists(path.join(outputDirectory, fileName)))) continue;
+  files.push({
     architecture,
-    ...(await getFileInfo(`OpenFic-${version}-win-${architecture}-setup.exe`)),
-  })),
-);
+    ...(await getFileInfo(fileName)),
+  });
+}
+if (files.length === 0) {
+  throw new Error(`no Windows installers found in ${outputDirectory}`);
+}
 const releaseDate = new Date().toISOString();
 
 function createUpdateInfo(file, compatibilityArchitecture) {
@@ -56,16 +66,15 @@ function createUpdateInfo(file, compatibilityArchitecture) {
   ].join("\n");
 }
 
-const legacyArchitectures = ["x64", "arm64"];
 const legacyLatestYml = [
   `version: ${version}`,
   "files:",
-  ...files.flatMap((file, index) => [
-    `  - url: ${file.fileName}?arch=${legacyArchitectures[index]}`,
+  ...files.flatMap((file) => [
+    `  - url: ${file.fileName}?arch=${legacyArchitectureNames[file.architecture]}`,
     `    sha512: ${file.sha512}`,
     `    size: ${file.size}`,
   ]),
-  `path: ${files[0].fileName}?arch=${legacyArchitectures[0]}`,
+  `path: ${files[0].fileName}?arch=${legacyArchitectureNames[files[0].architecture]}`,
   `sha512: ${files[0].sha512}`,
   `releaseDate: '${releaseDate}'`,
   "",
