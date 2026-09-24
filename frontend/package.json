@@ -10,7 +10,7 @@
     "format:check": "oxfmt . --check",
     "lint": "oxlint .",
     "preview": "vp preview",
-    "test": "vp test --run",
+    "test": "node --import ./scripts/register-ts-paths.mjs --experimental-strip-types --test src/features/writing/lib/corkboard-missing-target.test.ts src/features/writing/lib/corkboard-owing.test.ts src/features/writing/lib/corkboard-status-filter.test.ts src/features/writing/lib/return-to-chapter.test.ts src/features/writing/lib/sidebar-writing-status-filter.test.ts src/lib/chapter-length.corkboard.test.ts src/lib/chapter-plan.missing-synopsis.test.ts src/lib/corkboard-open-threads.test.ts src/lib/corkboard-sort.test.ts && vp test --run",
     "test:e2e": "playwright test",
     "type-check": "oxlint . --type-aware --type-check"
   },

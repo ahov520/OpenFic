@@ -56,6 +56,20 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "happy-dom",
       include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+      // node:test 文件不能交给 Vitest，由 package.json 的 test 脚本单独跑。
+      exclude: [
+        "**/node_modules/**",
+        "**/.git/**",
+        "src/features/writing/lib/corkboard-missing-target.test.ts",
+        "src/features/writing/lib/corkboard-owing.test.ts",
+        "src/features/writing/lib/corkboard-status-filter.test.ts",
+        "src/features/writing/lib/return-to-chapter.test.ts",
+        "src/features/writing/lib/sidebar-writing-status-filter.test.ts",
+        "src/lib/chapter-length.corkboard.test.ts",
+        "src/lib/chapter-plan.missing-synopsis.test.ts",
+        "src/lib/corkboard-open-threads.test.ts",
+        "src/lib/corkboard-sort.test.ts",
+      ],
       setupFiles: ["./vitest.setup.ts"],
     },
     server: {

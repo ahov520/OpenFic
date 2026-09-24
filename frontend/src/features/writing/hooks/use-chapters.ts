@@ -22,6 +22,7 @@ import type {
   VolumeTreeResponse,
 } from "@/lib/chapter.types";
 
+import { applySavedWordCountToVolumeTree } from "../lib/sidebar-not-started";
 import { replaceChapterWritingStatusInTree } from "../lib/sidebar-writing-status-filter";
 import { applyWordCountTargetToVolumeTree } from "../lib/volume-tree-word-target";
 
@@ -167,6 +168,19 @@ export function useUpdateChapter() {
               ? applyWordCountTargetToVolumeTree(current, {
                   id: updatedChapter.id,
                   wordCountTarget: updatedChapter.wordCountTarget,
+                  updatedAt: updatedChapter.updatedAt,
+                })
+              : current,
+        );
+      }
+      if (variables.data.wordCount !== undefined) {
+        queryClient.setQueryData<VolumeTreeResponse>(
+          ["volume-tree", updatedChapter.projectId],
+          (current) =>
+            current
+              ? applySavedWordCountToVolumeTree(current, {
+                  id: updatedChapter.id,
+                  wordCount: updatedChapter.wordCount,
                   updatedAt: updatedChapter.updatedAt,
                 })
               : current,

@@ -278,6 +278,7 @@
       "description": "The chapter will be appended to the end of the target volume."
     },
     "words": "words",
+    "notStarted": "Not started",
     "chapterPlan": {
       "synopsis": "Synopsis",
       "status": "Writing status",
