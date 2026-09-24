@@ -1,12 +1,15 @@
+import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import { toast } from "@/components";
-import type { PlotBeatKind, PlotThread } from "@/lib/plot-thread";
+import { fetchPlotThreads } from "@/lib/api-client";
+import type { PlotBeatKind, PlotThread, QuietGap } from "@/lib/plot-thread";
 import {
   PLOT_BEAT_KINDS,
   STALE_CHAPTER_GAP,
+  currentChapterBeatAction,
   quietGapBeforeChapter,
   readingChapterIds,
 } from "@/lib/plot-thread";
@@ -21,6 +24,12 @@ import {
 import "./plot-thread.css";
 
 const EMPTY_THREADS: PlotThread[] = [];
+const NOTE_MAX_LENGTH = 200;
+
+interface AdvanceFailure {
+  message: string;
+  tone: "error" | "notice";
+}
 
 interface ChapterPlotBeatsProps {
   projectId: string;
@@ -64,6 +73,7 @@ export function ChapterPlotBeats({
     (thread) => !thread.beats.some((beat) => beat.chapterId === chapterId),
   );
   const [threadId, setThreadId] = useState("");
+  const [advanceFailures, setAdvanceFailures] = useState<Record<string, AdvanceFailure>>({});
 
   const availableKey = available.map((thread) => thread.id).join("\0");
 
@@ -71,6 +81,13 @@ export function ChapterPlotBeats({
     const ids = availableKey ? availableKey.split("\0") : [];
     if (!ids.includes(threadId)) setThreadId(ids[0] ?? "");
   }, [availableKey, threadId]);
+
+  useEffect(() => {
+    setAdvanceFailures({});
+  }, [chapterId]);
+
+  const staleIds = new Set(stale.map(({ thread }) => thread.id));
+  const leftoverFailures = Object.entries(advanceFailures).filter(([id]) => !staleIds.has(id));
 
   const report = (error: unknown) => {
     if (axios.isAxiosError(error) && error.response?.status === 409) {
@@ -100,13 +117,44 @@ export function ChapterPlotBeats({
           data-testid="plot-thread-consider"
         >
           {stale.map(({ thread, gap }) => (
-            <li key={thread.id}>
-              {t("writing.plotThreads.considerAdvance", {
-                name: thread.name,
-                order: gap.lastOrder,
-                title: gap.lastTitle || t("writing.untitledChapter"),
-                count: gap.chaptersSince,
-              })}
+            <ConsiderAdvanceItem
+              key={thread.id}
+              projectId={projectId}
+              chapterId={chapterId}
+              thread={thread}
+              gap={gap}
+              disabled={disabled}
+              onFailure={(threadIdToMark, failure) => {
+                setAdvanceFailures((current) => {
+                  if (!failure) {
+                    if (!(threadIdToMark in current)) return current;
+                    const next = { ...current };
+                    delete next[threadIdToMark];
+                    return next;
+                  }
+                  return { ...current, [threadIdToMark]: failure };
+                });
+              }}
+            />
+          ))}
+        </ul>
+      )}
+      {leftoverFailures.length > 0 && (
+        <ul
+          className="chapter-plot-advance-errors"
+          data-testid="plot-thread-advance-errors"
+        >
+          {leftoverFailures.map(([id, failure]) => (
+            <li
+              key={id}
+              role={failure.tone === "error" ? "alert" : "status"}
+              className={
+                failure.tone === "error"
+                  ? "chapter-plot-advance-errors__error"
+                  : "chapter-plot-advance-errors__notice"
+              }
+            >
+              {failure.message}
             </li>
           ))}
         </ul>
@@ -193,5 +241,194 @@ export function ChapterPlotBeats({
         </form>
       )}
     </div>
+  );
+}
+
+function plotActionError(error: unknown, duplicate: string, fallback: string): string {
+  if (!axios.isAxiosError(error)) return fallback;
+  if (error.response?.status === 409) return duplicate;
+  const data = error.response?.data;
+  if (data && typeof data === "object" && "detail" in data) {
+    const detail = (data as { detail?: unknown }).detail;
+    if (typeof detail === "string" && detail.trim()) return detail;
+  }
+  return fallback;
+}
+
+function ConsiderAdvanceItem({
+  projectId,
+  chapterId,
+  thread,
+  gap,
+  disabled,
+  onFailure,
+}: {
+  projectId: string;
+  chapterId: string;
+  thread: PlotThread;
+  gap: QuietGap;
+  disabled: boolean;
+  onFailure: (threadId: string, failure: AdvanceFailure | null) => void;
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const createBeat = useCreatePlotBeat(projectId);
+  const updateBeat = useUpdatePlotBeat(projectId);
+  const action = currentChapterBeatAction(thread, chapterId);
+  const existing = action.mode === "edit" ? action.beat : null;
+  const [note, setNote] = useState(existing?.note ?? "");
+  const [focused, setFocused] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!focused && existing) setNote(existing.note);
+  }, [existing, focused]);
+
+  const explain = (failure: AdvanceFailure) => {
+    if (mountedRef.current) setError(failure.message);
+    onFailure(thread.id, failure);
+  };
+
+  const keepExistingBeat = async (trimmed: string) => {
+    const duplicate = t("writing.plotThreads.duplicateBeat");
+    const fallback = t("writing.plotThreads.saveFailed");
+    try {
+      const board = await queryClient.fetchQuery({
+        queryKey: ["plot-threads", projectId],
+        queryFn: () => fetchPlotThreads(projectId),
+      });
+      const beat = board.threads
+        .find((item) => item.id === thread.id)
+        ?.beats.find((item) => item.chapterId === chapterId);
+      if (!beat) {
+        if (mountedRef.current) setBlocked(true);
+        explain({ message: duplicate, tone: "error" });
+        return;
+      }
+      if (trimmed && trimmed !== beat.note) {
+        await updateBeat.mutateAsync({ beatId: beat.id, data: { note: trimmed } });
+        explain({
+          message: t("writing.plotThreads.advanceNoteSaved", { name: thread.name }),
+          tone: "notice",
+        });
+        return;
+      }
+      explain({
+        message: t("writing.plotThreads.advanceKeptExisting", { name: thread.name }),
+        tone: "notice",
+      });
+    } catch (caught) {
+      if (mountedRef.current) setBlocked(true);
+      explain({ message: plotActionError(caught, duplicate, fallback), tone: "error" });
+    }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (disabled || blocked || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setError(null);
+    onFailure(thread.id, null);
+    const trimmed = note.trim();
+    const duplicate = t("writing.plotThreads.duplicateBeat");
+    const fallback = t("writing.plotThreads.saveFailed");
+    try {
+      if (existing) {
+        await updateBeat.mutateAsync({ beatId: existing.id, data: { note: trimmed } });
+        return;
+      }
+      await createBeat.mutateAsync({
+        threadId: thread.id,
+        data: { chapterId, kind: "advance", note: trimmed },
+      });
+    } catch (caught) {
+      if (axios.isAxiosError(caught) && caught.response?.status === 409) {
+        await keepExistingBeat(trimmed);
+        return;
+      }
+      explain({ message: plotActionError(caught, duplicate, fallback), tone: "error" });
+    } finally {
+      savingRef.current = false;
+      if (mountedRef.current) setSaving(false);
+    }
+  };
+
+  let mode: "blocked" | "edit" | "create" = "create";
+  if (blocked) mode = "blocked";
+  else if (existing) mode = "edit";
+
+  return (
+    <li
+      className="chapter-plot-stale__item"
+      data-testid="plot-thread-consider-item"
+    >
+      <p className="chapter-plot-stale__text">
+        {t("writing.plotThreads.considerAdvance", {
+          name: thread.name,
+          order: gap.lastOrder,
+          title: gap.lastTitle || t("writing.untitledChapter"),
+          count: gap.chaptersSince,
+        })}
+      </p>
+      {existing || blocked ? (
+        <p
+          className="chapter-plot-stale__hint"
+          data-testid="plot-thread-advance-existing"
+        >
+          {t("writing.plotThreads.alreadyOnChapter")}
+        </p>
+      ) : null}
+      <form
+        className="chapter-plot-stale__form"
+        onSubmit={(event) => {
+          void submit(event);
+        }}
+      >
+        <input
+          className="plot-thread-note"
+          data-testid="plot-thread-advance-note"
+          aria-label={t("writing.plotThreads.note")}
+          placeholder={t("writing.plotThreads.notePlaceholder")}
+          value={note}
+          maxLength={NOTE_MAX_LENGTH}
+          disabled={disabled || blocked}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onChange={(event) => setNote(event.target.value)}
+        />
+        <button
+          type="submit"
+          className="plot-thread-text-button"
+          data-testid="plot-thread-record-advance"
+          data-mode={mode}
+          disabled={disabled || blocked || saving}
+        >
+          {existing
+            ? t("writing.plotThreads.editBeatHere")
+            : t("writing.plotThreads.recordAdvance")}
+        </button>
+      </form>
+      {error ? (
+        <p
+          className="chapter-plot-stale__error"
+          role="alert"
+          data-testid="plot-thread-advance-error"
+        >
+          {error}
+        </p>
+      ) : null}
+    </li>
   );
 }

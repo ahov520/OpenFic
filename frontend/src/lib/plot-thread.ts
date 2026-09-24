@@ -159,6 +159,20 @@ export function quietGapBeforeChapter(
   };
 }
 
+export type CurrentChapterBeatAction = { mode: "create" } | { mode: "edit"; beat: PlotBeat };
+
+/**
+ * 同一章只记一次。写作界面在「可以考虑推进」旁：没有节拍就新建推进，已有节拍就改这一条。
+ */
+export function currentChapterBeatAction(
+  thread: PlotThread,
+  chapterId: string,
+): CurrentChapterBeatAction {
+  const beat = thread.beats.find((item) => item.chapterId === chapterId);
+  if (beat) return { mode: "edit", beat };
+  return { mode: "create" };
+}
+
 export function boardProblemRank(issues: readonly string[]): number {
   if (issues.includes("payoff_without_plant") || issues.includes("payoff_before_plant")) return 0;
   if (issues.includes("open")) return 1;

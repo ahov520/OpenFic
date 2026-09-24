@@ -12,6 +12,8 @@ import {
 import type {
   PlotBeatCreate,
   PlotBeatUpdate,
+  PlotBoard,
+  PlotThread,
   PlotThreadCreate,
   PlotThreadUpdate,
 } from "@/lib/plot-thread";
@@ -28,6 +30,20 @@ function useInvalidatePlotThreads(projectId: string) {
   const queryClient = useQueryClient();
   return () => {
     queryClient.invalidateQueries({ queryKey: ["plot-threads", projectId] });
+  };
+}
+
+function useSyncPlotThread(projectId: string) {
+  const queryClient = useQueryClient();
+  return (thread: PlotThread) => {
+    queryClient.setQueryData<PlotBoard>(["plot-threads", projectId], (current) => {
+      if (!current?.threads.some((item) => item.id === thread.id)) return current;
+      return {
+        ...current,
+        threads: current.threads.map((item) => (item.id === thread.id ? thread : item)),
+      };
+    });
+    void queryClient.invalidateQueries({ queryKey: ["plot-threads", projectId] });
   };
 }
 
@@ -57,20 +73,20 @@ export function useDeletePlotThread(projectId: string) {
 }
 
 export function useCreatePlotBeat(projectId: string) {
-  const invalidate = useInvalidatePlotThreads(projectId);
+  const sync = useSyncPlotThread(projectId);
   return useMutation({
     mutationFn: ({ threadId, data }: { threadId: string; data: PlotBeatCreate }) =>
       createPlotBeat(threadId, data),
-    onSuccess: invalidate,
+    onSuccess: sync,
   });
 }
 
 export function useUpdatePlotBeat(projectId: string) {
-  const invalidate = useInvalidatePlotThreads(projectId);
+  const sync = useSyncPlotThread(projectId);
   return useMutation({
     mutationFn: ({ beatId, data }: { beatId: string; data: PlotBeatUpdate }) =>
       updatePlotBeat(beatId, data),
-    onSuccess: invalidate,
+    onSuccess: sync,
   });
 }
 

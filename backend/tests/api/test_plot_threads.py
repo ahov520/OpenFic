@@ -423,3 +423,139 @@ async def test_gap_chapters_follow_inserts_volumes_and_collapse(
     assert listed["gap_range"] == "2. 插章 → 6. 丙"
     assert thread_named(across, "已收")["gap_chapters"] == []
     assert thread_named(across, "已收")["gap_range"] is None
+
+
+@pytest.mark.asyncio
+async def test_record_advance_on_current_chapter_updates_gaps_without_a_second_beat(
+    client: AsyncClient,
+) -> None:
+    """从当前章把未回收的线记成推进。
+
+    同一章再创建一次返回 409，不产生第二条。已有节拍用 PATCH 改备注，仍是这一条。
+    节拍记在当前章后，上下文不再提示考虑推进；总览的最后出现改到这一章，
+    到全书末章的空档跟着变。
+    """
+    project_id, volume_id = await _create_project(client)
+    chapters = [
+        await _create_chapter(client, project_id, volume_id, title)
+        for title in ("埋下", "二", "三", "四", "五", "结局")
+    ]
+    current = chapters[4]
+    mirror = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "铜镜", "intent": "还没收"},
+        )
+    ).json()
+    planted = await client.post(
+        f"/api/v1/plot-threads/{mirror['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "灯还亮着"},
+    )
+    assert planted.status_code == 201
+
+    async def context_for(chapter_id: str) -> dict:
+        response = await client.get(
+            f"/api/v1/projects/{project_id}/chapter-context/context",
+            params={"chapter_id": chapter_id},
+        )
+        assert response.status_code == 200
+        latest = json.loads(response.json()["latest_field"]["content"])
+        return latest["plot_threads"]
+
+    before = await context_for(current["id"])
+    stale = next(item for item in before["open_threads"] if item["thread"] == "铜镜")
+    assert stale["chapters_since"] == 3
+    assert stale["consider_advance"] == CONSIDER_ADVANCE_NOTE
+
+    board_before = (
+        await client.get(f"/api/v1/projects/{project_id}/plot-threads")
+    ).json()
+    before_thread = next(
+        item for item in board_before["threads"] if item["name"] == "铜镜"
+    )
+    assert before_thread["last_chapter_id"] == chapters[0]["id"]
+    assert before_thread["chapters_since_last"] == 4
+
+    recorded = await client.post(
+        f"/api/v1/plot-threads/{mirror['id']}/beats",
+        json={"chapter_id": current["id"], "kind": "advance", "note": "灯又亮了一下"},
+    )
+    assert recorded.status_code == 201
+    body = recorded.json()
+    on_current = [beat for beat in body["beats"] if beat["chapter_id"] == current["id"]]
+    assert len(on_current) == 1
+    assert on_current[0]["kind"] == "advance"
+    assert on_current[0]["note"] == "灯又亮了一下"
+    assert len(body["beats"]) == 2
+    assert body["last_chapter_id"] == current["id"]
+    assert body["last_kind"] == "advance"
+    assert body["chapters_since_last"] == 0
+    assert body["gap_chapters"] == []
+
+    after = await context_for(current["id"])
+    chapter_beats = [
+        beat for beat in after["chapter_beats"] if beat["thread"] == "铜镜"
+    ]
+    assert len(chapter_beats) == 1
+    assert chapter_beats[0]["kind"] == "advance"
+    assert chapter_beats[0]["note"] == "灯又亮了一下"
+    open_mirror = next(
+        item for item in after["open_threads"] if item["thread"] == "铜镜"
+    )
+    assert open_mirror["last_kind"] == "advance"
+    assert "consider_advance" not in open_mirror
+    assert "chapters_since" not in open_mirror
+
+    duplicate = await client.post(
+        f"/api/v1/plot-threads/{mirror['id']}/beats",
+        json={"chapter_id": current["id"], "kind": "advance", "note": "再记一条"},
+    )
+    assert duplicate.status_code == 409
+
+    edited = await client.patch(
+        f"/api/v1/plot-beats/{on_current[0]['id']}",
+        json={"note": "只改原来那一条"},
+    )
+    assert edited.status_code == 200
+    edited_body = edited.json()
+    edited_current = [
+        beat for beat in edited_body["beats"] if beat["chapter_id"] == current["id"]
+    ]
+    assert len(edited_current) == 1
+    assert edited_current[0]["id"] == on_current[0]["id"]
+    assert edited_current[0]["kind"] == "advance"
+    assert edited_current[0]["note"] == "只改原来那一条"
+    assert len(edited_body["beats"]) == 2
+    assert edited_body["last_chapter_id"] == current["id"]
+    assert edited_body["chapters_since_last"] == 0
+
+    final_context = await context_for(current["id"])
+    final_open = next(
+        item for item in final_context["open_threads"] if item["thread"] == "铜镜"
+    )
+    assert "consider_advance" not in final_open
+    assert final_context["chapter_beats"][0]["note"] == "只改原来那一条"
+
+    blank = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "空备注", "intent": "备注可以不写"},
+        )
+    ).json()
+    await client.post(
+        f"/api/v1/plot-threads/{blank['id']}/beats",
+        json={"chapter_id": chapters[0]["id"], "kind": "plant", "note": "先埋下"},
+    )
+    empty_note = await client.post(
+        f"/api/v1/plot-threads/{blank['id']}/beats",
+        json={"chapter_id": current["id"], "kind": "advance", "note": ""},
+    )
+    assert empty_note.status_code == 201
+    empty_current = [
+        beat
+        for beat in empty_note.json()["beats"]
+        if beat["chapter_id"] == current["id"]
+    ]
+    assert len(empty_current) == 1
+    assert empty_current[0]["kind"] == "advance"
+    assert empty_current[0]["note"] == ""
