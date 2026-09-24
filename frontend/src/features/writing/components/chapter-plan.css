@@ -192,6 +192,22 @@
   text-decoration: underline;
 }
 
+.chapter-corkboard-card__missing-synopsis {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--amber-a7);
+  border-radius: 999px;
+  background: var(--amber-a3);
+  color: var(--amber-11);
+  font: inherit;
+  font-size: var(--font-size-1, 12px);
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: text;
+}
+
 .chapter-corkboard-card__synopsis {
   flex: 1;
   min-height: 88px;

@@ -283,6 +283,7 @@
       "status": "写作状态",
       "synopsisPlaceholder": "这一章要完成什么：场景、冲突、结尾停在哪里",
       "cardPlaceholder": "这一章要发生什么？",
+      "missingSynopsis": "还没写梗概",
       "hint": "先写下这一章的目标。Agent 读章时会看到梗概，但不会把它当成已经写过的正文。",
       "synopsisTooLong": "梗概最多 {{max}} 字",
       "saveFailed": "保存章节卡片失败，请重试",

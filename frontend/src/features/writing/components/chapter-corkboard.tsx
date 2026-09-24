@@ -2,7 +2,12 @@ import { Box, Dialog, Flex, ScrollArea, Text, TextField } from "@radix-ui/themes
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SYNOPSIS_MAX_LENGTH, WRITING_STATUSES, type WritingStatus } from "@/lib/chapter-plan";
+import {
+  SYNOPSIS_MAX_LENGTH,
+  WRITING_STATUSES,
+  corkboardMissingSynopsis,
+  type WritingStatus,
+} from "@/lib/chapter-plan";
 import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
 
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
@@ -35,11 +40,14 @@ function ChapterCorkboardCard({
 }) {
   const { t } = useTranslation();
   const draft = useChapterPlanDraft(chapter, isAgentLocked);
+  const synopsisId = `corkboard-synopsis-${chapter.id}`;
+  const missingSynopsis = corkboardMissingSynopsis(draft.writingStatus, draft.synopsis);
 
   return (
     <article
       className="chapter-corkboard-card"
       data-status={draft.writingStatus}
+      data-missing-synopsis={missingSynopsis ? "true" : "false"}
     >
       <Flex
         align="center"
@@ -58,7 +66,17 @@ function ChapterCorkboardCard({
           onChange={draft.setWritingStatus}
         />
       </Flex>
+      {missingSynopsis ? (
+        <label
+          htmlFor={synopsisId}
+          className="chapter-corkboard-card__missing-synopsis"
+          data-testid="corkboard-missing-synopsis"
+        >
+          {t("writing.chapterPlan.missingSynopsis")}
+        </label>
+      ) : null}
       <textarea
+        id={synopsisId}
         className="chapter-corkboard-card__synopsis"
         value={draft.synopsis}
         disabled={isAgentLocked}

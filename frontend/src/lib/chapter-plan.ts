@@ -16,3 +16,11 @@ export function normalizeSynopsis(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
+
+export function isSynopsisBlank(synopsis: string): boolean {
+  return synopsis.trim().length === 0;
+}
+
+export function corkboardMissingSynopsis(status: WritingStatus, synopsis: string): boolean {
+  return (status === "drafting" || status === "revising") && isSynopsisBlank(synopsis);
+}
