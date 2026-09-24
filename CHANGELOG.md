@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.13.0](https://github.com/ahov520/OpenFic/compare/v0.12.0...v0.13.0) (2026-09-24)
+
+
+### ✨ 新功能
+
+* 不再出现的缺口旁留下上次缺的专名或原句 ([c1a875f](https://github.com/ahov520/OpenFic/commit/c1a875f899a11b85ef8a8f2971aee7698634c47c))
+* 从空章或空标签离开后能回到刚才那一章 ([17a9d30](https://github.com/ahov520/OpenFic/commit/17a9d309f11869b7f12079808fe14f90fe2db504))
+* 侧栏按写作状态筛出还在写的章 ([c5626f0](https://github.com/ahov520/OpenFic/commit/c5626f071ec764da7afd5bcda8b1256030234e27))
+* 侧栏标出有梗概但还没写正文的章 ([58e5c62](https://github.com/ahov520/OpenFic/commit/58e5c621f6b60ea64b05cd396d57b98e3208382c))
+* 侧栏标出还没设字数目标的草稿和修订 ([a163ece](https://github.com/ahov520/OpenFic/commit/a163ece25ea05416a4d35828a391ba061463c4ab))
+* 再次对照时标出上次缺口里哪些不再出现 ([29ff8a4](https://github.com/ahov520/OpenFic/commit/29ff8a43c75f72a78a58f0dac5de74a5b50f411f))
+* 写作界面按到当前章列出空过的章名 ([a4ac438](https://github.com/ahov520/OpenFic/commit/a4ac438ce3bfe8406bb9d48ad0dfed7b7110bec9))
+* 写章时分开规划、正文和审稿 ([87861c3](https://github.com/ahov520/OpenFic/commit/87861c34937a5cfca2d9134193c139c88419cdbf))
+* 在「可以考虑推进」旁把当前章记成推进 ([954d1eb](https://github.com/ahov520/OpenFic/commit/954d1eb5020a0fb892c3d711ebcbc5462c861085))
+* 对得上的旁注在句上留淡标记，对不齐可以改钉 ([df3ab2a](https://github.com/ahov520/OpenFic/commit/df3ab2a731dd68bc9031b4f80c2117dd00751e92))
+* 对照梗概和本章节拍，标出正文还没写到的计划 ([608375a](https://github.com/ahov520/OpenFic/commit/608375aebb859497ee41b1aae5206c51a358b168))
+* 情节线卡片列出空在哪几章 ([2bb2915](https://github.com/ahov520/OpenFic/commit/2bb2915fc3925ed5ecaa0762949984568e1b733a))
+* 按阅读顺序列出全书未划掉的旁注 ([a0ce56e](https://github.com/ahov520/OpenFic/commit/a0ce56eaecea5e75e9196b29266e69f6c2b675d2))
+* 未回收的情节线标出中间空了多少章 ([3f8043b](https://github.com/ahov520/OpenFic/commit/3f8043b7d2a20a914b0d7904885f183a4569b2ce))
+* 本章节拍行显示备注并就地修改 ([4625af8](https://github.com/ahov520/OpenFic/commit/4625af8d7e3343c394f11faaad8c6280e6df8e89))
+* 用情节线记下埋下、推进和回收 ([bba8f19](https://github.com/ahov520/OpenFic/commit/bba8f19eac21d5ecfcba96efa6fa352380f64a59))
+* 给章节加上作者梗概、写作状态和软木板 ([819f2ee](https://github.com/ahov520/OpenFic/commit/819f2eec9dc9bd950b39970a7094ffe2ce053b83))
+* 给章节加上字数目标，写作时看出偏短还是偏长 ([81ff0f6](https://github.com/ahov520/OpenFic/commit/81ff0f6927f8d0db8ca7074ed4b59a48c560b37c))
+* 软木板卡片标出离目标还差多少字 ([eeed27e](https://github.com/ahov520/OpenFic/commit/eeed27e7625408c154abff2322cb7f5d642df8d6))
+* 软木板可只看还没设字数目标的草稿和修订 ([caed036](https://github.com/ahov520/OpenFic/commit/caed036a0d1c9a5c0ffcdab13dbe808973d55f44))
+* 软木板可按还差字数临时排序 ([d2f8123](https://github.com/ahov520/OpenFic/commit/d2f81231f4741476c321a5e14ba766816659a7df))
+* 软木板可筛出还欠未回收线的章 ([84135c4](https://github.com/ahov520/OpenFic/commit/84135c4731fba79fe49fb2a44dde877fc137ab33))
+* 软木板增加「还在写」，完成卡不再盖住未收尾的章 ([b0df6dd](https://github.com/ahov520/OpenFic/commit/b0df6ddc066bbb5a17132de60f5c99dbcec3c052))
+* 软木板按阅读顺序标出下一张未完成的章 ([dad20f8](https://github.com/ahov520/OpenFic/commit/dad20f8bf93172b0cb81f64613b62450a8b7a1cf))
+* 软木板标出有梗概但还没动笔的草稿和修订 ([5ddbbbd](https://github.com/ahov520/OpenFic/commit/5ddbbbdb4bfe633f9652876d75e6ab61623272ae))
+* 软木板标出草稿和修订里还没写的梗概 ([676f3d8](https://github.com/ahov520/OpenFic/commit/676f3d8179eb8888e2da75eb52bfdf69a27ae3e7))
+* 软木板标出草稿和修订章里还没回收的埋下 ([c3976b1](https://github.com/ahov520/OpenFic/commit/c3976b1a045b914654f7bfa80c550ccfcf63bae4))
+* 选中一句留下不计入正文的旁注 ([7ef2de9](https://github.com/ahov520/OpenFic/commit/7ef2de95d9466946b458ad400a21d398dd2490bb))
+* 章节列表标出未划掉的旁注数量 ([7079567](https://github.com/ahov520/OpenFic/commit/707956724e43de63dcd91797b55d72a7d571146f))
+* 章首只读显示上一章结尾 ([751d0b5](https://github.com/ahov520/OpenFic/commit/751d0b50ccea2d80a0c73213ff89dbde9268e039))
+
+
+### 🐛 问题修复
+
+* 软木板筛选结果保留完整章节字段 ([2785c9d](https://github.com/ahov520/OpenFic/commit/2785c9de5b0fc8839f7c1b65ef0c11b1aa2be2b7))
+* 章节列表一并读取梗概和写作状态 ([d4e890d](https://github.com/ahov520/OpenFic/commit/d4e890d387681faef698b8a35d77435ce321d07d))
+
+
+### ✅ 测试
+
+* 前端测试只跑 src，去掉点错菜单按钮的用例 ([b0f8edb](https://github.com/ahov520/OpenFic/commit/b0f8edbdbf5c152f13de41ccf8edd247e02c437f))
+* 让侧栏未设目标标记能在组件测试里渲染 ([89e097d](https://github.com/ahov520/OpenFic/commit/89e097dd7ad4f616f30df99536e587e475d3b6d1))
+
 ## [0.12.0](https://github.com/ahov520/OpenFic/compare/v0.11.1...v0.12.0) (2026-09-23)
 
 
