@@ -23,6 +23,8 @@ import {
   useUpdateVolume,
   useVolumeTree,
 } from "../hooks/use-volumes";
+import { filterSidebarVolumesByWritingStatus } from "../lib/sidebar-writing-status-filter";
+import type { SidebarWritingStatusFilter } from "../lib/sidebar-writing-status-filter";
 import { useTabsStore } from "../store/use-tabs-store";
 import { useWritingStore } from "../store/use-writing-store";
 import { ChapterExportDialog } from "./chapter-export-dialog";
@@ -33,6 +35,7 @@ import {
 } from "./grouped-volume-list-focus";
 import { MoveChapterToVolumeDialog } from "./move-chapter-to-volume-dialog";
 import { SidebarToolbar } from "./sidebar-toolbar";
+import { SidebarWritingStatusFilterBar } from "./sidebar-writing-status-filter";
 import { VolumeList } from "./volume-list";
 
 interface ChapterSidebarProps {
@@ -78,6 +81,7 @@ export function ChapterSidebar({
   const {
     hasUnsavedDragChanges,
     dragOrderMap,
+    isDragMode,
     exitDragMode,
     currentChapterId,
     setCurrentChapter,
@@ -91,6 +95,7 @@ export function ChapterSidebar({
     useShallow((state) => ({
       hasUnsavedDragChanges: state.hasUnsavedDragChanges,
       dragOrderMap: state.dragOrderMap,
+      isDragMode: state.isDragMode,
       exitDragMode: state.exitDragMode,
       currentChapterId: state.currentChapterId,
       setCurrentChapter: state.setCurrentChapter,
@@ -103,6 +108,7 @@ export function ChapterSidebar({
     })),
   );
 
+  const [statusFilter, setStatusFilter] = useState<SidebarWritingStatusFilter>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingChapter, setDeletingChapter] = useState<ChapterListItem | null>(null);
   const [deletingVolume, setDeletingVolume] = useState<VolumeWithChapters | null>(null);
@@ -128,6 +134,10 @@ export function ChapterSidebar({
   useEffect(() => {
     void hydrateExpandedVolumeIds();
   }, [hydrateExpandedVolumeIds]);
+
+  useEffect(() => {
+    setStatusFilter("all");
+  }, [projectId]);
 
   const volumes = useMemo(() => {
     const source = data?.volumes ?? [];
@@ -201,6 +211,15 @@ export function ChapterSidebar({
   ]);
 
   const allChapters = useMemo(() => volumes.flatMap((volume) => volume.chapters), [volumes]);
+  // 拖拽时仍列出全部章节，避免保存排序时漏掉被筛掉的章。
+  const displayVolumes = useMemo(
+    () => (isDragMode ? volumes : filterSidebarVolumesByWritingStatus(volumes, statusFilter)),
+    [isDragMode, statusFilter, volumes],
+  );
+  const currentListChapter = useMemo(
+    () => allChapters.find((chapter) => chapter.id === currentChapterId) ?? null,
+    [allChapters, currentChapterId],
+  );
 
   const createScrollRequestKey = useCallback((prefix: string, id: string) => {
     scrollRequestSequenceRef.current += 1;
@@ -570,9 +589,21 @@ export function ChapterSidebar({
         onLockedAction={showLockedToast}
       />
 
+      <SidebarWritingStatusFilterBar
+        volumes={volumes}
+        value={statusFilter}
+        currentChapter={isDragMode ? null : currentListChapter}
+        onChange={(next) => {
+          setStatusFilter(next);
+          if (next === "all" && currentListChapter) {
+            setVolumeExpanded(currentListChapter.volumeId, true);
+          }
+        }}
+      />
+
       <VolumeList
         projectId={projectId}
-        volumes={volumes}
+        volumes={displayVolumes}
         isLoading={isLoading}
         scrollRequest={scrollRequest}
         expandedVolumeIds={expandedVolumeIds}

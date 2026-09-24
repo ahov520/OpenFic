@@ -15,7 +15,14 @@ import {
   reorderChapters,
   moveChapterToVolume,
 } from "@/lib/api-client";
-import type { Chapter, ChapterCreate, ChapterUpdate } from "@/lib/chapter.types";
+import type {
+  Chapter,
+  ChapterCreate,
+  ChapterUpdate,
+  VolumeTreeResponse,
+} from "@/lib/chapter.types";
+
+import { replaceChapterWritingStatusInTree } from "../lib/sidebar-writing-status-filter";
 
 function invalidatePreviousEndings(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: ["previous-ending"] });
@@ -116,6 +123,19 @@ export function useUpdateChapter() {
               },
             };
           },
+        );
+      }
+      if (variables.data.writingStatus !== undefined) {
+        queryClient.setQueryData<VolumeTreeResponse>(
+          ["volume-tree", updatedChapter.projectId],
+          (current) =>
+            current
+              ? replaceChapterWritingStatusInTree(
+                  current,
+                  updatedChapter.id,
+                  updatedChapter.writingStatus,
+                )
+              : current,
         );
       }
       queryClient.invalidateQueries({
