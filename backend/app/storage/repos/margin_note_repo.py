@@ -8,6 +8,7 @@ from sqlmodel import col
 
 from app.storage.models.chapter import Chapter
 from app.storage.models.margin_note import ChapterMarginNote
+from app.storage.models.volume import Volume
 
 
 async def create(session: AsyncSession, note: ChapterMarginNote) -> ChapterMarginNote:
@@ -24,13 +25,37 @@ async def get_by_id(session: AsyncSession, note_id: str) -> ChapterMarginNote | 
     return result.scalar_one_or_none()
 
 
+async def list_open_by_project(
+    session: AsyncSession, project_id: str
+) -> list[tuple[ChapterMarginNote, str]]:
+    """全书未划掉的旁注，一次取出。顺序是卷序、卷内章节序，章内再按创建时间。"""
+    result = await session.execute(
+        select(ChapterMarginNote, col(Chapter.title))
+        .join(Chapter, col(Chapter.id) == col(ChapterMarginNote.chapter_id))
+        .join(Volume, col(Volume.id) == col(Chapter.volume_id))
+        .where(
+            col(ChapterMarginNote.project_id) == project_id,
+            col(ChapterMarginNote.status) == "open",
+        )
+        .order_by(
+            col(Volume.order).asc(),
+            col(Chapter.order).asc(),
+            col(ChapterMarginNote.created_at).asc(),
+            col(ChapterMarginNote.id).asc(),
+        )
+    )
+    return [(note, title) for note, title in result.all()]
+
+
 async def list_by_chapter(
     session: AsyncSession, chapter_id: str
 ) -> list[ChapterMarginNote]:
     result = await session.execute(
         select(ChapterMarginNote)
         .where(col(ChapterMarginNote.chapter_id) == chapter_id)
-        .order_by(col(ChapterMarginNote.created_at).asc(), col(ChapterMarginNote.id).asc())
+        .order_by(
+            col(ChapterMarginNote.created_at).asc(), col(ChapterMarginNote.id).asc()
+        )
     )
     return list(result.scalars().all())
 

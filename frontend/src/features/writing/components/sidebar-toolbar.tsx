@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   GitBranch,
   Search,
+  StickyNote,
   Summary,
   X,
 } from "lucide-react";
@@ -30,6 +31,7 @@ interface SidebarToolbarProps {
   onOpenSummary?: () => void;
   onOpenCorkboard?: () => void;
   onOpenPlotThreads?: () => void;
+  onOpenMarginNotes?: () => void;
   onExport: () => void;
   onSaveOrder: () => void;
   onCancelOrder: () => void;
@@ -47,6 +49,7 @@ export function SidebarToolbar({
   onOpenSummary,
   onOpenCorkboard,
   onOpenPlotThreads,
+  onOpenMarginNotes,
   onExport,
   onSaveOrder,
   onCancelOrder,
@@ -383,6 +386,21 @@ export function SidebarToolbar({
                       onClick={onOpenPlotThreads}
                     >
                       <GitBranch size={16} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {onOpenMarginNotes && (
+                  <Tooltip content={t("writing.marginNotes.openList")}>
+                    <IconButton
+                      variant="ghost"
+                      color="gray"
+                      highContrast
+                      size="2"
+                      aria-label={t("writing.marginNotes.openList")}
+                      data-testid="open-margin-notes"
+                      onClick={onOpenMarginNotes}
+                    >
+                      <StickyNote size={16} />
                     </IconButton>
                   </Tooltip>
                 )}

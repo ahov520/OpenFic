@@ -16,6 +16,7 @@ interface WritingSidebarProps {
   onOpenSummary?: () => void;
   onOpenCorkboard?: () => void;
   onOpenPlotThreads?: () => void;
+  onOpenMarginNotes?: () => void;
 }
 
 export function WritingSidebar({
@@ -29,6 +30,7 @@ export function WritingSidebar({
   onOpenSummary,
   onOpenCorkboard,
   onOpenPlotThreads,
+  onOpenMarginNotes,
 }: WritingSidebarProps) {
   const { t } = useTranslation();
   const sidebarView = useWritingStore((s) => s.sidebarView);
@@ -72,6 +74,7 @@ export function WritingSidebar({
           onOpenSummary={onOpenSummary}
           onOpenCorkboard={onOpenCorkboard}
           onOpenPlotThreads={onOpenPlotThreads}
+          onOpenMarginNotes={onOpenMarginNotes}
         />
       ) : (
         <NoteSidebar

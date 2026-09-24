@@ -19,6 +19,17 @@ class MarginNoteUpdate(BaseModel):
     body: str | None = None
 
 
+class OpenMarginNoteResponse(BaseModel):
+    """全书清单里的一条未划掉旁注。"""
+
+    id: str
+    chapter_id: str
+    chapter_title: str
+    anchor_text: str
+    body: str
+    created_at: datetime
+
+
 class MarginNoteResponse(BaseModel):
     id: str
     chapter_id: str

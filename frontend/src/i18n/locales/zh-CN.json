@@ -364,7 +364,12 @@
       "emptyBody": "旁注不能为空。",
       "saveFailed": "保存旁注失败，请重试",
       "tooLong": "选中的文字过长，请收短到一句话或一小段。",
-      "aria": "本章旁注"
+      "aria": "本章旁注",
+      "openList": "未划掉的旁注",
+      "openListDescription": "按阅读顺序看还没划掉的旁注。点一条就打开那一章。",
+      "openListEmpty": "没有未划掉的旁注",
+      "openListLoading": "正在加载未划掉的旁注…",
+      "openListFailed": "未划掉的旁注加载失败，请重试"
     },
     "plotThreads": {
       "open": "情节线",

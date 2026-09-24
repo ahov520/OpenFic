@@ -10,6 +10,7 @@ from app.api.schemas.margin_note import (
     MarginNoteCreate,
     MarginNoteResponse,
     MarginNoteUpdate,
+    OpenMarginNoteResponse,
 )
 from app.background.jobs import service as background_service
 from app.core.errors import NotFoundError
@@ -36,6 +37,29 @@ def _response(view: MarginNoteView) -> MarginNoteResponse:
         created_at=note.created_at,
         updated_at=note.updated_at,
     )
+
+
+@router.get(
+    "/projects/{project_id}/margin-notes",
+    response_model=list[OpenMarginNoteResponse],
+    summary="列出全书未划掉的旁注",
+)
+async def list_open_margin_notes(
+    project_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> list[OpenMarginNoteResponse]:
+    notes = await margin_note_service.list_open_margin_notes(session, project_id)
+    return [
+        OpenMarginNoteResponse(
+            id=note.id,
+            chapter_id=note.chapter_id,
+            chapter_title=note.chapter_title,
+            anchor_text=note.anchor_text,
+            body=note.body,
+            created_at=note.created_at,
+        )
+        for note in notes
+    ]
 
 
 @router.get(

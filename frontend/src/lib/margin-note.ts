@@ -36,6 +36,15 @@ export interface MarginNoteUpdate {
   body?: string;
 }
 
+export interface OpenMarginNote {
+  id: string;
+  chapterId: string;
+  chapterTitle: string;
+  anchorText: string;
+  body: string;
+  createdAt: string;
+}
+
 export interface AnchorHit {
   aligned: boolean;
   start: number | null;
