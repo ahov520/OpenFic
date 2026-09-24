@@ -1,5 +1,5 @@
 import { Box, Dialog, Flex, ScrollArea, Text, TextField } from "@radix-ui/themes";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { corkboardLengthLabel } from "@/lib/chapter-length";
@@ -10,6 +10,11 @@ import {
   corkboardOpenPlantNames,
   previewOpenPlantNames,
 } from "@/lib/corkboard-open-threads";
+import {
+  arrangeCorkboardVolumes,
+  corkboardDragReorderEnabled,
+  type CorkboardChapterSort,
+} from "@/lib/corkboard-sort";
 
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { usePlotThreads } from "../hooks/use-plot-threads";
@@ -101,11 +106,13 @@ function ChapterCorkboardLength({ written, target }: { written: number; target: 
 function ChapterCorkboardCard({
   chapter,
   openPlantsByChapter,
+  dragReorderEnabled,
   isAgentLocked,
   onOpenChapter,
 }: {
   chapter: ChapterListItem;
   openPlantsByChapter: Readonly<Record<string, readonly string[]>>;
+  dragReorderEnabled: boolean;
   isAgentLocked: boolean;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
 }) {
@@ -122,6 +129,12 @@ function ChapterCorkboardCard({
       className="chapter-corkboard-card"
       data-chapter-id={chapter.id}
       data-status={draft.writingStatus}
+      data-testid="corkboard-card"
+      draggable={dragReorderEnabled}
+      onDragStart={(event) => {
+        if (dragReorderEnabled) return;
+        event.preventDefault();
+      }}
     >
       <Flex
         align="center"
@@ -187,8 +200,10 @@ export function ChapterCorkboard({
   const { data: plotBoard } = usePlotThreads(open ? projectId : null);
   const openPlantsByChapter = plotBoard?.openPlantsByChapter ?? EMPTY_OPEN_PLANTS;
   const [statusFilter, setStatusFilter] = useState<CorkboardStatusFilter>("all");
+  const [chapterSort, setChapterSort] = useState<CorkboardChapterSort>("reading");
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
+  const dragReorderEnabled = corkboardDragReorderEnabled(chapterSort);
   const volumes = data?.volumes ?? EMPTY_VOLUMES;
   const allChapters = useMemo(() => volumes.flatMap((volume) => volume.chapters), [volumes]);
   const writingCount = useMemo(
@@ -203,9 +218,13 @@ export function ChapterCorkboard({
       done: countChaptersMatchingCorkboardStatus(allChapters, "done"),
     };
   }, [allChapters]);
+  useEffect(() => {
+    setChapterSort("reading");
+  }, [projectId]);
+
   const visibleVolumes = useMemo(
-    () => corkboardVolumeCards(volumes, statusFilter, normalizedQuery),
-    [normalizedQuery, statusFilter, volumes],
+    () => arrangeCorkboardVolumes(corkboardVolumeCards(volumes, statusFilter, normalizedQuery), chapterSort),
+    [chapterSort, normalizedQuery, statusFilter, volumes],
   );
   const currentChapter = useMemo(
     () => allChapters.find((chapter) => chapter.id === currentChapterId) ?? null,
@@ -321,6 +340,41 @@ export function ChapterCorkboard({
               </button>
             </div>
           ) : null}
+          <div
+            className="chapter-corkboard-filters"
+            role="group"
+            aria-label={t("writing.chapterPlan.sortLabel")}
+          >
+            <button
+              type="button"
+              className="chapter-corkboard-filter"
+              data-active={chapterSort === "reading" ? "true" : "false"}
+              data-testid="corkboard-sort-reading"
+              aria-pressed={chapterSort === "reading"}
+              onClick={() => setChapterSort("reading")}
+            >
+              {t("writing.chapterPlan.sortReading")}
+            </button>
+            <button
+              type="button"
+              className="chapter-corkboard-filter"
+              data-active={chapterSort === "shortfall" ? "true" : "false"}
+              data-testid="corkboard-sort-shortfall"
+              aria-pressed={chapterSort === "shortfall"}
+              onClick={() => setChapterSort("shortfall")}
+            >
+              {t("writing.chapterPlan.sortShortfall")}
+            </button>
+          </div>
+          {chapterSort === "shortfall" ? (
+            <Text
+              size="1"
+              color="gray"
+              data-testid="corkboard-sort-hint"
+            >
+              {t("writing.chapterPlan.sortShortfallHint")}
+            </Text>
+          ) : null}
         </div>
         <ScrollArea className="chapter-corkboard-body">
           {isLoading ? (
@@ -343,6 +397,7 @@ export function ChapterCorkboard({
                 key={volume.id}
                 volume={volume}
                 openPlantsByChapter={openPlantsByChapter}
+                dragReorderEnabled={dragReorderEnabled}
                 isAgentLocked={isAgentLocked}
                 onOpenChapter={onOpenChapter}
               />
@@ -357,11 +412,13 @@ export function ChapterCorkboard({
 function VolumeSection({
   volume,
   openPlantsByChapter,
+  dragReorderEnabled,
   isAgentLocked,
   onOpenChapter,
 }: {
   volume: CorkboardVolumeCards<ChapterListItem>;
   openPlantsByChapter: Readonly<Record<string, readonly string[]>>;
+  dragReorderEnabled: boolean;
   isAgentLocked: boolean;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
 }) {
@@ -369,7 +426,10 @@ function VolumeSection({
   const emptyKind = corkboardVolumeEmptyKind(volume);
 
   return (
-    <section className="chapter-corkboard-volume">
+    <section
+      className="chapter-corkboard-volume"
+      data-volume-id={volume.id}
+    >
       <Text
         size="2"
         weight="medium"
@@ -379,12 +439,17 @@ function VolumeSection({
         {volume.title}
       </Text>
       {emptyKind === "cards" ? (
-        <div className="chapter-corkboard-grid">
+        <div
+          className="chapter-corkboard-grid"
+          data-drag-reorder={dragReorderEnabled ? "enabled" : "disabled"}
+          data-testid="corkboard-grid"
+        >
           {volume.chapters.map((chapter) => (
             <ChapterCorkboardCard
               key={chapter.id}
               chapter={chapter}
               openPlantsByChapter={openPlantsByChapter}
+              dragReorderEnabled={dragReorderEnabled}
               isAgentLocked={isAgentLocked}
               onOpenChapter={onOpenChapter}
             />
