@@ -295,6 +295,10 @@
       "loading": "Loading chapters…",
       "empty": "No chapters yet. Create one in the sidebar, then write its card.",
       "emptyFilter": "No chapters match this filter.",
+      "sortLabel": "Card order",
+      "sortReading": "Reading order",
+      "sortShortfall": "Largest shortfall first",
+      "sortShortfallHint": "This only changes the cards. It does not change chapter order, and you cannot drag them into a new book order.",
       "cardMeta": "{{count}} words",
       "statuses": {
         "idea": "Idea",

@@ -295,6 +295,10 @@
       "loading": "正在加载章节…",
       "empty": "还没有章节。先在侧栏新建章节，再为它写一张卡片。",
       "emptyFilter": "没有符合筛选的章节。",
+      "sortLabel": "卡片排序",
+      "sortReading": "阅读顺序",
+      "sortShortfall": "还差多的在前",
+      "sortShortfallHint": "只改卡片的先后，不改卷里的章节顺序，也不能拖成新的书序。",
       "cardMeta": "{{count}} 字",
       "statuses": {
         "idea": "构思",
