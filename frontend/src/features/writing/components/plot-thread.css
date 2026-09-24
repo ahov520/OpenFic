@@ -195,6 +195,7 @@
 
 .chapter-plot-beats__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: 6px;
@@ -208,6 +209,50 @@
   white-space: nowrap;
   font-size: var(--font-size-1, 12px);
   font-weight: 600;
+}
+
+.chapter-plot-beats__note {
+  flex: 1 1 8rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gray-11);
+  font: inherit;
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chapter-plot-beats__note:hover {
+  color: var(--gray-12);
+}
+
+.chapter-plot-beats__add-note {
+  flex: 0 0 auto;
+}
+
+.chapter-plot-beats__note-form {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chapter-plot-beats__note-form .plot-thread-note {
+  flex: 1 1 8rem;
+  height: 28px;
+  font-size: var(--font-size-1, 12px);
+}
+
+.chapter-plot-beats__note-error {
+  margin: 2px 0 0;
+  color: var(--red-11);
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.4;
 }
 
 .chapter-plot-stale {
