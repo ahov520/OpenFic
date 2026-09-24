@@ -1520,7 +1520,8 @@
     "createNewFile": "创建新文件",
     "closeFile": "关闭文件",
     "emptyTab": "空标签页",
-    "addToConversation": "添加到对话"
+    "addToConversation": "添加到对话",
+    "returnToChapter": "返回「{{title}}」"
   },
   "chapterMenu": {
     "openInNewTab": "在新标签页打开",

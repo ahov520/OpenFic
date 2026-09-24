@@ -105,6 +105,38 @@
   overflow: hidden;
 }
 
+.return-to-chapter {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--gray-a4);
+  background: var(--gray-a2);
+}
+
+.return-to-chapter__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  color: var(--gray-12);
+  font: inherit;
+  overflow: hidden;
+  font-size: var(--font-size-1, 12px);
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.return-to-chapter__button:hover {
+  color: var(--accent-11);
+}
+
 .writing-page-mobile-topbar {
   min-height: 44px;
   border-bottom: 1px solid var(--gray-a4);

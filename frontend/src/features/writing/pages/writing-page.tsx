@@ -1,5 +1,5 @@
 import { Box, Flex, IconButton, Tooltip } from "@radix-ui/themes";
-import { Bot, List, MessageSquareQuote } from "lucide-react";
+import { Bot, CornerUpLeft, List, MessageSquareQuote } from "lucide-react";
 import { motion } from "motion/react";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,12 @@ import { WritingSidebar } from "../components/writing-sidebar";
 import { useCreateChapter } from "../hooks/use-chapters";
 import { useNoteTree } from "../hooks/use-notes";
 import { useCreateVolume, useVolumeTree } from "../hooks/use-volumes";
+import {
+  decideWritingOpen,
+  nextReturnTarget,
+  returnChapterToShow,
+  type ReturnChapter,
+} from "../lib/return-to-chapter";
 import { isEmptyTab } from "../lib/tab.types";
 import { useTabsStore, useActiveTabId, useTabs, useTabsLoaded } from "../store/use-tabs-store";
 import { useWritingStore } from "../store/use-writing-store";
@@ -42,6 +48,32 @@ const PlotThreadBoard = lazy(() =>
     default: module.PlotThreadBoard,
   })),
 );
+
+function ReturnToChapterBar({
+  chapter,
+  onReturn,
+}: {
+  chapter: ReturnChapter | null;
+  onReturn: (chapter: ReturnChapter) => void;
+}) {
+  const { t } = useTranslation();
+  if (!chapter) return null;
+  const title = chapter.title.trim() || t("writing.untitledChapter");
+
+  return (
+    <div className="return-to-chapter">
+      <button
+        type="button"
+        className="return-to-chapter__button"
+        data-testid="return-to-chapter"
+        onClick={() => onReturn(chapter)}
+      >
+        <CornerUpLeft size={14} />
+        {t("tabs.returnToChapter", { title })}
+      </button>
+    </div>
+  );
+}
 
 function blurMobileEditorElement(): void {
   const activeElement = document.activeElement;
@@ -71,6 +103,7 @@ export function WritingPage() {
     showEmptyTab,
     setCurrentProject,
     updateTabScrollPosition,
+    currentProjectId: tabsProjectId,
   } = useTabsStore();
   const activeTabId = useActiveTabId();
   const tabs = useTabs();
@@ -153,6 +186,10 @@ export function WritingPage() {
   const hasInitialized = useRef(false);
   const initialChapterNavigationSequenceRef = useRef(0);
   const prevProjectIdRef = useRef<string | null>(null);
+  const trackedReturnProjectIdRef = useRef<string | null>(null);
+  const previousWritingChapterRef = useRef<ReturnChapter | null>(null);
+  const returnTargetRef = useRef<ReturnChapter | null>(null);
+  const [returnTarget, setReturnTarget] = useState<ReturnChapter | null>(null);
   const [initialCurrentChapterNavigationKey, setInitialCurrentChapterNavigationKey] = useState<
     string | null
   >(null);
@@ -198,59 +235,145 @@ export function WritingPage() {
   }, [activeTabId, closeAllTabs, isMobile, isTabsLoaded, openSingleTab, tabs]);
 
   useEffect(() => {
-    if (!projectId || !isTabsLoaded || hasInitialized.current) return;
+    if (
+      !projectId ||
+      tabsProjectId !== projectId ||
+      !isTabsLoaded ||
+      isChaptersLoading ||
+      !chaptersData ||
+      hasInitialized.current
+    ) {
+      return;
+    }
+
+    let cancelled = false;
 
     const loadLastChapter = async () => {
-      if (tabs.length > 0) {
-        if (!activeTabId || isEmptyTab(activeTabId)) {
-          setInitialCurrentChapterNavigationKey(null);
+      const storedLastChapterId = await getLastChapterId(projectId);
+      if (cancelled || hasInitialized.current) return;
+
+      const decision = decideWritingOpen({
+        tabs,
+        activeTabId,
+        storedLastChapterId,
+        chapterIds: allChapters.map((chapter) => chapter.id),
+      });
+
+      if (decision.action === "restore") {
+        const chapter = allChapters.find((item) => item.id === decision.chapterId);
+        if (chapter) {
+          if (isMobile) {
+            openSingleTab(chapter.id, chapter.title);
+          } else {
+            openTab(chapter.id, chapter.title);
+          }
         }
         hasInitialized.current = true;
         return;
       }
 
-      const lastChapterId = await getLastChapterId(projectId);
-      if (lastChapterId) {
-        const chapter = allChapters.find((c) => c.id === lastChapterId);
-        if (chapter) {
-          if (isMobile) {
-            openSingleTab(lastChapterId, chapter.title);
-          } else {
-            openTab(lastChapterId, chapter.title);
-          }
-          hasInitialized.current = true;
-          return;
-        }
-      }
-
-      if (isMobile && allChapters.length > 0) {
+      if (
+        decision.action === "stay-empty" &&
+        isMobile &&
+        tabs.length === 0 &&
+        allChapters.length > 0
+      ) {
         const firstChapter = allChapters[0];
         openSingleTab(firstChapter.id, firstChapter.title);
         hasInitialized.current = true;
         return;
       }
 
-      setInitialCurrentChapterNavigationKey(null);
+      if (decision.action === "stay-empty") {
+        setInitialCurrentChapterNavigationKey(null);
+      }
       hasInitialized.current = true;
     };
 
-    loadLastChapter();
+    void loadLastChapter();
+    return () => {
+      cancelled = true;
+    };
   }, [
     activeTabId,
     allChapters,
+    chaptersData,
+    isChaptersLoading,
     isMobile,
     isTabsLoaded,
     openSingleTab,
     openTab,
     projectId,
-    tabs.length,
+    tabs,
+    tabsProjectId,
   ]);
 
   useEffect(() => {
-    if (projectId && activeTabId) {
-      setLastChapterId(projectId, activeTabId);
+    if (projectId && currentChapterId) {
+      void setLastChapterId(projectId, currentChapterId);
     }
-  }, [projectId, activeTabId]);
+  }, [projectId, currentChapterId]);
+
+  const currentWritingChapter = useMemo<ReturnChapter | null>(() => {
+    if (!currentChapterId) return null;
+    return { id: currentChapterId, title: activeTab?.title ?? "" };
+  }, [activeTab?.title, currentChapterId]);
+
+  useEffect(() => {
+    const projectKey = projectId ?? null;
+    const tabsMatchProject = projectKey != null && tabsProjectId === projectKey && isTabsLoaded;
+    if (!tabsMatchProject) {
+      trackedReturnProjectIdRef.current = null;
+      previousWritingChapterRef.current = null;
+      returnTargetRef.current = null;
+      setReturnTarget(null);
+      return;
+    }
+
+    if (trackedReturnProjectIdRef.current !== projectKey) {
+      trackedReturnProjectIdRef.current = projectKey;
+      previousWritingChapterRef.current = currentWritingChapter;
+      returnTargetRef.current = null;
+      setReturnTarget(null);
+      return;
+    }
+
+    const next = nextReturnTarget(
+      previousWritingChapterRef.current,
+      currentWritingChapter,
+      returnTargetRef.current,
+    );
+    previousWritingChapterRef.current = currentWritingChapter;
+    if (
+      next?.id !== returnTargetRef.current?.id ||
+      next?.title !== returnTargetRef.current?.title
+    ) {
+      returnTargetRef.current = next;
+      setReturnTarget(next);
+    }
+  }, [currentWritingChapter, isTabsLoaded, projectId, tabsProjectId]);
+
+  const visibleReturnChapter = useMemo(
+    () =>
+      returnChapterToShow(
+        returnTarget,
+        currentChapterId,
+        allChapters.map((chapter) => ({ id: chapter.id, title: chapter.title })),
+      ),
+    [allChapters, currentChapterId, returnTarget],
+  );
+
+  const handleReturnToChapter = useCallback(
+    (chapter: ReturnChapter) => {
+      const title = allChapters.find((item) => item.id === chapter.id)?.title ?? chapter.title;
+      if (isMobile) {
+        openSingleTab(chapter.id, title);
+        return;
+      }
+      openTab(chapter.id, title);
+    },
+    [allChapters, isMobile, openSingleTab, openTab],
+  );
 
   useEffect(() => {
     setCurrentChapter(currentChapterId);
@@ -467,6 +590,10 @@ export function WritingPage() {
                 />
 
                 <Box className="writing-page-content-fill">
+                  <ReturnToChapterBar
+                    chapter={visibleReturnChapter}
+                    onReturn={handleReturnToChapter}
+                  />
                   {activeTabId && !isEmptyTab(activeTabId) ? (
                     activeType === "note" ? (
                       <NoteEditor
@@ -581,6 +708,10 @@ export function WritingPage() {
               </Flex>
 
               <Box className="writing-page-content-fill">
+                <ReturnToChapterBar
+                  chapter={visibleReturnChapter}
+                  onReturn={handleReturnToChapter}
+                />
                 {activeTabId && !isEmptyTab(activeTabId) ? (
                   activeType === "note" ? (
                     <NoteEditor

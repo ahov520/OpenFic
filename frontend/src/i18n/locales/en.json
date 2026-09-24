@@ -1520,7 +1520,8 @@
     "createNewFile": "Create New File",
     "closeFile": "Close File",
     "emptyTab": "Empty Tab",
-    "addToConversation": "Add to Conversation"
+    "addToConversation": "Add to Conversation",
+    "returnToChapter": "Return to “{{title}}”"
   },
   "chapterMenu": {
     "openInNewTab": "Open in New Tab",
