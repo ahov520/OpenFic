@@ -295,6 +295,13 @@
       "loading": "正在加载章节…",
       "empty": "还没有章节。先在侧栏新建章节，再为它写一张卡片。",
       "emptyFilter": "没有符合筛选的章节。",
+      "filterOwing": "还欠线 {{count}}",
+      "filterOwingHint": "在当前状态筛选上再收一层：只留草稿和修订里，这一章埋下、全书还没回收的线。已放弃的不算。",
+      "owingActiveNote": "状态筛选照旧。这里再只留草稿和修订里，这一章埋下、全书还没回收的线。",
+      "emptyVolumeFilter": "这一卷在此筛选下没有章节。",
+      "currentHidden": "当前章不在这个筛选里。",
+      "backToAll": "回到全部",
+      "owingFailed": "情节线没有载入，还欠线暂时没法筛。",
       "cardMeta": "{{count}} 字",
       "statuses": {
         "idea": "构思",

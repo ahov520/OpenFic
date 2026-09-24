@@ -4,9 +4,17 @@ import { useTranslation } from "react-i18next";
 
 import { SYNOPSIS_MAX_LENGTH, WRITING_STATUSES, type WritingStatus } from "@/lib/chapter-plan";
 import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
+import type { PlotThread } from "@/lib/plot-thread";
 
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
+import { usePlotThreads } from "../hooks/use-plot-threads";
 import { useVolumeTree } from "../hooks/use-volumes";
+import {
+  INITIAL_CORKBOARD_FILTER,
+  visibleCorkboardVolumes,
+  type CorkboardStatusFilter,
+} from "../lib/corkboard-owing";
+import { useWritingStore } from "../store/use-writing-store";
 import { WritingStatusSelect } from "./chapter-plan-status";
 import { ChapterWordTarget } from "./chapter-word-target";
 
@@ -20,9 +28,8 @@ interface ChapterCorkboardProps {
   isAgentLocked?: boolean;
 }
 
-type StatusFilter = "all" | WritingStatus;
-
 const EMPTY_VOLUMES: VolumeWithChapters[] = [];
+const EMPTY_THREADS: PlotThread[] = [];
 
 function ChapterCorkboardCard({
   chapter,
@@ -83,12 +90,6 @@ function ChapterCorkboardCard({
   );
 }
 
-function matchesQuery(chapter: ChapterListItem, query: string): boolean {
-  if (!query) return true;
-  const haystack = `${chapter.title}\n${chapter.synopsis}`.toLowerCase();
-  return haystack.includes(query);
-}
-
 export function ChapterCorkboard({
   projectId,
   open,
@@ -98,9 +99,16 @@ export function ChapterCorkboard({
 }: ChapterCorkboardProps) {
   const { t } = useTranslation();
   const { data, isLoading } = useVolumeTree(projectId);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [query, setQuery] = useState("");
-  const normalizedQuery = query.trim().toLowerCase();
+  const plotThreads = usePlotThreads(open ? projectId : null);
+  const currentChapterId = useWritingStore((state) => state.currentChapterId);
+  const [statusFilter, setStatusFilter] = useState<CorkboardStatusFilter>(
+    INITIAL_CORKBOARD_FILTER.status,
+  );
+  const [owingOnly, setOwingOnly] = useState(INITIAL_CORKBOARD_FILTER.owingOnly);
+  const [query, setQuery] = useState(INITIAL_CORKBOARD_FILTER.query);
+  const threads = plotThreads.data?.threads ?? EMPTY_THREADS;
+  const owingApplied = owingOnly && plotThreads.isSuccess;
+  const owingPending = owingOnly && plotThreads.isLoading;
   const volumes = data?.volumes ?? EMPTY_VOLUMES;
   const allChapters = useMemo(() => volumes.flatMap((volume) => volume.chapters), [volumes]);
   const counts = useMemo(() => {
@@ -113,18 +121,36 @@ export function ChapterCorkboard({
     for (const chapter of allChapters) next[chapter.writingStatus] += 1;
     return next;
   }, [allChapters]);
-  const visibleVolumes = useMemo(() => {
-    return volumes
-      .map((volume) => ({
-        ...volume,
-        chapters: volume.chapters.filter(
-          (chapter) =>
-            (statusFilter === "all" || chapter.writingStatus === statusFilter) &&
-            matchesQuery(chapter, normalizedQuery),
-        ),
-      }))
-      .filter((volume) => volume.chapters.length > 0);
-  }, [normalizedQuery, statusFilter, volumes]);
+  const owingCount = useMemo(() => {
+    if (!plotThreads.isSuccess) return 0;
+    return visibleCorkboardVolumes(
+      volumes,
+      { status: "all", owingOnly: true, query: "" },
+      threads,
+    ).reduce((sum, volume) => sum + volume.chapters.length, 0);
+  }, [plotThreads.isSuccess, threads, volumes]);
+  const shownVolumes = useMemo(
+    () =>
+      visibleCorkboardVolumes(
+        volumes,
+        { status: statusFilter, owingOnly: owingApplied, query },
+        threads,
+      ),
+    [owingApplied, query, statusFilter, threads, volumes],
+  );
+  const currentChapterHidden = useMemo(() => {
+    if (owingPending || !currentChapterId) return false;
+    if (!allChapters.some((chapter) => chapter.id === currentChapterId)) return false;
+    return !shownVolumes.some((volume) =>
+      volume.chapters.some((chapter) => chapter.id === currentChapterId),
+    );
+  }, [allChapters, currentChapterId, owingPending, shownVolumes]);
+
+  const showAll = () => {
+    setStatusFilter(INITIAL_CORKBOARD_FILTER.status);
+    setOwingOnly(INITIAL_CORKBOARD_FILTER.owingOnly);
+    setQuery(INITIAL_CORKBOARD_FILTER.query);
+  };
 
   return (
     <Dialog.Root
@@ -172,38 +198,90 @@ export function ChapterCorkboard({
             />
           </Flex>
           <div className="chapter-corkboard-filters">
-            <button
-              type="button"
-              className="chapter-corkboard-filter"
-              data-active={statusFilter === "all" ? "true" : "false"}
-              onClick={() => setStatusFilter("all")}
-            >
-              {t("writing.chapterPlan.filterAll", { count: allChapters.length })}
-            </button>
-            {WRITING_STATUSES.map((status) => (
+            <div className="chapter-corkboard-filters__status">
               <button
-                key={status}
                 type="button"
                 className="chapter-corkboard-filter"
-                data-active={statusFilter === status ? "true" : "false"}
-                onClick={() => setStatusFilter(status)}
+                data-active={statusFilter === "all" ? "true" : "false"}
+                onClick={() => setStatusFilter("all")}
               >
-                {t("writing.chapterPlan.filterStatus", {
-                  status: t(`writing.chapterPlan.statuses.${status}`),
-                  count: counts[status],
-                })}
+                {t("writing.chapterPlan.filterAll", { count: allChapters.length })}
               </button>
-            ))}
+              {WRITING_STATUSES.map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  className="chapter-corkboard-filter"
+                  data-active={statusFilter === status ? "true" : "false"}
+                  onClick={() => setStatusFilter(status)}
+                >
+                  {t("writing.chapterPlan.filterStatus", {
+                    status: t(`writing.chapterPlan.statuses.${status}`),
+                    count: counts[status],
+                  })}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="chapter-corkboard-filter chapter-corkboard-owing"
+              data-active={owingOnly ? "true" : "false"}
+              aria-pressed={owingOnly}
+              title={t("writing.chapterPlan.filterOwingHint")}
+              onClick={() => setOwingOnly((current) => !current)}
+            >
+              {t("writing.chapterPlan.filterOwing", { count: owingCount })}
+            </button>
           </div>
+          {owingOnly ? (
+            <p className="chapter-corkboard-owing-note">
+              {t("writing.chapterPlan.owingActiveNote")}
+            </p>
+          ) : null}
+          {plotThreads.isError && owingOnly ? (
+            <p className="chapter-corkboard-owing-note">{t("writing.chapterPlan.owingFailed")}</p>
+          ) : null}
+          {currentChapterHidden ? (
+            <div className="chapter-corkboard-return">
+              <p className="chapter-corkboard-owing-note">
+                {t("writing.chapterPlan.currentHidden")}
+              </p>
+              <button
+                type="button"
+                className="chapter-corkboard-filter"
+                onClick={showAll}
+              >
+                {t("writing.chapterPlan.backToAll")}
+              </button>
+            </div>
+          ) : null}
         </div>
         <ScrollArea className="chapter-corkboard-body">
-          {isLoading ? (
+          {isLoading || owingPending ? (
             <Text
               size="2"
               color="gray"
             >
-              {t("writing.chapterPlan.loading")}
+              {owingPending ? t("writing.plotThreads.loading") : t("writing.chapterPlan.loading")}
             </Text>
+          ) : owingApplied ? (
+            volumes.length === 0 ? (
+              <Text
+                size="2"
+                color="gray"
+              >
+                {t("writing.chapterPlan.empty")}
+              </Text>
+            ) : (
+              shownVolumes.map((volume) => (
+                <VolumeSection
+                  key={volume.id}
+                  volume={volume}
+                  isAgentLocked={isAgentLocked}
+                  onOpenChapter={onOpenChapter}
+                />
+              ))
+            )
           ) : allChapters.length === 0 ? (
             <Text
               size="2"
@@ -211,7 +289,7 @@ export function ChapterCorkboard({
             >
               {t("writing.chapterPlan.empty")}
             </Text>
-          ) : visibleVolumes.length === 0 ? (
+          ) : shownVolumes.length === 0 ? (
             <Text
               size="2"
               color="gray"
@@ -219,7 +297,7 @@ export function ChapterCorkboard({
               {t("writing.chapterPlan.emptyFilter")}
             </Text>
           ) : (
-            visibleVolumes.map((volume) => (
+            shownVolumes.map((volume) => (
               <VolumeSection
                 key={volume.id}
                 volume={volume}
@@ -239,12 +317,22 @@ function VolumeSection({
   isAgentLocked,
   onOpenChapter,
 }: {
-  volume: VolumeWithChapters;
+  volume: {
+    id: string;
+    title: string;
+    chapters: ChapterListItem[];
+    placeholder: "cards" | "empty-volume" | "empty-filter";
+  };
   isAgentLocked: boolean;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
-    <section className="chapter-corkboard-volume">
+    <section
+      className="chapter-corkboard-volume"
+      data-placeholder={volume.placeholder}
+    >
       <Text
         size="2"
         weight="medium"
@@ -253,16 +341,24 @@ function VolumeSection({
       >
         {volume.title}
       </Text>
-      <div className="chapter-corkboard-grid">
-        {volume.chapters.map((chapter) => (
-          <ChapterCorkboardCard
-            key={chapter.id}
-            chapter={chapter}
-            isAgentLocked={isAgentLocked}
-            onOpenChapter={onOpenChapter}
-          />
-        ))}
-      </div>
+      {volume.placeholder === "empty-volume" ? (
+        <p className="chapter-corkboard-volume__empty">{t("volume.empty")}</p>
+      ) : volume.placeholder === "empty-filter" ? (
+        <p className="chapter-corkboard-volume__empty">
+          {t("writing.chapterPlan.emptyVolumeFilter")}
+        </p>
+      ) : (
+        <div className="chapter-corkboard-grid">
+          {volume.chapters.map((chapter) => (
+            <ChapterCorkboardCard
+              key={chapter.id}
+              chapter={chapter}
+              isAgentLocked={isAgentLocked}
+              onOpenChapter={onOpenChapter}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

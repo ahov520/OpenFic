@@ -295,6 +295,13 @@
       "loading": "Loading chapters…",
       "empty": "No chapters yet. Create one in the sidebar, then write its card.",
       "emptyFilter": "No chapters match this filter.",
+      "filterOwing": "Owes a thread {{count}}",
+      "filterOwingHint": "Keeps the status filter, then shows only draft and revise chapters that planted a thread the book has not paid off. Abandoned threads stay out.",
+      "owingActiveNote": "The status filter still applies. This also keeps only draft and revise chapters that planted a thread the book has not paid off.",
+      "emptyVolumeFilter": "No chapters in this volume match this filter.",
+      "currentHidden": "The current chapter is hidden by this filter.",
+      "backToAll": "Show all",
+      "owingFailed": "Plot threads didn't load, so this filter can't be applied yet.",
       "cardMeta": "{{count}} words",
       "statuses": {
         "idea": "Idea",
