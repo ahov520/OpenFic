@@ -345,6 +345,27 @@
       "saveFailed": "Couldn't save the word target. Please try again.",
       "aria": "Chapter word target"
     },
+    "marginNotes": {
+      "title": "Margin notes",
+      "hint": "Select a sentence and leave the question beside it. Notes stay out of the manuscript and the word count.",
+      "add": "Add margin note",
+      "emptySelection": "Select the text you want to keep a note on first.",
+      "placeholder": "Leave this sentence for now. What is the problem?",
+      "save": "Save note",
+      "cancel": "Cancel",
+      "empty": "This chapter has no margin notes yet.",
+      "strike": "Strike",
+      "restore": "Restore",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this note? Striking it keeps the record. Delete removes it.",
+      "struckSection": "Struck {{count}}",
+      "misaligned": "Out of alignment. The sentence saved with this note was:",
+      "anchor": "Sentence",
+      "emptyBody": "The note cannot be empty.",
+      "saveFailed": "Couldn't save the margin note. Please try again.",
+      "tooLong": "That selection is too long. Shorten it to a sentence or a short passage.",
+      "aria": "Margin notes for this chapter"
+    },
     "plotThreads": {
       "open": "Plot threads",
       "title": "Plot threads",

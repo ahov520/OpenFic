@@ -326,6 +326,11 @@
   text-indent: 0;
 }
 
+.tiptap-editor .margin-note-anchor {
+  background-color: var(--amber-a5);
+  border-radius: 2px;
+}
+
 .tiptap-editor .search-result {
   background-color: var(--yellow-a5);
   border-radius: 2px;

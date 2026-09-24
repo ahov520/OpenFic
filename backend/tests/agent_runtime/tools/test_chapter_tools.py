@@ -167,6 +167,9 @@ async def test_read_chapter_resolves_chapter_inside_volume() -> None:
         ) as get_by_volume_ref, patch(
             "app.agent_runtime.tools.impls.chapter.read_chapter.context_for_chapter",
             AsyncMock(return_value=None),
+        ), patch(
+            "app.agent_runtime.tools.impls.chapter.read_chapter.margin_notes_for_agent",
+            AsyncMock(return_value=None),
         ):
             result = await tool.ainvoke(
                 {
@@ -225,7 +228,10 @@ async def test_read_chapter_includes_plot_plan_for_the_chapter() -> None:
         ), patch(
             "app.agent_runtime.tools.impls.chapter.read_chapter.context_for_chapter",
             AsyncMock(return_value=plan),
-        ) as context_for_chapter:
+        ) as context_for_chapter, patch(
+            "app.agent_runtime.tools.impls.chapter.read_chapter.margin_notes_for_agent",
+            AsyncMock(return_value=None),
+        ):
             result = await tool.ainvoke(
                 {
                     "volume_ref": {"type": "order", "value": 1},
@@ -238,6 +244,48 @@ async def test_read_chapter_includes_plot_plan_for_the_chapter() -> None:
     assert data["plot_threads"]["chapter_beats"][0]["kind"] == "plant"
     assert data["plot_threads"]["open_threads"][0]["thread"] == "铜镜"
     context_for_chapter.assert_awaited_once_with(mock_session, "proj-1", "chap-1")
+
+
+async def test_read_chapter_keeps_margin_notes_out_of_content() -> None:
+    from app.agent_runtime.tools.impls.chapter.read_chapter import ReadChapterTool
+    from app.storage.margin_notes import MARGIN_NOTE_NOTICE
+
+    volume = _make_volume()
+    chapter = _make_chapter(content="他推开门。", word_count=5)
+    tool = ReadChapterTool(_state=_make_state())
+    notes = {
+        "notice": MARGIN_NOTE_NOTICE,
+        "notes": [{"anchor": "他推开门。", "note": "这句先别删，动机不清楚。"}],
+    }
+
+    with patch("app.agent_runtime.tools.impls.chapter.read_chapter.create_session") as mock_cs:
+        mock_cs.return_value = AsyncMock()
+        with patch(
+            "app.agent_runtime.tools.impls.chapter.read_chapter.volume_repo.list_by_project",
+            AsyncMock(return_value=[volume]),
+        ), patch(
+            "app.agent_runtime.tools.impls.chapter.read_chapter.chapter_repo.get_by_volume_ref",
+            AsyncMock(return_value=chapter),
+            create=True,
+        ), patch(
+            "app.agent_runtime.tools.impls.chapter.read_chapter.context_for_chapter",
+            AsyncMock(return_value=None),
+        ), patch(
+            "app.agent_runtime.tools.impls.chapter.read_chapter.margin_notes_for_agent",
+            AsyncMock(return_value=notes),
+        ):
+            result = await tool.ainvoke(
+                {
+                    "volume_ref": {"type": "order", "value": 1},
+                    "chapter_ref": {"type": "order", "value": 1},
+                }
+            )
+
+    data = json.loads(result)
+    assert data["content"] == "1|他推开门。"
+    assert "这句先别删" not in data["content"]
+    assert data["author_margin_notes"]["notice"] == MARGIN_NOTE_NOTICE
+    assert data["author_margin_notes"]["notes"][0]["anchor"] == "他推开门。"
 
 
 async def test_write_chapter_appends_to_volume_and_returns_volume_id() -> None:

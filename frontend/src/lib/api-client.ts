@@ -7,6 +7,7 @@
 import axios from "axios";
 
 import { normalizeWritingStatus } from "./chapter-plan";
+import type { MarginNote, MarginNoteCreate, MarginNoteUpdate } from "./margin-note";
 import { getConfiguredBackendBaseUrl, getRuntimeConfig } from "./runtime-config";
 import type { ThemeConfigResponse } from "./theme";
 
@@ -909,6 +910,67 @@ export async function runPlanCheck(chapterId: string): Promise<PlanCheck> {
     `/chapters/${chapterId}/plan-check`,
   );
   return transformPlanCheck(response.data);
+}
+
+function transformMarginNote(raw: Record<string, unknown>): MarginNote {
+  const status = raw.status === "struck" ? "struck" : "open";
+  const alignment = raw.alignment === "misaligned" ? "misaligned" : "aligned";
+  return {
+    id: String(raw.id),
+    chapterId: String(raw.chapter_id),
+    anchorText: typeof raw.anchor_text === "string" ? raw.anchor_text : "",
+    contextBefore: typeof raw.context_before === "string" ? raw.context_before : "",
+    contextAfter: typeof raw.context_after === "string" ? raw.context_after : "",
+    body: typeof raw.body === "string" ? raw.body : "",
+    status,
+    alignment,
+    start: typeof raw.start === "number" ? raw.start : null,
+    end: typeof raw.end === "number" ? raw.end : null,
+    createdAt: String(raw.created_at ?? ""),
+    updatedAt: String(raw.updated_at ?? ""),
+  };
+}
+
+export async function fetchMarginNotes(chapterId: string): Promise<MarginNote[]> {
+  const response = await apiClient.get<Record<string, unknown>[]>(
+    `/chapters/${chapterId}/margin-notes`,
+  );
+  return response.data.map(transformMarginNote);
+}
+
+export async function createMarginNote(
+  chapterId: string,
+  data: MarginNoteCreate,
+): Promise<MarginNote> {
+  const response = await apiClient.post<Record<string, unknown>>(
+    `/chapters/${chapterId}/margin-notes`,
+    {
+      anchor_text: data.anchorText,
+      context_before: data.contextBefore,
+      context_after: data.contextAfter,
+      body: data.body,
+    },
+  );
+  return transformMarginNote(response.data);
+}
+
+export async function updateMarginNote(
+  chapterId: string,
+  noteId: string,
+  data: MarginNoteUpdate,
+): Promise<MarginNote> {
+  const response = await apiClient.patch<Record<string, unknown>>(
+    `/chapters/${chapterId}/margin-notes/${noteId}`,
+    {
+      status: data.status,
+      body: data.body,
+    },
+  );
+  return transformMarginNote(response.data);
+}
+
+export async function deleteMarginNote(chapterId: string, noteId: string): Promise<void> {
+  await apiClient.delete(`/chapters/${chapterId}/margin-notes/${noteId}`);
 }
 
 /**

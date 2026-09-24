@@ -21,6 +21,7 @@ from app.storage.models.volume import Volume
 from app.storage.repos import (
     chapter_repo,
     chapter_summary_repo,
+    margin_note_repo,
     plot_beat_repo,
     project_repo,
     volume_repo,
@@ -611,6 +612,7 @@ async def delete_chapter(
         )
 
     await plot_beat_repo.delete_by_chapter_ids(session, [chapter_id])
+    await margin_note_repo.delete_by_chapter_ids(session, [chapter_id])
 
     # 删除章节
     await chapter_repo.delete(session, chapter)
@@ -687,6 +689,9 @@ async def delete_chapters_in_volume(session: AsyncSession, volume_id: str) -> No
         )
 
     await plot_beat_repo.delete_by_chapter_ids(
+        session, [chapter.id for chapter in chapters]
+    )
+    await margin_note_repo.delete_by_chapter_ids(
         session, [chapter.id for chapter in chapters]
     )
     await chapter_repo.delete_by_volume(session, volume_id)

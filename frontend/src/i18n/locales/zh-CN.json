@@ -345,6 +345,27 @@
       "saveFailed": "保存字数目标失败，请重试",
       "aria": "本章目标字数"
     },
+    "marginNotes": {
+      "title": "旁注",
+      "hint": "选中一句，把问题记在旁边。旁注不进正文，也不算字数。",
+      "add": "记下旁注",
+      "emptySelection": "请先在正文里选中要记下的文字。",
+      "placeholder": "这句先别删。问题是什么？",
+      "save": "保存旁注",
+      "cancel": "取消",
+      "empty": "这一章还没有旁注。",
+      "strike": "划掉",
+      "restore": "恢复",
+      "delete": "删除",
+      "deleteConfirm": "删除这条旁注？划掉会留下记录，删除才会去掉。",
+      "struckSection": "已划掉 {{count}}",
+      "misaligned": "对不齐。旁注保存的原句是：",
+      "anchor": "原句",
+      "emptyBody": "旁注不能为空。",
+      "saveFailed": "保存旁注失败，请重试",
+      "tooLong": "选中的文字过长，请收短到一句话或一小段。",
+      "aria": "本章旁注"
+    },
     "plotThreads": {
       "open": "情节线",
       "title": "情节线",

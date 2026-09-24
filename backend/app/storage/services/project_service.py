@@ -14,6 +14,7 @@ from app.core.storage import delete_cover_file, save_cover_file
 from app.storage.models.project import Project
 from app.storage.repos import (
     chapter_repo,
+    margin_note_repo,
     plot_beat_repo,
     plot_thread_repo,
     project_repo,
@@ -178,6 +179,7 @@ async def delete_project(session: AsyncSession, project_id: str) -> None:
     await task_service.delete_all_tasks(session, project_id)
     await delete_revision_data_by_project(session, project_id)
 
+    await margin_note_repo.delete_by_project(session, project_id)
     await plot_beat_repo.delete_by_project(session, project_id)
     await plot_thread_repo.delete_by_project(session, project_id)
 

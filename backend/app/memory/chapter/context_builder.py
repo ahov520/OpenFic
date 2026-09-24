@@ -14,6 +14,7 @@ from app.storage.chapter_plan import catalog_plan_fields, latest_plan_fields
 from app.storage.models.chapter import Chapter
 from app.storage.models.chapter_summary import ChapterSummary
 from app.storage.repos import chapter_repo, chapter_summary_repo, volume_repo
+from app.storage.services.margin_note_service import margin_notes_for_agent
 from app.storage.services.plot_thread_service import context_for_chapter
 
 
@@ -91,10 +92,12 @@ async def build_context(
         chapters=all_chapters,
         volumes=volumes,
     )
+    margin_notes = await margin_notes_for_agent(session, current_chapter.id)
     latest_field = _build_latest_field(
         current_chapter,
         current_global_order,
         plot_plan,
+        margin_notes,
     )
 
     near_field = _build_near_field(
@@ -141,6 +144,7 @@ def _build_latest_field(
     chapter: Chapter,
     global_order: int,
     plot_plan: dict[str, object] | None = None,
+    margin_notes: dict[str, object] | None = None,
 ) -> ContextPart:
     payload: dict[str, object] = {
         "order": global_order,
@@ -151,6 +155,8 @@ def _build_latest_field(
     }
     if plot_plan:
         payload["plot_threads"] = plot_plan
+    if margin_notes:
+        payload["author_margin_notes"] = margin_notes
     content = _to_json(payload)
     return ContextPart(
         content=content,
