@@ -19,6 +19,7 @@ import {
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { usePlotThreads } from "../hooks/use-plot-threads";
 import { useVolumeTree } from "../hooks/use-volumes";
+import { isChapterNotStarted } from "../lib/chapter-not-started";
 import { chapterOwesOpenPlant } from "../lib/corkboard-owing";
 import {
   chapterMatchesMissingTarget,
@@ -131,6 +132,11 @@ function ChapterCorkboardCard({
   );
   const synopsisId = `corkboard-synopsis-${chapter.id}`;
   const missingSynopsis = corkboardMissingSynopsis(draft.writingStatus, draft.synopsis);
+  const notStarted = isChapterNotStarted({
+    synopsis: draft.synopsis,
+    writingStatus: draft.writingStatus,
+    wordCount: chapter.wordCount,
+  });
 
   return (
     <article
@@ -139,6 +145,7 @@ function ChapterCorkboardCard({
       data-status={draft.writingStatus}
       data-testid="corkboard-card"
       data-missing-synopsis={missingSynopsis ? "true" : "false"}
+      data-not-started={notStarted ? "true" : "false"}
       draggable={dragReorderEnabled}
       onDragStart={(event) => {
         if (dragReorderEnabled) return;
@@ -178,6 +185,9 @@ function ChapterCorkboardCard({
         >
           {t("writing.chapterPlan.missingSynopsis")}
         </label>
+      ) : null}
+      {notStarted ? (
+        <p className="chapter-corkboard-card__not-started">{t("writing.chapterPlan.notStarted")}</p>
       ) : null}
       <textarea
         id={synopsisId}

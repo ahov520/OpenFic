@@ -310,6 +310,7 @@
       "owingActiveNote": "状态筛选照旧。这里再只留草稿和修订里，这一章埋下、全书还没回收的线。",
       "owingFailed": "情节线没有载入，还欠线暂时没法筛。",
       "cardMeta": "{{count}} 字",
+      "notStarted": "还没动笔",
       "openThreadsLabel": "未回收",
       "openThreadsMore": "还有 {{count}} 条",
       "openThreadsLess": "收起",

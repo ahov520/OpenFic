@@ -310,6 +310,7 @@
       "owingActiveNote": "The status filter still applies. This also keeps only draft and revise chapters that planted a thread the book has not paid off.",
       "owingFailed": "Plot threads didn't load, so this filter can't be applied yet.",
       "cardMeta": "{{count}} words",
+      "notStarted": "Not started",
       "openThreadsLabel": "Unpaid",
       "openThreadsMore": "{{count}} more",
       "openThreadsLess": "Show less",
