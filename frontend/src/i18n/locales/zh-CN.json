@@ -360,6 +360,7 @@
       "short": "偏短",
       "long": "偏长",
       "onTarget": "达标",
+      "missingTarget": "未设目标",
       "invalid": "目标需为 1 到 {{max}} 的整数，留空表示不设",
       "saveFailed": "保存字数目标失败，请重试",
       "aria": "本章目标字数"

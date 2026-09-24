@@ -22,8 +22,8 @@ import type {
   VolumeTreeResponse,
 } from "@/lib/chapter.types";
 
-import { replaceChapterWordCountTargetInTree } from "../lib/corkboard-missing-target";
 import { replaceChapterWritingStatusInTree } from "../lib/sidebar-writing-status-filter";
+import { applyWordCountTargetToVolumeTree } from "../lib/volume-tree-word-target";
 
 function invalidatePreviousEndings(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: ["previous-ending"] });
@@ -164,11 +164,11 @@ export function useUpdateChapter() {
           ["volume-tree", updatedChapter.projectId],
           (current) =>
             current
-              ? replaceChapterWordCountTargetInTree(
-                  current,
-                  updatedChapter.id,
-                  updatedChapter.wordCountTarget,
-                )
+              ? applyWordCountTargetToVolumeTree(current, {
+                  id: updatedChapter.id,
+                  wordCountTarget: updatedChapter.wordCountTarget,
+                  updatedAt: updatedChapter.updatedAt,
+                })
               : current,
         );
       }
