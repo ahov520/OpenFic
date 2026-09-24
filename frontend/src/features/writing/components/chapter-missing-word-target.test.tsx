@@ -1,3 +1,4 @@
+import { Theme } from "@radix-ui/themes";
 import { act, type ReactNode, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
@@ -54,14 +55,14 @@ function render(node: ReactNode) {
   document.body.append(container);
   const root = createRoot(container);
   act(() => {
-    root.render(node);
+    root.render(<Theme>{node}</Theme>);
   });
   mounted.push({ root, container });
   return {
     container,
     rerender(next: ReactNode) {
       act(() => {
-        root.render(next);
+        root.render(<Theme>{next}</Theme>);
       });
     },
   };
