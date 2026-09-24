@@ -307,6 +307,17 @@
   line-height: var(--line-height-1, 16px);
 }
 
+.chapter-missing-target {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--amber-a3);
+  color: var(--amber-11);
+  font-size: var(--font-size-1, 12px);
+  line-height: 16px;
+  white-space: nowrap;
+}
+
 .chapter-plan-check {
   margin-top: 10px;
   padding-top: 8px;

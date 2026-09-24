@@ -341,6 +341,7 @@
       "short": "Short",
       "long": "Long",
       "onTarget": "On target",
+      "missingTarget": "No target",
       "invalid": "Use an integer from 1 to {{max}}, or leave it blank for no target",
       "saveFailed": "Couldn't save the word target. Please try again.",
       "aria": "Chapter word target"

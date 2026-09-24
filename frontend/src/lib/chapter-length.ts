@@ -16,6 +16,15 @@ export function readWordCountTarget(value: unknown): number | null {
   return value;
 }
 
+/** 草稿和修订还没设下合法目标时，侧栏要标出来。构思和完成不标。 */
+export function showsMissingWordTargetMark(
+  writingStatus: string,
+  wordCountTarget: unknown,
+): boolean {
+  if (writingStatus !== "drafting" && writingStatus !== "revising") return false;
+  return readWordCountTarget(wordCountTarget) === null;
+}
+
 export function parseWordCountTarget(
   raw: string,
 ): { ok: true; value: number | null } | { ok: false } {

@@ -12,7 +12,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { SummaryStatus } from "@/lib/api-client";
-import { chapterLengthProgress } from "@/lib/chapter-length";
+import { chapterLengthProgress, showsMissingWordTargetMark } from "@/lib/chapter-length";
 import type { ChapterListItem as ChapterListItemType } from "@/lib/chapter.types";
 import { formatRelativeTime } from "@/lib/time-utils";
 
@@ -200,6 +200,15 @@ function ChapterRowContent({
           align="center"
         >
           <WritingStatusMark status={chapter.writingStatus} />
+          {showsMissingWordTargetMark(chapter.writingStatus, chapter.wordCountTarget) ? (
+            <span
+              className="chapter-missing-target"
+              data-missing-word-target="true"
+              style={textColor ? { color: textColor, background: "transparent" } : undefined}
+            >
+              {t("writing.chapterLength.missingTarget")}
+            </span>
+          ) : null}
           <span
             className="chapter-length-mark"
             data-pace={length.pace}
@@ -614,6 +623,7 @@ function areBaseRowPropsEqual(prev: ChapterListItemBaseProps, next: ChapterListI
     prev.chapter.title === next.chapter.title &&
     prev.chapter.order === next.chapter.order &&
     prev.chapter.wordCount === next.chapter.wordCount &&
+    prev.chapter.wordCountTarget === next.chapter.wordCountTarget &&
     prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
     prev.isActive === next.isActive &&
@@ -639,6 +649,7 @@ function areDraggableRowPropsEqual(
     prev.chapter.title === next.chapter.title &&
     prev.chapter.order === next.chapter.order &&
     prev.chapter.wordCount === next.chapter.wordCount &&
+    prev.chapter.wordCountTarget === next.chapter.wordCountTarget &&
     prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
     prev.isActive === next.isActive &&

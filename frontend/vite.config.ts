@@ -53,6 +53,10 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    test: {
+      environment: "happy-dom",
+      include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    },
     server: {
       host: "127.0.0.1",
       port: 9000,

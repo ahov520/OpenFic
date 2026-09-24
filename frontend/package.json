@@ -10,6 +10,7 @@
     "format:check": "oxfmt . --check",
     "lint": "oxlint .",
     "preview": "vp preview",
+    "test": "vp test --run",
     "test:e2e": "playwright test",
     "type-check": "oxlint . --type-aware --type-check"
   },
@@ -119,6 +120,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "eslint-plugin-react-refresh": "^0.5.3",
+    "happy-dom": "^20.14.5",
     "oxfmt": "^0.57.0",
     "oxlint": "^1.72.0",
     "oxlint-tsgolint": "^0.24.0",
