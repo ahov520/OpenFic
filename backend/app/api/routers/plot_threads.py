@@ -27,7 +27,7 @@ from app.background.jobs import service as background_service
 from app.core.errors import ConflictError, NotFoundError
 from app.storage.database import get_session
 from app.storage.models.plot_thread import PlotBeat
-from app.storage.plot_threads import BeatSpot
+from app.storage.plot_threads import BeatSpot, open_planted_names_by_chapter
 from app.storage.services import plot_thread_service
 from app.storage.services.plot_thread_service import BoardThread
 
@@ -153,6 +153,9 @@ async def list_plot_threads(
                 )
                 for chapter in board.chapters
             ],
+            open_plants_by_chapter=open_planted_names_by_chapter(
+                [item.assessment for item in board.threads]
+            ),
         )
     except NotFoundError as exc:
         raise HTTPException(

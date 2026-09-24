@@ -4,8 +4,14 @@ import { useTranslation } from "react-i18next";
 
 import { SYNOPSIS_MAX_LENGTH, WRITING_STATUSES, type WritingStatus } from "@/lib/chapter-plan";
 import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
+import {
+  CORKBOARD_OPEN_PLANT_PREVIEW,
+  corkboardOpenPlantNames,
+  previewOpenPlantNames,
+} from "@/lib/corkboard-open-threads";
 
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
+import { usePlotThreads } from "../hooks/use-plot-threads";
 import { useVolumeTree } from "../hooks/use-volumes";
 import { WritingStatusSelect } from "./chapter-plan-status";
 import { ChapterWordTarget } from "./chapter-word-target";
@@ -23,18 +29,67 @@ interface ChapterCorkboardProps {
 type StatusFilter = "all" | WritingStatus;
 
 const EMPTY_VOLUMES: VolumeWithChapters[] = [];
+const EMPTY_OPEN_PLANTS: Record<string, readonly string[]> = {};
+
+function CorkboardOpenPlants({ names }: { names: readonly string[] }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const { shown, hiddenCount } = previewOpenPlantNames(names, expanded);
+  const canToggle = names.length > CORKBOARD_OPEN_PLANT_PREVIEW;
+
+  return (
+    <div
+      className="chapter-corkboard-card__threads"
+      data-testid="corkboard-open-threads"
+    >
+      <span className="chapter-corkboard-card__threads-label">
+        {t("writing.chapterPlan.openThreadsLabel")}
+      </span>
+      {shown.map((name, index) => (
+        <span
+          key={`${index}-${name}`}
+          className="chapter-corkboard-card__thread"
+          data-testid="corkboard-open-thread"
+          title={name}
+        >
+          {name}
+        </span>
+      ))}
+      {canToggle ? (
+        <button
+          type="button"
+          className="chapter-corkboard-card__threads-more"
+          data-testid="corkboard-open-threads-more"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {hiddenCount > 0
+            ? t("writing.chapterPlan.openThreadsMore", { count: hiddenCount })
+            : t("writing.chapterPlan.openThreadsLess")}
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 function ChapterCorkboardCard({
   chapter,
+  openPlantsByChapter,
   isAgentLocked,
   onOpenChapter,
 }: {
   chapter: ChapterListItem;
+  openPlantsByChapter: Readonly<Record<string, readonly string[]>>;
   isAgentLocked: boolean;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
 }) {
   const { t } = useTranslation();
   const draft = useChapterPlanDraft(chapter, isAgentLocked);
+  const openPlantNames = corkboardOpenPlantNames(
+    draft.writingStatus,
+    openPlantsByChapter,
+    chapter.id,
+  );
 
   return (
     <article
@@ -68,6 +123,7 @@ function ChapterCorkboardCard({
         onChange={(event) => draft.setSynopsis(event.target.value)}
         onBlur={draft.flush}
       />
+      {openPlantNames.length > 0 ? <CorkboardOpenPlants names={openPlantNames} /> : null}
       <div className="chapter-corkboard-card__meta">
         {draft.synopsisTooLong
           ? t("writing.chapterPlan.synopsisTooLong", { max: SYNOPSIS_MAX_LENGTH })
@@ -98,6 +154,8 @@ export function ChapterCorkboard({
 }: ChapterCorkboardProps) {
   const { t } = useTranslation();
   const { data, isLoading } = useVolumeTree(projectId);
+  const { data: plotBoard } = usePlotThreads(open ? projectId : null);
+  const openPlantsByChapter = plotBoard?.openPlantsByChapter ?? EMPTY_OPEN_PLANTS;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
@@ -223,6 +281,7 @@ export function ChapterCorkboard({
               <VolumeSection
                 key={volume.id}
                 volume={volume}
+                openPlantsByChapter={openPlantsByChapter}
                 isAgentLocked={isAgentLocked}
                 onOpenChapter={onOpenChapter}
               />
@@ -236,10 +295,12 @@ export function ChapterCorkboard({
 
 function VolumeSection({
   volume,
+  openPlantsByChapter,
   isAgentLocked,
   onOpenChapter,
 }: {
   volume: VolumeWithChapters;
+  openPlantsByChapter: Readonly<Record<string, readonly string[]>>;
   isAgentLocked: boolean;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
 }) {
@@ -258,6 +319,7 @@ function VolumeSection({
           <ChapterCorkboardCard
             key={chapter.id}
             chapter={chapter}
+            openPlantsByChapter={openPlantsByChapter}
             isAgentLocked={isAgentLocked}
             onOpenChapter={onOpenChapter}
           />

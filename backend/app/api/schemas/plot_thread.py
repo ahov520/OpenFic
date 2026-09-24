@@ -139,6 +139,16 @@ class PlotBoardResponse(BaseModel):
 
     threads: list[PlotThreadResponse]
     chapters: list[PlotChapterOption]
+    open_plants_by_chapter: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description=(
+            "章节 id 到情节线名称。只含这一章 kind=plant、"
+            "状态不是已放弃、全书没有任何 payoff 节拍的线。"
+            "只推进过的章不出现。已有回收的线不会留在埋下那一章。"
+            "名称顺序按情节线 sort_order。没有这类线的章不出现在键里。"
+            "前端按这个名单展示，不要自己用章节顺序判断有没有回收。"
+        ),
+    )
 
 
 class PlotThroughGapResponse(BaseModel):

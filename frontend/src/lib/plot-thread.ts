@@ -54,6 +54,11 @@ export interface PlotThread {
 export interface PlotBoard {
   threads: PlotThread[];
   chapters: PlotChapterOption[];
+  /**
+   * 章节 id → 这一章埋下、全书还没有 payoff、也没有放弃的情节线名称。
+   * 顺序只认后端。没有这类线的章不出现。前端不要自己判断有没有回收。
+   */
+  openPlantsByChapter: Record<string, string[]>;
 }
 
 /** 参照点为某一章时的空章。顺序只认后端阅读顺序，前端不重排。 */

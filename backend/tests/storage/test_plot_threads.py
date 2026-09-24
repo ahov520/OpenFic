@@ -23,6 +23,7 @@ from app.storage.plot_threads import (
     normalize_thread_name,
     normalize_thread_status,
     reading_order_of,
+    open_planted_names_by_chapter,
     select_board_threads,
 )
 from app.storage.services import plot_thread_service
@@ -870,3 +871,41 @@ async def test_gap_follows_reading_order_when_chapters_are_inserted(
     solo_board = await plot_thread_service.get_board(session, solo.id)
     assert solo_board.threads[0].assessment.chapters_since_last is None
     assert solo_board.threads[0].assessment.gap_chapters == ()
+
+
+def test_open_planted_names_follow_this_chapter_until_payoff() -> None:
+    """这一章埋下且全书未回收才进名单。回收、别章埋下、只推进、已放弃都不进。"""
+    chapters = [
+        _spot("c1", 1, "夜航"),
+        _spot("c2", 2, "旧伤"),
+        _spot("c3", 3, "对上"),
+    ]
+    threads = [
+        ("t-scar", "伤疤", "", "active", 0),
+        ("t-mirror", "铜镜", "灯要在后文对上", "active", 1),
+        ("t-letter", "旧信", "", "active", 2),
+        ("t-drop", "弃线", "", "abandoned", 3),
+        ("t-push", "只推进", "", "active", 4),
+        ("t-marked", "假回收", "", "resolved", 5),
+    ]
+    beats = [
+        ("b-scar", "t-scar", "c1", "plant", "露出来"),
+        ("b-mirror", "t-mirror", "c1", "plant", "灯还亮着"),
+        ("b-letter", "t-letter", "c2", "plant", "信压在灯下"),
+        ("b-drop", "t-drop", "c1", "plant", "后来不用了"),
+        ("b-push", "t-push", "c1", "advance", "直接往前推"),
+        ("b-marked", "t-marked", "c1", "plant", "作者标了回收但没有节拍"),
+    ]
+    found = open_planted_names_by_chapter(assess_plot_threads(threads, beats, chapters))
+    assert found["c1"] == ["伤疤", "铜镜", "假回收"]
+    assert found["c2"] == ["旧信"]
+    assert "c3" not in found
+    assert "弃线" not in found["c1"]
+    assert "只推进" not in found["c1"]
+
+    paid = [*beats, ("b-pay", "t-mirror", "c3", "payoff", "镜子里是凶手")]
+    after = open_planted_names_by_chapter(assess_plot_threads(threads, paid, chapters))
+    assert after["c1"] == ["伤疤", "假回收"]
+    assert "铜镜" not in after["c1"]
+    assert after["c2"] == ["旧信"]
+    assert "c3" not in after
