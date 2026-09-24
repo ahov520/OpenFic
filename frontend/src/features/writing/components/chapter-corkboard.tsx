@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { corkboardLengthLabel } from "@/lib/chapter-length";
-import { SYNOPSIS_MAX_LENGTH, WRITING_STATUSES } from "@/lib/chapter-plan";
+import { SYNOPSIS_MAX_LENGTH, WRITING_STATUSES, corkboardMissingSynopsis } from "@/lib/chapter-plan";
 import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
 import {
   CORKBOARD_OPEN_PLANT_PREVIEW,
@@ -125,6 +125,8 @@ function ChapterCorkboardCard({
     openPlantsByChapter,
     chapter.id,
   );
+  const synopsisId = `corkboard-synopsis-${chapter.id}`;
+  const missingSynopsis = corkboardMissingSynopsis(draft.writingStatus, draft.synopsis);
 
   return (
     <article
@@ -132,6 +134,7 @@ function ChapterCorkboardCard({
       data-chapter-id={chapter.id}
       data-status={draft.writingStatus}
       data-testid="corkboard-card"
+      data-missing-synopsis={missingSynopsis ? "true" : "false"}
       draggable={dragReorderEnabled}
       onDragStart={(event) => {
         if (dragReorderEnabled) return;
@@ -163,7 +166,17 @@ function ChapterCorkboardCard({
         written={chapter.wordCount}
         target={chapter.wordCountTarget}
       />
+      {missingSynopsis ? (
+        <label
+          htmlFor={synopsisId}
+          className="chapter-corkboard-card__missing-synopsis"
+          data-testid="corkboard-missing-synopsis"
+        >
+          {t("writing.chapterPlan.missingSynopsis")}
+        </label>
+      ) : null}
       <textarea
+        id={synopsisId}
         className="chapter-corkboard-card__synopsis"
         value={draft.synopsis}
         disabled={isAgentLocked}
