@@ -1816,7 +1816,9 @@ export async function previewWorldInfoImport(file: File): Promise<WorldInfoImpor
   return transformWorldInfoImportPreview(response.data as Record<string, unknown>);
 }
 
-function transformTavernPreview(raw: Record<string, unknown>): import("./tavern.types").TavernPreview {
+function transformTavernPreview(
+  raw: Record<string, unknown>,
+): import("./tavern.types").TavernPreview {
   return {
     kind: raw.kind as string,
     characterName: (raw.character_name as string) || "",

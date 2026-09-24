@@ -2,8 +2,8 @@ import { Box, Dialog, Flex, ScrollArea, Text, TextField } from "@radix-ui/themes
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
 import { SYNOPSIS_MAX_LENGTH, WRITING_STATUSES, type WritingStatus } from "@/lib/chapter-plan";
+import type { ChapterListItem, VolumeWithChapters } from "@/lib/chapter.types";
 
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { useVolumeTree } from "../hooks/use-volumes";
@@ -94,11 +94,8 @@ export function ChapterCorkboard({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
-  const volumes = data?.volumes ?? EMPTY_VOLUMES
-  const allChapters = useMemo(
-    () => volumes.flatMap((volume) => volume.chapters),
-    [volumes],
-  );
+  const volumes = data?.volumes ?? EMPTY_VOLUMES;
+  const allChapters = useMemo(() => volumes.flatMap((volume) => volume.chapters), [volumes]);
   const counts = useMemo(() => {
     const next: Record<WritingStatus, number> = {
       idea: 0,

@@ -33,7 +33,9 @@ const SummaryPanel = lazy(() =>
   import("../components/summary-panel").then((module) => ({ default: module.SummaryPanel })),
 );
 const ChapterCorkboard = lazy(() =>
-  import("../components/chapter-corkboard").then((module) => ({ default: module.ChapterCorkboard })),
+  import("../components/chapter-corkboard").then((module) => ({
+    default: module.ChapterCorkboard,
+  })),
 );
 
 function blurMobileEditorElement(): void {

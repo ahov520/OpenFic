@@ -2,8 +2,8 @@ import { Text } from "@radix-ui/themes";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Chapter } from "@/lib/chapter.types";
 import { SYNOPSIS_MAX_LENGTH } from "@/lib/chapter-plan";
+import type { Chapter } from "@/lib/chapter.types";
 
 import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { useVolumeTree } from "../hooks/use-volumes";
