@@ -16,6 +16,7 @@ import { usePlotThreads } from "../hooks/use-plot-threads";
 import { useVolumeTree } from "../hooks/use-volumes";
 import { WritingStatusSelect } from "./chapter-plan-status";
 import { ChapterWordTarget } from "./chapter-word-target";
+import { OpenMarginNoteCount } from "./open-margin-note-count";
 
 import "./chapter-plan.css";
 
@@ -125,6 +126,10 @@ function ChapterCorkboardCard({
         >
           {chapter.title || t("writing.untitledChapter")}
         </button>
+        <OpenMarginNoteCount
+          count={chapter.openMarginNoteCount}
+          onOpen={() => onOpenChapter(chapter.id, chapter.title)}
+        />
         <WritingStatusSelect
           value={draft.writingStatus}
           disabled={isAgentLocked}

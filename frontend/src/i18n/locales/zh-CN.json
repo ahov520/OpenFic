@@ -380,7 +380,8 @@
       "emptyBody": "旁注不能为空。",
       "saveFailed": "保存旁注失败，请重试",
       "tooLong": "选中的文字过长，请收短到一句话或一小段。",
-      "aria": "本章旁注"
+      "aria": "本章旁注",
+      "openCount": "{{count}} 条未划掉旁注"
     },
     "plotThreads": {
       "open": "情节线",

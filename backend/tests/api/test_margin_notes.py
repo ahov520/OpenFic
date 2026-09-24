@@ -28,18 +28,27 @@ async def _create_chapter(
     project_id: str,
     volume_id: str,
     content: str,
+    title: str = "夜航",
 ) -> dict:
     response = await client.post(
         f"/api/v1/projects/{project_id}/chapters",
         json={
             "volume_id": volume_id,
-            "title": "夜航",
+            "title": title,
             "content": content,
             "word_count": _count_words(content),
         },
     )
     assert response.status_code == 201
     return response.json()
+
+
+def _list_counts(tree: dict) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for volume in tree["volumes"]:
+        for chapter in volume["chapters"]:
+            counts[chapter["id"]] = chapter["open_margin_note_count"]
+    return counts
 
 
 @pytest.mark.asyncio
@@ -381,3 +390,71 @@ async def test_repin_without_a_selection_keeps_the_old_anchor(
     saved = (await client.get(f"/api/v1/chapters/{chapter['id']}")).json()
     assert saved["content"] == content
     assert saved["word_count"] == chapter["word_count"]
+
+
+@pytest.mark.asyncio
+async def test_chapter_list_counts_open_margin_notes_only(client: AsyncClient) -> None:
+    """两章里只有一章有未划掉旁注；划掉后归零；空项目不报错。"""
+    project_id, volume_id = await _create_project(client)
+
+    empty = await client.get(f"/api/v1/projects/{project_id}/chapters")
+    assert empty.status_code == 200
+    assert empty.json()["total_chapters"] == 0
+    assert empty.json()["volumes"][0]["chapters"] == []
+
+    marked = await _create_chapter(
+        client, project_id, volume_id, "走廊很暗。他推开门。", title="有旁注"
+    )
+    quiet = await _create_chapter(
+        client, project_id, volume_id, "灯还亮着。", title="没有未处理旁注"
+    )
+
+    open_note = await client.post(
+        f"/api/v1/chapters/{marked['id']}/margin-notes",
+        json={"anchor_text": "他推开门。", "body": "动机还不清楚。"},
+    )
+    assert open_note.status_code == 201
+    second_open = await client.post(
+        f"/api/v1/chapters/{marked['id']}/margin-notes",
+        json={"anchor_text": "走廊很暗。", "body": "这句太满。"},
+    )
+    assert second_open.status_code == 201
+    struck_on_marked = await client.post(
+        f"/api/v1/chapters/{marked['id']}/margin-notes",
+        json={"anchor_text": "他推开门。", "body": "已经处理过。"},
+    )
+    assert struck_on_marked.status_code == 201
+    struck = await client.patch(
+        f"/api/v1/chapters/{marked['id']}/margin-notes/{struck_on_marked.json()['id']}",
+        json={"status": "struck"},
+    )
+    assert struck.status_code == 200
+    struck_on_quiet = await client.post(
+        f"/api/v1/chapters/{quiet['id']}/margin-notes",
+        json={"anchor_text": "灯还亮着。", "body": "这章只剩划掉的。"},
+    )
+    assert struck_on_quiet.status_code == 201
+    quiet_struck = await client.patch(
+        f"/api/v1/chapters/{quiet['id']}/margin-notes/{struck_on_quiet.json()['id']}",
+        json={"status": "struck"},
+    )
+    assert quiet_struck.status_code == 200
+
+    listed = await client.get(f"/api/v1/projects/{project_id}/chapters")
+    assert listed.status_code == 200
+    counts = _list_counts(listed.json())
+    assert counts[marked["id"]] == 2
+    assert counts[quiet["id"]] == 0
+
+    for note in (open_note.json(), second_open.json()):
+        response = await client.patch(
+            f"/api/v1/chapters/{marked['id']}/margin-notes/{note['id']}",
+            json={"status": "struck"},
+        )
+        assert response.status_code == 200
+
+    after = await client.get(f"/api/v1/projects/{project_id}/chapters")
+    assert after.status_code == 200
+    cleared = _list_counts(after.json())
+    assert cleared[marked["id"]] == 0
+    assert cleared[quiet["id"]] == 0

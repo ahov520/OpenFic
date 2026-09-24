@@ -18,6 +18,7 @@ import { formatRelativeTime } from "@/lib/time-utils";
 
 import { CHAPTER_LIST_ITEM_HEIGHT } from "../lib/chapter-list-drag";
 import { WritingStatusMark } from "./chapter-plan-status";
+import { OpenMarginNoteCount } from "./open-margin-note-count";
 import { SummaryStatusDot } from "./summary-status-dot";
 
 function RenameInput({
@@ -120,6 +121,7 @@ interface ChapterRowContentProps {
   onOpenMenu?: (triggerElement: HTMLElement) => void;
   textColor?: string;
   dragHandle?: React.ReactNode;
+  onOpenChapter: () => void;
 }
 
 function ChapterRowContent({
@@ -134,6 +136,7 @@ function ChapterRowContent({
   onOpenMenu,
   textColor,
   dragHandle,
+  onOpenChapter,
 }: ChapterRowContentProps) {
   const { t } = useTranslation();
   const showMenuTrigger = Boolean(onOpenMenu);
@@ -200,6 +203,10 @@ function ChapterRowContent({
           align="center"
         >
           <WritingStatusMark status={chapter.writingStatus} />
+          <OpenMarginNoteCount
+            count={chapter.openMarginNoteCount}
+            onOpen={onOpenChapter}
+          />
           <span
             className="chapter-length-mark"
             data-pace={length.pace}
@@ -505,6 +512,7 @@ function ChapterListItemComponent({
         isMenuButtonVisible={isMenuButtonVisible}
         onOpenMenu={onRequestContextMenu ? handleOpenMenuFromButton : undefined}
         textColor={textColor}
+        onOpenChapter={() => onSelectChapter(chapter.id)}
       />
     </Box>
   );
@@ -589,6 +597,7 @@ function DraggableChapterListItemComponent({
         summaryStatus={summaryStatus}
         summaryIsStale={summaryIsStale}
         onOpenSummary={onOpenSummary}
+        onOpenChapter={() => onSelectChapter(chapter.id)}
         dragHandle={
           <Box
             {...attributes}
@@ -616,6 +625,7 @@ function areBaseRowPropsEqual(prev: ChapterListItemBaseProps, next: ChapterListI
     prev.chapter.wordCount === next.chapter.wordCount &&
     prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
+    prev.chapter.openMarginNoteCount === next.chapter.openMarginNoteCount &&
     prev.isActive === next.isActive &&
     prev.isRenaming === next.isRenaming &&
     prev.isMenuOpen === next.isMenuOpen &&
@@ -641,6 +651,7 @@ function areDraggableRowPropsEqual(
     prev.chapter.wordCount === next.chapter.wordCount &&
     prev.chapter.writingStatus === next.chapter.writingStatus &&
     prev.chapter.updatedAt === next.chapter.updatedAt &&
+    prev.chapter.openMarginNoteCount === next.chapter.openMarginNoteCount &&
     prev.isActive === next.isActive &&
     prev.summaryStatus === next.summaryStatus &&
     prev.summaryIsStale === next.summaryIsStale &&

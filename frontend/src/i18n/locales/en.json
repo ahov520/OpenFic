@@ -380,7 +380,8 @@
       "emptyBody": "The note cannot be empty.",
       "saveFailed": "Couldn't save the margin note. Please try again.",
       "tooLong": "That selection is too long. Shorten it to a sentence or a short passage.",
-      "aria": "Margin notes for this chapter"
+      "aria": "Margin notes for this chapter",
+      "openCount": "{{count}} open margin notes"
     },
     "plotThreads": {
       "open": "Plot threads",

@@ -45,6 +45,7 @@ class VolumeTreeResult:
 
     volumes: list[VolumeChapterGroup]
     total_chapters: int
+    open_margin_note_counts: dict[str, int]
 
 
 @dataclass(frozen=True)
@@ -280,6 +281,9 @@ async def list_chapters(
 
     volumes = await volume_repo.list_by_project(session, project_id)
     chapters = await chapter_repo.list_metadata_by_project(session, project_id)
+    open_margin_note_counts = await margin_note_repo.count_open_by_project(
+        session, project_id
+    )
     chapters_by_volume: dict[str, list[Chapter]] = {volume.id: [] for volume in volumes}
     for chapter in chapters:
         chapters_by_volume.setdefault(chapter.volume_id, []).append(chapter)
@@ -290,7 +294,11 @@ async def list_chapters(
         )
         for volume in volumes
     ]
-    return VolumeTreeResult(volumes=groups, total_chapters=len(chapters))
+    return VolumeTreeResult(
+        volumes=groups,
+        total_chapters=len(chapters),
+        open_margin_note_counts=open_margin_note_counts,
+    )
 
 
 async def search_mention_candidates(
