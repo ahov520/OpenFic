@@ -999,6 +999,16 @@ function transformPlotBeat(raw: Record<string, unknown>): PlotBeat {
   };
 }
 
+function transformGapChapters(value: unknown): PlotThread["gapChapters"] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== "string" || typeof row.label !== "string") return [];
+    return [{ id: row.id, label: row.label }];
+  });
+}
+
 function transformPlotThread(raw: Record<string, unknown>): PlotThread {
   return {
     id: raw.id as string,
@@ -1015,6 +1025,9 @@ function transformPlotThread(raw: Record<string, unknown>): PlotThread {
     lastGlobalOrder: typeof raw.last_global_order === "number" ? raw.last_global_order : null,
     lastKind: raw.last_kind == null ? null : normalizePlotBeatKind(raw.last_kind),
     chaptersSinceLast: typeof raw.chapters_since_last === "number" ? raw.chapters_since_last : null,
+    gapChapters: transformGapChapters(raw.gap_chapters),
+    gapRange:
+      typeof raw.gap_range === "string" && raw.gap_range.trim() !== "" ? raw.gap_range : null,
     beats: Array.isArray(raw.beats)
       ? raw.beats.map((beat) => transformPlotBeat(beat as Record<string, unknown>))
       : [],

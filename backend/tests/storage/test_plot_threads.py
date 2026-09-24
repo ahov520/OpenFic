@@ -10,6 +10,7 @@ from app.storage.models.project import Project
 from app.storage.models.volume import Volume
 from app.storage.plot_threads import (
     CONSIDER_ADVANCE_NOTE,
+    GAP_CHAPTER_PREVIEW,
     OPEN_THREAD_LIMIT,
     PLOT_PLAN_NOTICE,
     STALE_CHAPTER_GAP,
@@ -89,6 +90,8 @@ def test_open_thread_and_structural_problems() -> None:
     assert mirror.has_plant is True
     assert mirror.has_payoff is False
     assert mirror.chapters_since_last == 0
+    assert mirror.gap_chapters == ()
+    assert mirror.gap_range is None
 
     letter = found["旧信"]
     assert "open" not in letter.issues
@@ -96,18 +99,25 @@ def test_open_thread_and_structural_problems() -> None:
     assert letter.last_beat is not None
     assert letter.last_beat.global_order == 3
     assert letter.chapters_since_last is None
+    assert letter.gap_chapters == ()
 
     assert found["空线"].issues == ("open",)
     assert found["空线"].last_beat is None
     assert found["空线"].chapters_since_last is None
+    assert found["空线"].gap_chapters == ()
     assert found["放弃的线"].issues == ()
     assert found["放弃的线"].chapters_since_last is None
+    assert found["放弃的线"].gap_chapters == ()
     assert found["倒序"].issues == ("payoff_before_plant", "payoff_still_active")
     assert found["倒序"].chapters_since_last is None
+    assert found["倒序"].gap_chapters == ()
     assert found["假回收"].issues == ("resolved_without_payoff",)
     assert found["假回收"].chapters_since_last is None
+    assert found["假回收"].gap_chapters == ()
     assert found["没埋就推"].issues == ("advance_without_plant", "open")
     assert found["没埋就推"].chapters_since_last == 1
+    assert [chapter.id for chapter in found["没埋就推"].gap_chapters] == ["c2"]
+    assert found["没埋就推"].gap_chapters[0].label == "2. 旧伤"
 
 
 def test_gap_counts_chapters_between_not_order_numbers() -> None:
@@ -135,8 +145,12 @@ def test_gap_counts_chapters_between_not_order_numbers() -> None:
         )
     }
     assert found["铜镜"].chapters_since_last == 1
+    assert [chapter.id for chapter in found["铜镜"].gap_chapters] == ["c-mid"]
+    assert found["铜镜"].gap_chapters[0].label == "40. 中间"
     assert found["刚过"].chapters_since_last == 0
+    assert found["刚过"].gap_chapters == ()
     assert found["独章"].chapters_since_last is None
+    assert found["独章"].gap_chapters == ()
 
     alone = assess_plot_threads(
         [("t1", "只有一章", "埋在这里", "active", 1)],
@@ -169,12 +183,127 @@ def test_resolved_and_abandoned_are_not_marked_cold() -> None:
         )
     }
     assert found["还开着"].chapters_since_last == 1
+    assert [chapter.label for chapter in found["还开着"].gap_chapters] == ["2. 空"]
     assert found["已收"].chapters_since_last is None
     assert found["已收"].issues == ()
+    assert found["已收"].gap_chapters == ()
     assert found["放弃"].chapters_since_last is None
     assert found["放弃"].issues == ()
+    assert found["放弃"].gap_chapters == ()
     assert found["倒序"].issues == ("payoff_before_plant", "payoff_still_active")
     assert found["倒序"].chapters_since_last is None
+    assert found["倒序"].gap_chapters == ()
+
+
+def test_gap_chapters_skip_last_beat_and_follow_reading_order() -> None:
+    """最后一次出现的那一章不进空档。中间后来又推进过的章，也不算在它前面的空章里。"""
+    chapters = [
+        _spot("c5", 5, "结局"),
+        _spot("c1", 1, "埋下"),
+        _spot("c4", 4, "空二"),
+        _spot("c2", 2, "  "),
+        _spot("c3", 3, "推进"),
+    ]
+    found = {
+        item.name: item
+        for item in assess_plot_threads(
+            [
+                ("t-open", "铜镜", "还没收", "active", 1),
+                ("t-near", "刚过", "结局前一章", "active", 2),
+                ("t-done", "已收", "收完了", "resolved", 3),
+            ],
+            [
+                ("b1", "t-open", "c1", "plant", "灯"),
+                ("b2", "t-open", "c3", "advance", "又提起"),
+                ("b3", "t-near", "c4", "plant", "刚出现"),
+                ("b4", "t-done", "c1", "plant", "埋"),
+                ("b5", "t-done", "c2", "payoff", "收"),
+            ],
+            chapters,
+        )
+    }
+    mirror = found["铜镜"]
+    assert mirror.chapters_since_last == 1
+    assert [chapter.id for chapter in mirror.gap_chapters] == ["c4"]
+    assert mirror.gap_chapters[0].label == "4. 空二"
+    assert "c1" not in [chapter.id for chapter in mirror.gap_chapters]
+    assert "c3" not in [chapter.id for chapter in mirror.gap_chapters]
+    assert "c5" not in [chapter.id for chapter in mirror.gap_chapters]
+    assert found["刚过"].chapters_since_last == 0
+    assert found["刚过"].gap_chapters == ()
+    assert found["已收"].gap_chapters == ()
+
+    blank = assess_plot_threads(
+        [("t1", "空标题", "还没收", "active", 1)],
+        [("b1", "t1", "c1", "plant", "灯")],
+        [_spot("c1", 1, "埋下"), _spot("c2", 2, "  "), _spot("c3", 3, "结局")],
+    )[0]
+    assert blank.gap_chapters[0].label == "2. 未命名章节"
+
+
+def test_gap_chapters_use_volume_order_not_ids() -> None:
+    """id 按字母会把后卷排到前面。空章仍按卷序，不含作为终点的卷末。"""
+    chapters = [
+        ChapterSpot(
+            id="z-later", title="后卷章", global_order=2, volume_title="第二卷"
+        ),
+        ChapterSpot(
+            id="a-early", title="前卷章", global_order=1, volume_title="第一卷"
+        ),
+        ChapterSpot(id="m-end", title="卷末", global_order=3, volume_title="第二卷"),
+    ]
+    assert reading_order_of(chapters) == ["a-early", "z-later", "m-end"]
+    found = assess_plot_threads(
+        [("t1", "铜镜", "还没收", "active", 1)],
+        [("b1", "t1", "a-early", "plant", "灯")],
+        chapters,
+    )[0]
+    assert found.chapters_since_last == 1
+    assert [(chapter.id, chapter.label) for chapter in found.gap_chapters] == [
+        ("z-later", "2. 后卷章")
+    ]
+    assert found.gap_range is None
+
+
+def test_gap_range_collapses_only_after_four_chapters() -> None:
+    """不超过 4 章逐章列出；第 5 章起默认收成首尾范围，完整名单仍按阅读顺序留着。"""
+    assert GAP_CHAPTER_PREVIEW == 4
+
+    def opened(count: int):
+        chapters = [
+            _spot(f"c{index}", index, f"第{index}章") for index in range(1, count + 1)
+        ]
+        return assess_plot_threads(
+            [("t1", "铜镜", "还没收", "active", 1)],
+            [("b1", "t1", "c1", "plant", "灯")],
+            chapters,
+        )[0]
+
+    within = opened(6)
+    assert within.chapters_since_last == 4
+    assert len(within.gap_chapters) == 4
+    assert [chapter.label for chapter in within.gap_chapters] == [
+        "2. 第2章",
+        "3. 第3章",
+        "4. 第4章",
+        "5. 第5章",
+    ]
+    assert within.gap_chapters[0].id == "c2"
+    assert within.gap_chapters[-1].id != "c6"
+    assert within.gap_range is None
+
+    beyond = opened(7)
+    assert beyond.chapters_since_last == 5
+    assert [chapter.id for chapter in beyond.gap_chapters] == [
+        "c2",
+        "c3",
+        "c4",
+        "c5",
+        "c6",
+    ]
+    assert beyond.gap_range == "2. 第2章 → 6. 第6章"
+    assert "c1" not in beyond.gap_range
+    assert "c7" not in beyond.gap_range
 
 
 def test_default_board_keeps_long_gap_threads_without_structural_issues() -> None:
@@ -551,8 +680,11 @@ async def test_gap_follows_reading_order_when_chapters_are_inserted(
     by_name = {item.thread.name: item.assessment for item in board.threads}
     assert [chapter.title for chapter in board.chapters] == ["埋下", "后文", "卷末"]
     assert by_name["铜镜"].chapters_since_last == 1
+    assert [chapter.id for chapter in by_name["铜镜"].gap_chapters] == [later.id]
+    assert by_name["铜镜"].gap_chapters[0].label == "2. 后文"
     assert by_name["已收"].chapters_since_last is None
     assert by_name["已收"].issues == ()
+    assert by_name["已收"].gap_chapters == ()
 
     inserted = _chapter(project.id, first.id, "插章", 3)
     session.add(inserted)
@@ -568,6 +700,12 @@ async def test_gap_follows_reading_order_when_chapters_are_inserted(
         "卷末",
     ]
     assert mirror.chapters_since_last == 2
+    assert [chapter.label for chapter in mirror.gap_chapters] == ["2. 插章", "3. 后文"]
+    assert [chapter.id for chapter in mirror.gap_chapters] == [inserted.id, later.id]
+    resolved_after = next(
+        item.assessment for item in widened.threads if item.thread.name == "已收"
+    )
+    assert resolved_after.gap_chapters == ()
 
     solo = Project(title="短篇", description="")
     session.add(solo)
@@ -586,3 +724,4 @@ async def test_gap_follows_reading_order_when_chapters_are_inserted(
     )
     solo_board = await plot_thread_service.get_board(session, solo.id)
     assert solo_board.threads[0].assessment.chapters_since_last is None
+    assert solo_board.threads[0].assessment.gap_chapters == ()

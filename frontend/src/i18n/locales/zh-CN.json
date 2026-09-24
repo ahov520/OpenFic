@@ -347,7 +347,7 @@
     "plotThreads": {
       "open": "情节线",
       "title": "情节线",
-      "description": "一条线挂在多章上。这里看它有没有埋下、推到哪一章、回收了没有，以及未回收的线到全书最后一章中间空了多少章。",
+      "description": "一条线挂在多章上。这里看它有没有埋下、推到哪一章、回收了没有，以及未回收的线到全书最后一章中间空在哪几章。",
       "create": "新建情节线",
       "name": "名称",
       "namePlaceholder": "例如：铜镜里的灯",
@@ -377,6 +377,9 @@
       "lastSeen": "最后出现在第 {{order}} 章「{{title}}」· {{kind}}",
       "gapToEnd": "到全书最后一章，中间空了 {{count}} 章",
       "gapToEndZero": "到全书最后一章中间没有空章，上一章刚出现过",
+      "gapChapters": "空在",
+      "expandGapChapters": "展开全部 {{count}} 章",
+      "collapseGapChapters": "收起",
       "considerAdvance": "「{{name}}」最后出现在第 {{order}} 章「{{title}}」，到这一章中间空了 {{count}} 章，可以考虑推进。",
       "neverSeen": "还没有挂到任何章节",
       "saveFailed": "保存情节线失败，请重试",

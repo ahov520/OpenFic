@@ -14,6 +14,7 @@ from app.api.schemas.plot_thread import (
     PlotBeatUpdate,
     PlotBoardResponse,
     PlotChapterOption,
+    PlotGapChapter,
     PlotIssue,
     PlotThreadCreate,
     PlotThreadResponse,
@@ -78,6 +79,11 @@ def _thread_response(
         last_global_order=last.global_order if last else None,
         last_kind=_beat_kind(last.kind) if last else None,
         chapters_since_last=assessment.chapters_since_last,
+        gap_chapters=[
+            PlotGapChapter(id=chapter.id, label=chapter.label)
+            for chapter in assessment.gap_chapters
+        ],
+        gap_range=assessment.gap_range,
         beats=[
             _beat_response(beats[spot.id], spot)
             for spot in assessment.beats

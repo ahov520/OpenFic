@@ -347,7 +347,7 @@
     "plotThreads": {
       "open": "Plot threads",
       "title": "Plot threads",
-      "description": "A thread runs across chapters. This view shows where it was planted, how far it got, whether it paid off, and how many chapters an open thread skips before the end of the book.",
+      "description": "A thread runs across chapters. This view shows where it was planted, how far it got, whether it paid off, and which chapters an open thread skips before the end of the book.",
       "create": "New thread",
       "name": "Name",
       "namePlaceholder": "For example: the lamp in the mirror",
@@ -377,6 +377,9 @@
       "lastSeen": "Last seen in chapter {{order}}, “{{title}}” · {{kind}}",
       "gapToEnd": "{{count}} chapters between its last beat and the end of the book",
       "gapToEndZero": "No chapters between its last beat and the end of the book; it appeared in the previous chapter",
+      "gapChapters": "Skipped",
+      "expandGapChapters": "Show all {{count}}",
+      "collapseGapChapters": "Show less",
       "considerAdvance": "“{{name}}” last appeared in chapter {{order}}, “{{title}}”. {{count}} chapters sit between that and this one. Consider advancing it.",
       "neverSeen": "Not attached to a chapter yet",
       "saveFailed": "Couldn't save the plot thread. Please try again.",

@@ -22,9 +22,16 @@ CONTEXT_TEXT_LIMIT = 80
 
 # 空 0 章表示上一章刚出现过，空 1、2 章多半是故意隔开一场，不打断写作。
 # 中间空到 3 章，读者已经连续经过三章没再遇见这条线，作者该决定当前章要不要推进。
-# Plottr、Campfire、Aeon Timeline 只把空档画在时间线上，不按章计数；这个数补上那一步。
-# 写作界面和 Agent 当前章上下文共用这一阈值。
+# Plottr 的空列是情节线和章节相交处的空白格子，能看出哪一列没有场景卡，但不列出缺失的场景名。
+# Aeon Timeline 的叙事视图只排列放进去的事件，两场之间的空是没放事件，不会报出缺了哪一场。
+# 这里除了按章计数，还按阅读顺序列出空章名称。写作界面和 Agent 当前章上下文共用这一阈值。
 STALE_CHAPTER_GAP = 3
+
+# 卡片默认逐章列出空章。4 章还能看完；从第 5 章起收成「首章 → 末章」，展开后再看全部。
+GAP_CHAPTER_PREVIEW = 4
+
+# 与写作界面里空标题的章节称呼一致。
+UNTITLED_CHAPTER_LABEL = "未命名章节"
 
 PLOT_PLAN_NOTICE = (
     "这些是作者计划的情节线，不是已经写进正文的事实。"
@@ -119,6 +126,14 @@ class BeatSpot:
 
 
 @dataclass(frozen=True)
+class GapChapter:
+    """阅读顺序中的一章空档。label 与总览章节称呼一致：全局序. 标题。"""
+
+    id: str
+    label: str
+
+
+@dataclass(frozen=True)
 class ThreadAssessment:
     """一条线在全书里的形状，以及能直接看见的问题。"""
 
@@ -133,6 +148,8 @@ class ThreadAssessment:
     has_payoff: bool
     last_beat: BeatSpot | None
     chapters_since_last: int | None
+    gap_chapters: tuple[GapChapter, ...]
+    gap_range: str | None
 
 
 def chapters_between(
@@ -159,6 +176,48 @@ def reading_order_of(chapters: list[ChapterSpot]) -> list[str]:
     """章节 id 的阅读顺序。global_order 只用来排序，不拿来相减。"""
     ordered = sorted(chapters, key=lambda chapter: (chapter.global_order, chapter.id))
     return [chapter.id for chapter in ordered]
+
+
+def chapter_display_label(global_order: int, title: str) -> str:
+    """与总览里的章节称呼一致：全局阅读序、点、标题。空标题用未命名章节。"""
+    name = title.strip() or UNTITLED_CHAPTER_LABEL
+    return f"{global_order}. {name}"
+
+
+def chapters_in_gap(
+    chapters: list[ChapterSpot],
+    reading_order: list[str],
+    earlier_id: str,
+    later_id: str,
+) -> tuple[GapChapter, ...]:
+    """按阅读顺序列出两章中间的章节。不含两端。紧挨着或顺序颠倒时为空。"""
+    try:
+        earlier = reading_order.index(earlier_id)
+        later = reading_order.index(later_id)
+    except ValueError:
+        return ()
+    if later <= earlier + 1:
+        return ()
+    by_id = {chapter.id: chapter for chapter in chapters}
+    found: list[GapChapter] = []
+    for chapter_id in reading_order[earlier + 1 : later]:
+        chapter = by_id.get(chapter_id)
+        if chapter is None:
+            continue
+        found.append(
+            GapChapter(
+                id=chapter.id,
+                label=chapter_display_label(chapter.global_order, chapter.title),
+            )
+        )
+    return tuple(found)
+
+
+def gap_range_label(chapters: tuple[GapChapter, ...]) -> str | None:
+    """超过预览条数时，卡片默认展示的首尾范围。不超过则返回空，由界面逐章列出。"""
+    if len(chapters) <= GAP_CHAPTER_PREVIEW:
+        return None
+    return f"{chapters[0].label} → {chapters[-1].label}"
 
 
 def assess_plot_threads(
@@ -208,6 +267,7 @@ def assess_plot_threads(
                 status=status if status in THREAD_STATUSES else DEFAULT_THREAD_STATUS,
                 sort_order=sort_order,
                 beats=placed,
+                chapters=chapters,
                 reading_order=reading_order,
             )
         )
@@ -222,6 +282,7 @@ def _assess_one(
     status: str,
     sort_order: int,
     beats: tuple[BeatSpot, ...],
+    chapters: list[ChapterSpot],
     reading_order: list[str],
 ) -> ThreadAssessment:
     plant_orders = [beat.global_order for beat in beats if beat.kind == "plant"]
@@ -250,18 +311,26 @@ def _assess_one(
         issues.append(ISSUE_OPEN)
 
     last_beat = beats[-1] if beats else None
-    # 已回收、已放弃，或已经有回收节拍的线，不标成凉了。
+    # 已回收、已放弃，或已经有回收节拍的线，不标成凉了，也不列空章。
     # 最后一次节拍就在全书最后一章时也没有空档。
+    # 空章是最后一次节拍所在章和全书最后一章之间的章节，不含这两端。
+    # 空 0 时列表为空。顺序只来自阅读顺序，不用数据库 id。
     chapters_since_last = None
+    gap_chapters: tuple[GapChapter, ...] = ()
     if (
         status == "active"
         and not has_payoff
         and last_beat is not None
         and reading_order
     ):
+        end_id = reading_order[-1]
         chapters_since_last = chapters_between(
-            reading_order, last_beat.chapter_id, reading_order[-1]
+            reading_order, last_beat.chapter_id, end_id
         )
+        if chapters_since_last:
+            gap_chapters = chapters_in_gap(
+                chapters, reading_order, last_beat.chapter_id, end_id
+            )
 
     return ThreadAssessment(
         id=thread_id,
@@ -275,6 +344,8 @@ def _assess_one(
         has_payoff=has_payoff,
         last_beat=last_beat,
         chapters_since_last=chapters_since_last,
+        gap_chapters=gap_chapters,
+        gap_range=gap_range_label(gap_chapters),
     )
 
 

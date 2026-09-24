@@ -11,6 +11,12 @@ export interface PlotChapterOption {
   volumeTitle: string;
 }
 
+export interface PlotGapChapter {
+  id: string;
+  /** 后端按阅读顺序给出的章节称呼，与总览里的「序. 标题」一致。 */
+  label: string;
+}
+
 export interface PlotBeat {
   id: string;
   threadId: string;
@@ -38,6 +44,10 @@ export interface PlotThread {
   lastKind: PlotBeatKind | null;
   /** 到全书最后一章中间空了多少章。0 表示上一章刚出现过。没有空档时为 null。 */
   chaptersSinceLast: number | null;
+  /** 空章，顺序只认后端。空 0、已回收、已放弃时为空。 */
+  gapChapters: PlotGapChapter[];
+  /** 超过 4 章时后端给出的首尾范围。为空则逐章列出 gapChapters。 */
+  gapRange: string | null;
   beats: PlotBeat[];
 }
 

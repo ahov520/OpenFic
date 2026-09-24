@@ -129,6 +129,25 @@
   color: var(--gray-12);
 }
 
+.plot-thread-chip--gap {
+  border: 1px dashed var(--amber-a8);
+  background: transparent;
+  color: var(--amber-11);
+  cursor: pointer;
+}
+
+.plot-thread-gap-chapters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.plot-thread-gap-range {
+  color: var(--gray-12);
+  font-size: var(--font-size-1, 12px);
+}
+
 .plot-thread-last,
 .plot-thread-gap,
 .plot-thread-quiet {

@@ -67,6 +67,13 @@ class PlotChapterOption(BaseModel):
     volume_title: str
 
 
+class PlotGapChapter(BaseModel):
+    """最后一次节拍和全书最后一章之间、完全没有这条线的一章。"""
+
+    id: str
+    label: str = Field(description="与总览章节称呼一致：全局阅读序. 标题")
+
+
 class PlotBeatResponse(BaseModel):
     """章节上的一个节拍。"""
 
@@ -104,6 +111,22 @@ class PlotThreadResponse(BaseModel):
             "进行中且尚未回收时，最后一次节拍到全书最后一章中间空了多少章。"
             "0 表示上一章刚出现过。已回收、已放弃，或最后一章仍在这条线上，则为空。"
             "这是相对全书末章，不是相对作者正在看的章。"
+        ),
+    )
+    gap_chapters: list[PlotGapChapter] = Field(
+        default_factory=list,
+        description=(
+            "进行中且没有回收节拍时，最后一次节拍所在章到全书最后一章之间、"
+            "完全没有这条线节拍的章节。按卷序和卷内章节序排列，不含这两端。"
+            "条数与 chapters_since_last 一致；空 0、已回收、已放弃时为空列表。"
+            "前端按这个顺序展示，不要自己重排。"
+        ),
+    )
+    gap_range: str | None = Field(
+        default=None,
+        description=(
+            "空章超过 4 章时，卡片默认展示的首尾范围，例如「2. 对上 → 6. 结局」。"
+            "不超过 4 章时为空，界面按 gap_chapters 逐章列出。展开后仍用 gap_chapters 的顺序。"
         ),
     )
     beats: list[PlotBeatResponse]

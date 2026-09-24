@@ -274,9 +274,27 @@ async def test_board_reports_chapters_since_last_and_context_threshold(
     by_name = {item["name"]: item for item in board["threads"]}
     assert by_name["铜镜"]["chapters_since_last"] == 4
     assert by_name["铜镜"]["last_chapter_title"] == "埋下"
+    assert [item["id"] for item in by_name["铜镜"]["gap_chapters"]] == [
+        chapter["id"] for chapter in chapters[1:5]
+    ]
+    assert [item["label"] for item in by_name["铜镜"]["gap_chapters"]] == [
+        "2. 二",
+        "3. 三",
+        "4. 四",
+        "5. 五",
+    ]
+    assert by_name["铜镜"]["gap_range"] is None
+    assert chapters[0]["id"] not in [
+        item["id"] for item in by_name["铜镜"]["gap_chapters"]
+    ]
+    assert chapters[5]["id"] not in [
+        item["id"] for item in by_name["铜镜"]["gap_chapters"]
+    ]
     assert by_name["后文"]["chapters_since_last"] is None
+    assert by_name["后文"]["gap_chapters"] == []
     assert by_name["后文"]["issues"] == ["payoff_still_active"]
     assert by_name["已收"]["chapters_since_last"] is None
+    assert by_name["已收"]["gap_chapters"] == []
     assert by_name["已收"]["issues"] == []
 
     async def context_for(index: int) -> dict:
@@ -305,3 +323,103 @@ async def test_board_reports_chapters_since_last_and_context_threshold(
     rendered = json.dumps(at_threshold, ensure_ascii=False)
     assert "镜子里是凶手" not in rendered
     assert "已收" not in rendered
+
+
+@pytest.mark.asyncio
+async def test_gap_chapters_follow_inserts_volumes_and_collapse(
+    client: AsyncClient,
+) -> None:
+    """插进中间的章会进入空章列表；已回收没有空章；跨卷按卷序；超过 4 章才收成范围。"""
+    project_id, volume_id = await _create_project(client)
+    planted = await _create_chapter(client, project_id, volume_id, "埋下")
+    ending = await _create_chapter(client, project_id, volume_id, "结局")
+    mirror = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "铜镜", "intent": "还没收"},
+        )
+    ).json()
+    done = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "已收", "intent": "收完了", "status": "resolved"},
+        )
+    ).json()
+    await client.post(
+        f"/api/v1/plot-threads/{mirror['id']}/beats",
+        json={"chapter_id": planted["id"], "kind": "plant", "note": "灯"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{done['id']}/beats",
+        json={"chapter_id": planted["id"], "kind": "plant", "note": "埋"},
+    )
+    await client.post(
+        f"/api/v1/plot-threads/{done['id']}/beats",
+        json={"chapter_id": ending["id"], "kind": "payoff", "note": "收"},
+    )
+
+    def thread_named(board: dict, name: str) -> dict:
+        return next(item for item in board["threads"] if item["name"] == name)
+
+    adjacent = (await client.get(f"/api/v1/projects/{project_id}/plot-threads")).json()
+    assert thread_named(adjacent, "铜镜")["chapters_since_last"] == 0
+    assert thread_named(adjacent, "铜镜")["gap_chapters"] == []
+    assert thread_named(adjacent, "铜镜")["gap_range"] is None
+    assert thread_named(adjacent, "已收")["gap_chapters"] == []
+
+    inserted = await _create_chapter(client, project_id, volume_id, "插章")
+    reordered = await client.post(
+        "/api/v1/chapters/reorder",
+        json={
+            "volume_id": volume_id,
+            "chapter_ids": [planted["id"], inserted["id"], ending["id"]],
+        },
+    )
+    assert reordered.status_code == 200
+    widened = (await client.get(f"/api/v1/projects/{project_id}/plot-threads")).json()
+    mirror_gap = thread_named(widened, "铜镜")["gap_chapters"]
+    assert [item["id"] for item in mirror_gap] == [inserted["id"]]
+    assert [item["label"] for item in mirror_gap] == ["2. 插章"]
+    assert thread_named(widened, "已收")["gap_chapters"] == []
+
+    second = await client.post(
+        f"/api/v1/projects/{project_id}/volumes",
+        json={"title": "第二卷"},
+    )
+    assert second.status_code == 201
+    finale = await _create_chapter(client, project_id, second.json()["id"], "卷末")
+    extra = [
+        await _create_chapter(client, project_id, volume_id, title)
+        for title in ("甲", "乙", "丙")
+    ]
+    across = (await client.get(f"/api/v1/projects/{project_id}/plot-threads")).json()
+    listed = thread_named(across, "铜镜")
+    assert [chapter["title"] for chapter in across["chapters"]] == [
+        "埋下",
+        "插章",
+        "结局",
+        "甲",
+        "乙",
+        "丙",
+        "卷末",
+    ]
+    assert [item["id"] for item in listed["gap_chapters"]] == [
+        inserted["id"],
+        ending["id"],
+        extra[0]["id"],
+        extra[1]["id"],
+        extra[2]["id"],
+    ]
+    assert [item["label"] for item in listed["gap_chapters"]] == [
+        "2. 插章",
+        "3. 结局",
+        "4. 甲",
+        "5. 乙",
+        "6. 丙",
+    ]
+    assert finale["id"] not in [item["id"] for item in listed["gap_chapters"]]
+    assert planted["id"] not in [item["id"] for item in listed["gap_chapters"]]
+    assert listed["chapters_since_last"] == 5
+    assert listed["gap_range"] == "2. 插章 → 6. 丙"
+    assert thread_named(across, "已收")["gap_chapters"] == []
+    assert thread_named(across, "已收")["gap_range"] is None
