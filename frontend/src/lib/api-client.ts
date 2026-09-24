@@ -7,7 +7,7 @@
 import axios from "axios";
 
 import { normalizeWritingStatus } from "./chapter-plan";
-import type { MarginNote, MarginNoteCreate, MarginNoteUpdate } from "./margin-note";
+import type { MarginNote, MarginNoteCreate, MarginNoteUpdate, OpenMarginNote } from "./margin-note";
 import { getConfiguredBackendBaseUrl, getRuntimeConfig } from "./runtime-config";
 import type { ThemeConfigResponse } from "./theme";
 
@@ -949,6 +949,24 @@ function transformMarginNote(raw: Record<string, unknown>): MarginNote {
     createdAt: String(raw.created_at ?? ""),
     updatedAt: String(raw.updated_at ?? ""),
   };
+}
+
+function transformOpenMarginNote(raw: Record<string, unknown>): OpenMarginNote {
+  return {
+    id: String(raw.id),
+    chapterId: String(raw.chapter_id),
+    chapterTitle: typeof raw.chapter_title === "string" ? raw.chapter_title : "",
+    anchorText: typeof raw.anchor_text === "string" ? raw.anchor_text : "",
+    body: typeof raw.body === "string" ? raw.body : "",
+    createdAt: String(raw.created_at ?? ""),
+  };
+}
+
+export async function fetchOpenMarginNotes(projectId: string): Promise<OpenMarginNote[]> {
+  const response = await apiClient.get<Record<string, unknown>[]>(
+    `/projects/${projectId}/margin-notes`,
+  );
+  return response.data.map(transformOpenMarginNote);
 }
 
 export async function fetchMarginNotes(chapterId: string): Promise<MarginNote[]> {

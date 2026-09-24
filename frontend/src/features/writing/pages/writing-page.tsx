@@ -14,6 +14,7 @@ import type { AssistantSidebarState } from "@/features/assistant";
 import { useMobileSidebarSwipe } from "@/hooks/use-mobile-sidebar-swipe";
 import { usePersistedPanelLayout } from "@/hooks/use-persisted-panel-layout";
 import { getLastChapterId, setLastChapterId } from "@/lib/local-db";
+import type { OpenMarginNote } from "@/lib/margin-note";
 
 import { ChapterEditor } from "../components/chapter-editor";
 import { EditorTabs, EmptyTabContent } from "../components/editor-tabs";
@@ -23,6 +24,7 @@ import { WritingSidebar } from "../components/writing-sidebar";
 import { useCreateChapter } from "../hooks/use-chapters";
 import { useNoteTree } from "../hooks/use-notes";
 import { useCreateVolume, useVolumeTree } from "../hooks/use-volumes";
+import { requestMarginNoteFocus } from "../lib/margin-note-focus";
 import {
   decideWritingOpen,
   nextReturnTarget,
@@ -46,6 +48,11 @@ const ChapterCorkboard = lazy(() =>
 const PlotThreadBoard = lazy(() =>
   import("../components/plot-thread-board").then((module) => ({
     default: module.PlotThreadBoard,
+  })),
+);
+const OpenMarginNotesList = lazy(() =>
+  import("../components/open-margin-notes-list").then((module) => ({
+    default: module.OpenMarginNotesList,
   })),
 );
 
@@ -143,6 +150,8 @@ export function WritingPage() {
   const [hasOpenedCorkboard, setHasOpenedCorkboard] = useState(false);
   const [isPlotThreadsOpen, setIsPlotThreadsOpen] = useState(false);
   const [hasOpenedPlotThreads, setHasOpenedPlotThreads] = useState(false);
+  const [isOpenNotesOpen, setIsOpenNotesOpen] = useState(false);
+  const [hasOpenedOpenNotes, setHasOpenedOpenNotes] = useState(false);
   const [hasEditorSelection, setHasEditorSelection] = useState(false);
   const addSelectionToConversationRef = useRef<(() => void) | null>(null);
   const [assistantState, setAssistantState] = useState<AssistantSidebarState>({
@@ -514,6 +523,26 @@ export function WritingPage() {
     setIsPlotThreadsOpen(true);
   }, []);
 
+  const handleOpenMarginNotes = useCallback(() => {
+    setHasOpenedOpenNotes(true);
+    setIsOpenNotesOpen(true);
+  }, []);
+
+  const handleOpenNotesOpenChange = useCallback((open: boolean) => {
+    if (open) setHasOpenedOpenNotes(true);
+    setIsOpenNotesOpen(open);
+  }, []);
+
+  const handleOpenMarginNote = useCallback(
+    (note: OpenMarginNote) => {
+      const title = note.chapterTitle || t("writing.untitledChapter");
+      handleChapterSelect(note.chapterId, title);
+      requestMarginNoteFocus(note.chapterId, note.id);
+      setIsOpenNotesOpen(false);
+    },
+    [handleChapterSelect, t],
+  );
+
   const handlePlotThreadsOpenChange = useCallback((open: boolean) => {
     if (open) setHasOpenedPlotThreads(true);
     setIsPlotThreadsOpen(open);
@@ -547,6 +576,7 @@ export function WritingPage() {
       onOpenSummary={handleOpenSummary}
       onOpenCorkboard={handleOpenCorkboard}
       onOpenPlotThreads={handleOpenPlotThreads}
+      onOpenMarginNotes={handleOpenMarginNotes}
     />
   );
 
@@ -766,6 +796,7 @@ export function WritingPage() {
                   onOpenSummary={handleOpenSummary}
                   onOpenCorkboard={handleOpenCorkboard}
                   onOpenPlotThreads={handleOpenPlotThreads}
+                  onOpenMarginNotes={handleOpenMarginNotes}
                 />
               </Box>
             </div>
@@ -813,6 +844,16 @@ export function WritingPage() {
             onOpenChange={handlePlotThreadsOpenChange}
             onOpenChapter={handleOpenChapterFromCorkboard}
             isAgentLocked={isAgentLocked}
+          />
+        </Suspense>
+      )}
+      {hasOpenedOpenNotes && (
+        <Suspense fallback={null}>
+          <OpenMarginNotesList
+            projectId={projectId}
+            open={isOpenNotesOpen}
+            onOpenChange={handleOpenNotesOpenChange}
+            onOpenNote={handleOpenMarginNote}
           />
         </Suspense>
       )}

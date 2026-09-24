@@ -56,6 +56,15 @@ export function marginMarkClass(kind: MarginMark): string {
   return kind === "weak" ? STRUCK_MARGIN_MARK_CLASS : OPEN_MARGIN_MARK_CLASS;
 }
 
+export interface OpenMarginNote {
+  id: string;
+  chapterId: string;
+  chapterTitle: string;
+  anchorText: string;
+  body: string;
+  createdAt: string;
+}
+
 export interface AnchorHit {
   aligned: boolean;
   start: number | null;

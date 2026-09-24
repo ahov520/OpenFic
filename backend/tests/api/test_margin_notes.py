@@ -458,3 +458,116 @@ async def test_chapter_list_counts_open_margin_notes_only(client: AsyncClient) -
     cleared = _list_counts(after.json())
     assert cleared[marked["id"]] == 0
     assert cleared[quiet["id"]] == 0
+
+async def _note(
+    client: AsyncClient,
+    chapter_id: str,
+    anchor: str,
+    body: str,
+) -> dict:
+    response = await client.post(
+        f"/api/v1/chapters/{chapter_id}/margin-notes",
+        json={"anchor_text": anchor, "body": body},
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+@pytest.mark.asyncio
+async def test_open_margin_notes_follow_reading_order_and_drop_when_struck(
+    client: AsyncClient,
+) -> None:
+    """两章各一条时按阅读顺序；已划掉不出现；划掉或删除后这条从清单消失。"""
+    project_id, volume_id = await _create_project(client)
+    earlier = await client.post(
+        f"/api/v1/projects/{project_id}/chapters",
+        json={"volume_id": volume_id, "title": "前章", "content": "他推开门。"},
+    )
+    later = await client.post(
+        f"/api/v1/projects/{project_id}/chapters",
+        json={"volume_id": volume_id, "title": "后章", "content": "灯还亮着。"},
+    )
+    assert earlier.status_code == 201
+    assert later.status_code == 201
+    second_volume = await client.post(
+        f"/api/v1/projects/{project_id}/volumes",
+        json={"title": "第二卷"},
+    )
+    assert second_volume.status_code == 201
+    finale = await client.post(
+        f"/api/v1/projects/{project_id}/chapters",
+        json={
+            "volume_id": second_volume.json()["id"],
+            "title": "卷末",
+            "content": "走廊尽头。",
+        },
+    )
+    assert finale.status_code == 201
+    earlier_id = earlier.json()["id"]
+    later_id = later.json()["id"]
+    finale_id = finale.json()["id"]
+
+    finale_note = await _note(
+        client, finale_id, "走廊尽头。", "卷末先记下，但应排在最后"
+    )
+    later_note = await _note(client, later_id, "灯还亮着。", "后章的问题")
+    struck = await _note(client, later_id, "灯还亮着。", "这句已经处理")
+    earlier_first = await _note(client, earlier_id, "他推开门。", "前章先记")
+    earlier_second = await _note(client, earlier_id, "他推开门。", "前章后记")
+    struck_response = await client.patch(
+        f"/api/v1/chapters/{later_id}/margin-notes/{struck['id']}",
+        json={"status": "struck"},
+    )
+    assert struck_response.status_code == 200
+
+    listed = await client.get(f"/api/v1/projects/{project_id}/margin-notes")
+    assert listed.status_code == 200
+    notes = listed.json()
+    assert [item["id"] for item in notes] == [
+        earlier_first["id"],
+        earlier_second["id"],
+        later_note["id"],
+        finale_note["id"],
+    ]
+    assert [item["chapter_title"] for item in notes] == ["前章", "前章", "后章", "卷末"]
+    assert [item["body"] for item in notes] == [
+        "前章先记",
+        "前章后记",
+        "后章的问题",
+        "卷末先记下，但应排在最后",
+    ]
+    assert notes[0]["anchor_text"] == "他推开门。"
+    assert notes[2]["chapter_id"] == later_id
+    assert all(item["body"] != "这句已经处理" for item in notes)
+
+    struck_later = await client.patch(
+        f"/api/v1/chapters/{later_id}/margin-notes/{later_note['id']}",
+        json={"status": "struck"},
+    )
+    assert struck_later.status_code == 200
+    after_strike = await client.get(f"/api/v1/projects/{project_id}/margin-notes")
+    assert [item["id"] for item in after_strike.json()] == [
+        earlier_first["id"],
+        earlier_second["id"],
+        finale_note["id"],
+    ]
+
+    deleted = await client.delete(
+        f"/api/v1/chapters/{earlier_id}/margin-notes/{earlier_first['id']}"
+    )
+    assert deleted.status_code == 204
+    after_delete = await client.get(f"/api/v1/projects/{project_id}/margin-notes")
+    assert [item["id"] for item in after_delete.json()] == [
+        earlier_second["id"],
+        finale_note["id"],
+    ]
+
+
+@pytest.mark.asyncio
+async def test_open_margin_notes_on_empty_project_is_an_empty_list(
+    client: AsyncClient,
+) -> None:
+    project_id, _volume_id = await _create_project(client)
+    listed = await client.get(f"/api/v1/projects/{project_id}/margin-notes")
+    assert listed.status_code == 200
+    assert listed.json() == []

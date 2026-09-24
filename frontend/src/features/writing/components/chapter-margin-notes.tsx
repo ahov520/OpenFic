@@ -17,6 +17,7 @@ import {
   useMarginNotes,
   useUpdateMarginNote,
 } from "../hooks/use-margin-notes";
+import { consumeMarginNoteFocus, useMarginNoteFocus } from "../lib/margin-note-focus";
 import {
   editorPlainText,
   MARGIN_NOTE_OPEN_EVENT,
@@ -77,6 +78,7 @@ export function ChapterMarginNotes({
   const seenRequest = useRef(0);
   const panelRef = useRef<HTMLElement>(null);
   const struckDetailsRef = useRef<HTMLDetailsElement>(null);
+  const focus = useMarginNoteFocus(chapterId);
 
   useEffect(() => {
     if (!editor) return;
@@ -225,6 +227,39 @@ export function ChapterMarginNotes({
     };
   }, [editor, revealNote]);
 
+  useEffect(() => {
+    if (!focus || !editor || !data) return;
+    const note = data.find((item) => item.id === focus.noteId);
+    if (!note) return;
+    const token = focus.token;
+    let cancelled = false;
+    let frame = 0;
+    let raf = 0;
+    const step = () => {
+      if (cancelled) return;
+      frame += 1;
+      if (frame < 3) {
+        raf = window.requestAnimationFrame(step);
+        return;
+      }
+      const element = panelRef.current?.querySelector<HTMLElement>(
+        `[data-margin-note-id="${CSS.escape(note.id)}"]`,
+      );
+      if (!element) return;
+      focusNote(note);
+      raf = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        element.scrollIntoView({ block: "center", behavior: "smooth" });
+        consumeMarginNoteFocus(token);
+      });
+    };
+    raf = window.requestAnimationFrame(step);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf);
+    };
+  }, [data, editor, focus, focusNote]);
+
   const save = async () => {
     if (!draft || disabled) return;
     const trimmed = body.trim();
@@ -307,6 +342,7 @@ export function ChapterMarginNotes({
       <article
         key={note.id}
         id={`margin-note-${note.id}`}
+        data-margin-note-id={note.id}
         className={`chapter-margin-notes__item${struck ? " chapter-margin-notes__item--struck" : ""}${
           openedNoteId === note.id ? " chapter-margin-notes__item--current" : ""
         }`}

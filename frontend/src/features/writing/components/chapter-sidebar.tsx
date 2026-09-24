@@ -48,6 +48,7 @@ interface ChapterSidebarProps {
   onOpenSummary?: () => void;
   onOpenCorkboard?: () => void;
   onOpenPlotThreads?: () => void;
+  onOpenMarginNotes?: () => void;
 }
 
 export function ChapterSidebar({
@@ -60,6 +61,7 @@ export function ChapterSidebar({
   onOpenSummary,
   onOpenCorkboard,
   onOpenPlotThreads,
+  onOpenMarginNotes,
 }: ChapterSidebarProps) {
   const { t } = useTranslation();
 
@@ -581,6 +583,7 @@ export function ChapterSidebar({
         onOpenSummary={onOpenSummary}
         onOpenCorkboard={onOpenCorkboard}
         onOpenPlotThreads={onOpenPlotThreads}
+        onOpenMarginNotes={onOpenMarginNotes}
         onExport={() => setChapterExportOpen(true)}
         onSaveOrder={handleSaveOrder}
         onCancelOrder={handleCancelOrder}

@@ -29,6 +29,18 @@ class MarginNoteView:
     end: int | None
 
 
+@dataclass(frozen=True)
+class OpenMarginNote:
+    """清单上的一条未划掉旁注。章节称呼用章节标题，和侧栏同一字段。"""
+
+    id: str
+    chapter_id: str
+    chapter_title: str
+    anchor_text: str
+    body: str
+    created_at: datetime
+
+
 def _view(note: ChapterMarginNote, content: str) -> MarginNoteView:
     hit = locate_anchor(
         content, note.anchor_text, note.context_before, note.context_after
@@ -41,6 +53,24 @@ async def _chapter_or_raise(session: AsyncSession, chapter_id: str):
     if chapter is None:
         raise NotFoundError("章节不存在")
     return chapter
+
+
+async def list_open_margin_notes(
+    session: AsyncSession, project_id: str
+) -> list[OpenMarginNote]:
+    """一次查出全书未划掉的旁注。已划掉的不返回。没有旁注时是空列表。"""
+    rows = await margin_note_repo.list_open_by_project(session, project_id)
+    return [
+        OpenMarginNote(
+            id=note.id,
+            chapter_id=note.chapter_id,
+            chapter_title=title,
+            anchor_text=note.anchor_text,
+            body=note.body,
+            created_at=note.created_at,
+        )
+        for note, title in rows
+    ]
 
 
 async def list_margin_notes(
