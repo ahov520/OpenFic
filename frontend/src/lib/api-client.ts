@@ -131,10 +131,6 @@ export async function checkHealth(): Promise<HealthResponse> {
 
 import type { ChapterExport, ChapterExportCreate } from "./chapter-export.types";
 import type {
-  CreationEvidenceReport,
-  CreationEvidenceReportCreate,
-} from "./creation-evidence.types";
-import type {
   Character,
   CharacterCreate,
   CharacterListItem,
@@ -143,6 +139,10 @@ import type {
   CharacterUpdate,
 } from "./character.types";
 import type { AgentComposerItems, AssistantCommandCandidate } from "./command.types";
+import type {
+  CreationEvidenceReport,
+  CreationEvidenceReportCreate,
+} from "./creation-evidence.types";
 import type { AssistantMentionCandidate } from "./mention.types";
 import type {
   Project,
@@ -290,9 +290,7 @@ export async function fetchCreationEvidenceReport(
   projectId: string,
   jobId: string,
 ): Promise<CreationEvidenceReport> {
-  const response = await apiClient.get(
-    `/projects/${projectId}/creation-evidence-reports/${jobId}`,
-  );
+  const response = await apiClient.get(`/projects/${projectId}/creation-evidence-reports/${jobId}`);
   return transformCreationEvidenceReport(response.data);
 }
 

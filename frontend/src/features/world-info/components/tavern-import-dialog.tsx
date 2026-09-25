@@ -1,4 +1,14 @@
-import { Badge, Box, Button, Checkbox, Dialog, Flex, ScrollArea, Text, TextField } from "@radix-ui/themes";
+import {
+  Badge,
+  Box,
+  Button,
+  Checkbox,
+  Dialog,
+  Flex,
+  ScrollArea,
+  Text,
+  TextField,
+} from "@radix-ui/themes";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -41,7 +51,9 @@ export function TavernImportDialog({
     try {
       const next = await previewTavernMaterial(projectId, file, userName);
       setPreview(next);
-      setSelectedBlocks(next.blocks.filter((block) => block.included).map((block) => block.blockId));
+      setSelectedBlocks(
+        next.blocks.filter((block) => block.included).map((block) => block.blockId),
+      );
     } catch {
       toast.error(t("worldInfo.importParseFailed"));
     } finally {
@@ -81,10 +93,17 @@ export function TavernImportDialog({
     >
       <Dialog.Content style={{ maxWidth: 640 }}>
         <Dialog.Title>{t("worldInfo.tavernTitle")}</Dialog.Title>
-        <Dialog.Description size="2" color="gray" mb="3">
+        <Dialog.Description
+          size="2"
+          color="gray"
+          mb="3"
+        >
           {t("worldInfo.tavernHint")}
         </Dialog.Description>
-        <Flex direction="column" gap="3">
+        <Flex
+          direction="column"
+          gap="3"
+        >
           <input
             type="file"
             accept=".json,.png,application/json,image/png"
@@ -100,7 +119,10 @@ export function TavernImportDialog({
             onChange={(event) => setUserName(event.target.value)}
           />
           <Flex gap="2">
-            <Button variant={mode === "append" ? "solid" : "soft"} onClick={() => setMode("append")}>
+            <Button
+              variant={mode === "append" ? "solid" : "soft"}
+              onClick={() => setMode("append")}
+            >
               {t("worldInfo.importModeAppend")}
             </Button>
             <Button
@@ -109,19 +131,28 @@ export function TavernImportDialog({
             >
               {t("worldInfo.importModeOverwrite")}
             </Button>
-            <Button disabled={!file || busy} onClick={() => void handlePreview()}>
+            <Button
+              disabled={!file || busy}
+              onClick={() => void handlePreview()}
+            >
               {t("worldInfo.tavernPreview")}
             </Button>
           </Flex>
           {preview ? (
             <ScrollArea style={{ maxHeight: 360 }}>
-              <Flex direction="column" gap="2">
+              <Flex
+                direction="column"
+                gap="2"
+              >
                 <Text size="2">
                   {preview.kind}
                   {preview.characterName ? ` · ${preview.characterName}` : ""}
                   {preview.presetName ? ` · ${preview.presetName}` : ""}
                 </Text>
-                <Text size="2" color="gray">
+                <Text
+                  size="2"
+                  color="gray"
+                >
                   {t("worldInfo.importConstantCount")} {preview.constantCount} ·{" "}
                   {t("worldInfo.importKeywordCount")} {preview.keywordCount}
                 </Text>
@@ -129,12 +160,19 @@ export function TavernImportDialog({
                   <Text size="2">{preview.descriptionPreview}</Text>
                 ) : null}
                 {preview.discarded.length > 0 ? (
-                  <Text size="2" color="gray">
+                  <Text
+                    size="2"
+                    color="gray"
+                  >
                     {t("worldInfo.tavernDiscarded")}: {preview.discarded.join("、")}
                   </Text>
                 ) : null}
                 {preview.loreEntries.slice(0, 12).map((entry) => (
-                  <Flex key={`${entry.name}-${entry.keywords.join("|")}`} gap="2" align="center">
+                  <Flex
+                    key={`${entry.name}-${entry.keywords.join("|")}`}
+                    gap="2"
+                    align="center"
+                  >
                     <Badge color={entry.isConstant ? "blue" : "gray"}>
                       {entry.isConstant ? t("worldInfo.constantEntry") : entry.keywords.join(", ")}
                     </Badge>
@@ -142,7 +180,11 @@ export function TavernImportDialog({
                   </Flex>
                 ))}
                 {preview.blocks.map((block) => (
-                  <Flex key={block.blockId} gap="2" align="start">
+                  <Flex
+                    key={block.blockId}
+                    gap="2"
+                    align="start"
+                  >
                     <Checkbox
                       checked={selectedBlocks.includes(block.blockId)}
                       disabled={block.bucket === "discarded"}
@@ -155,7 +197,10 @@ export function TavernImportDialog({
                       }}
                     />
                     <Box>
-                      <Text size="2" weight="medium">
+                      <Text
+                        size="2"
+                        weight="medium"
+                      >
                         {block.bucket === "rule"
                           ? t("worldInfo.tavernRules")
                           : block.bucket === "skill"
@@ -164,7 +209,10 @@ export function TavernImportDialog({
                         {" · "}
                         {block.name}
                       </Text>
-                      <Text size="1" color="gray">
+                      <Text
+                        size="1"
+                        color="gray"
+                      >
                         {block.reason}
                         {block.contentPreview ? ` — ${block.contentPreview}` : ""}
                       </Text>
@@ -174,13 +222,22 @@ export function TavernImportDialog({
               </Flex>
             </ScrollArea>
           ) : null}
-          <Flex justify="end" gap="2">
+          <Flex
+            justify="end"
+            gap="2"
+          >
             <Dialog.Close>
-              <Button variant="soft" color="gray">
+              <Button
+                variant="soft"
+                color="gray"
+              >
                 {t("common.cancel")}
               </Button>
             </Dialog.Close>
-            <Button disabled={!preview || busy} onClick={() => void handleImport()}>
+            <Button
+              disabled={!preview || busy}
+              onClick={() => void handleImport()}
+            >
               {t("worldInfo.tavernConfirm")}
             </Button>
           </Flex>

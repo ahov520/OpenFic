@@ -11,6 +11,7 @@ import { PanelLayoutLoading } from "@/components";
 import { toast } from "@/components/toast";
 import { AssistantSidebarHost, MobileAppSidebarTrigger, useAppShell } from "@/features/app-shell";
 import type { AssistantSidebarState } from "@/features/assistant";
+import { TavernImportDialog } from "@/features/world-info/components/tavern-import-dialog";
 import { useMobileSidebarSwipe } from "@/hooks/use-mobile-sidebar-swipe";
 import { usePersistedPanelLayout } from "@/hooks/use-persisted-panel-layout";
 import {
@@ -26,8 +27,6 @@ import {
 import type { Character, CharacterListItem, CharacterListResponse } from "@/lib/character.types";
 import { getPreference, setPreference } from "@/lib/local-db";
 import { countTokens } from "@/lib/tiktoken-utils";
-
-import { TavernImportDialog } from "@/features/world-info/components/tavern-import-dialog";
 
 import { CharacterEditor } from "../components/character-editor";
 import { CharacterList } from "../components/character-list";

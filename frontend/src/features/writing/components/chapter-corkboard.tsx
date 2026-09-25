@@ -25,11 +25,11 @@ import { useChapterPlanDraft } from "../hooks/use-chapter-plan-draft";
 import { usePlotThreads } from "../hooks/use-plot-threads";
 import { useVolumeTree } from "../hooks/use-volumes";
 import { isChapterNotStarted } from "../lib/chapter-not-started";
-import { chapterOwesOpenPlant } from "../lib/corkboard-owing";
 import {
   chapterMatchesMissingTarget,
   countChaptersMissingWordCountTarget,
 } from "../lib/corkboard-missing-target";
+import { chapterOwesOpenPlant } from "../lib/corkboard-owing";
 import {
   type CorkboardStatusFilter,
   type CorkboardVolumeCards,
@@ -306,7 +306,9 @@ export function ChapterCorkboard({
       missingTargetOnly
         ? {
             ...volume,
-            chapters: volume.chapters.filter((chapter) => chapterMatchesMissingTarget(chapter, true)),
+            chapters: volume.chapters.filter((chapter) =>
+              chapterMatchesMissingTarget(chapter, true),
+            ),
           }
         : volume,
     );
@@ -322,7 +324,15 @@ export function ChapterCorkboard({
       owing,
       chapterSort,
     );
-  }, [chapterSort, missingTargetOnly, normalizedQuery, owingApplied, statusFilter, threads, volumes]);
+  }, [
+    chapterSort,
+    missingTargetOnly,
+    normalizedQuery,
+    owingApplied,
+    statusFilter,
+    threads,
+    volumes,
+  ]);
   const visibleChapterIds = useMemo(
     () => new Set(visibleVolumes.flatMap((volume) => volume.chapters.map((chapter) => chapter.id))),
     [visibleVolumes],
@@ -459,7 +469,9 @@ export function ChapterCorkboard({
             </div>
           </div>
           {owingOnly ? (
-            <p className="chapter-corkboard-owing-note">{t("writing.chapterPlan.owingActiveNote")}</p>
+            <p className="chapter-corkboard-owing-note">
+              {t("writing.chapterPlan.owingActiveNote")}
+            </p>
           ) : null}
           {plotThreads.isError && owingOnly ? (
             <p className="chapter-corkboard-owing-note">{t("writing.chapterPlan.owingFailed")}</p>

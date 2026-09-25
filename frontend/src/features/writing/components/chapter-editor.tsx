@@ -41,11 +41,7 @@ import {
 } from "../hooks/use-writing-working-copy";
 import { createChapterEditorDraft, isChapterEditorDraftDirty } from "../lib/chapter-editor-draft";
 import { createEditorExtensions } from "../lib/editor-config";
-import {
-  UNSTUCK_SKILL_ID,
-  UNSTUCK_SKILL_NAME,
-  buildUnstuckRequest,
-} from "../lib/unstuck-request";
+import { UNSTUCK_SKILL_ID, UNSTUCK_SKILL_NAME, buildUnstuckRequest } from "../lib/unstuck-request";
 import {
   getNextWritingWorkingCopyTimestamp,
   isRemoteWritingEntityNewer,

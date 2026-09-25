@@ -272,10 +272,26 @@ export function EntryEditor({
   }, [entry.id]);
 
   return (
-    <Flex direction="column" height="100%" minHeight="0">
-      <Flex align="center" gap="3" px="3" py="2" wrap="wrap">
-        <Text as="label" size="2">
-          <Flex align="center" gap="2">
+    <Flex
+      direction="column"
+      height="100%"
+      minHeight="0"
+    >
+      <Flex
+        align="center"
+        gap="3"
+        px="3"
+        py="2"
+        wrap="wrap"
+      >
+        <Text
+          as="label"
+          size="2"
+        >
+          <Flex
+            align="center"
+            gap="2"
+          >
             <Switch
               checked={isConstant}
               disabled={isAgentLocked}

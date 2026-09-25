@@ -1,11 +1,5 @@
 import { Button, Dialog, Flex, Progress, SegmentedControl, Select, Text } from "@radix-ui/themes";
-import {
-  AlertCircle,
-  CheckCircle2,
-  FileCheck2,
-  LoaderCircle,
-  X,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, FileCheck2, LoaderCircle, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -17,8 +11,8 @@ import {
   fetchCreationEvidenceReport,
 } from "@/lib/api-client";
 import { subscribeBackgroundEvents } from "@/lib/background-socket";
-import type { CreationEvidenceReport } from "@/lib/creation-evidence.types";
 import type { VolumeWithChapters } from "@/lib/chapter.types";
+import type { CreationEvidenceReport } from "@/lib/creation-evidence.types";
 import { getSocketConnectionStatus, subscribeSocketConnectionStatus } from "@/lib/socket-client";
 
 interface CreationEvidenceDialogProps {
@@ -94,7 +88,12 @@ export function CreationEvidenceDialog({
   }, [open, projectId, hasCurrentChapter, currentChapterId]);
 
   useEffect(() => {
-    if (!open || !activeReportId || !activeReportStatus || !ACTIVE_REPORT_STATUSES.has(activeReportStatus)) {
+    if (
+      !open ||
+      !activeReportId ||
+      !activeReportStatus ||
+      !ACTIVE_REPORT_STATUSES.has(activeReportStatus)
+    ) {
       return;
     }
     let disposed = false;
@@ -105,7 +104,9 @@ export function CreationEvidenceDialog({
       } catch (error) {
         if (!disposed) {
           setErrorMessage(
-            error instanceof Error ? error.message : t(`${CREATION_EVIDENCE_I18N_KEY}.statusLoadFailed`),
+            error instanceof Error
+              ? error.message
+              : t(`${CREATION_EVIDENCE_I18N_KEY}.statusLoadFailed`),
           );
           setStep("error");
         }
@@ -187,7 +188,9 @@ export function CreationEvidenceDialog({
       setReport(nextReport);
       setStep("exporting");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : t(`${CREATION_EVIDENCE_I18N_KEY}.failed`));
+      setErrorMessage(
+        error instanceof Error ? error.message : t(`${CREATION_EVIDENCE_I18N_KEY}.failed`),
+      );
       setStep("error");
     } finally {
       setIsSubmitting(false);
@@ -220,7 +223,10 @@ export function CreationEvidenceDialog({
     >
       <Dialog.Content maxWidth="520px">
         <Dialog.Title>{t(`${CREATION_EVIDENCE_I18N_KEY}.title`)}</Dialog.Title>
-        <Dialog.Description size="2" color="gray">
+        <Dialog.Description
+          size="2"
+          color="gray"
+        >
           {t(`${CREATION_EVIDENCE_I18N_KEY}.description`)}
         </Dialog.Description>
 
@@ -417,9 +423,7 @@ export function CreationEvidenceDialog({
             </>
           )}
           {step === "error" && (
-            <Button onClick={handleBack}>
-              {t(`${CREATION_EVIDENCE_I18N_KEY}.backToScope`)}
-            </Button>
+            <Button onClick={handleBack}>{t(`${CREATION_EVIDENCE_I18N_KEY}.backToScope`)}</Button>
           )}
         </Flex>
       </Dialog.Content>

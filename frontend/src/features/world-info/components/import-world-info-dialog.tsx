@@ -273,7 +273,10 @@ export function ImportWorldInfoDialog({
                     >
                       {t("worldInfo.importConstantCount")}
                     </Text>
-                    <Text size="5" weight="bold">
+                    <Text
+                      size="5"
+                      weight="bold"
+                    >
                       {previewData.constantCount}
                     </Text>
                   </Card>
@@ -286,7 +289,10 @@ export function ImportWorldInfoDialog({
                     >
                       {t("worldInfo.importKeywordCount")}
                     </Text>
-                    <Text size="5" weight="bold">
+                    <Text
+                      size="5"
+                      weight="bold"
+                    >
                       {previewData.keywordCount}
                     </Text>
                   </Card>

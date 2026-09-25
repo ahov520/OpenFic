@@ -596,37 +596,37 @@ export function CharacterList({
               </Tooltip>
             ) : (
               <>
-              {onImportTavern ? (
-                <Tooltip content={t("worldInfo.tavernImport")}>
+                {onImportTavern ? (
+                  <Tooltip content={t("worldInfo.tavernImport")}>
+                    <IconButton
+                      variant="ghost"
+                      color="gray"
+                      highContrast
+                      size="2"
+                      aria-label={t("worldInfo.tavernImport")}
+                      onClick={onImportTavern}
+                    >
+                      <Library size={16} />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+                <Tooltip content={t("characters.newCharacter")}>
                   <IconButton
-                    variant="ghost"
-                    color="gray"
-                    highContrast
                     size="2"
-                    aria-label={t("worldInfo.tavernImport")}
-                    onClick={onImportTavern}
+                    variant="soft"
+                    disabled={isCreating}
+                    onClick={onCreateCharacter}
+                    style={{ width: "100%" }}
                   >
-                    <Library size={16} />
+                    <Plus size={16} />
+                    <Text
+                      size="2"
+                      ml="1"
+                    >
+                      {t("characters.newCharacter")}
+                    </Text>
                   </IconButton>
                 </Tooltip>
-              ) : null}
-              <Tooltip content={t("characters.newCharacter")}>
-                <IconButton
-                  size="2"
-                  variant="soft"
-                  disabled={isCreating}
-                  onClick={onCreateCharacter}
-                  style={{ width: "100%" }}
-                >
-                  <Plus size={16} />
-                  <Text
-                    size="2"
-                    ml="1"
-                  >
-                    {t("characters.newCharacter")}
-                  </Text>
-                </IconButton>
-              </Tooltip>
               </>
             )}
           </Flex>

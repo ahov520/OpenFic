@@ -128,6 +128,9 @@ jobs:
       - name: Run type check
         working-directory: frontend
         run: pnpm type-check
+      - name: Run tests
+        working-directory: frontend
+        run: pnpm test
       - name: Build frontend
         working-directory: frontend
         run: pnpm build
