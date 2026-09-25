@@ -1,7 +1,7 @@
 import { Box, Flex, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AtSign, LifeBuoy, Paintbrush, StickyNote } from "lucide-react";
+import { AtSign, History, LifeBuoy, Paintbrush, StickyNote } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -49,6 +49,7 @@ import {
   isRemoteWritingEntityNewer,
 } from "../lib/writing-working-copy";
 import { useTabsStore } from "../store/use-tabs-store";
+import { ChapterHistoryPanel } from "./chapter-history-panel";
 import { ChapterMarginNotes } from "./chapter-margin-notes";
 import { ChapterPlanBar } from "./chapter-plan-bar";
 import { ChapterWordTarget } from "./chapter-word-target";
@@ -155,6 +156,7 @@ function ChapterEditorContent({
   const [isSaving, setIsSaving] = useState(false);
   const [manuscriptRevision, setManuscriptRevision] = useState(0);
   const [findReplaceMode, setFindReplaceMode] = useState<"closed" | "find" | "replace">("closed");
+  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
   const [isProseFormatCleanupOpen, setIsProseFormatCleanupOpen] = useState(false);
   const [marginComposeRequest, setMarginComposeRequest] = useState(0);
   const [wordCount, setWordCount] = useState(() => wordsCount(initialDraft.content));
@@ -614,6 +616,42 @@ function ChapterEditorContent({
     setIsProseFormatCleanupOpen(true);
   }, [isAgentLocked, showLockedToast]);
 
+  const handleBeforeRestore = useCallback(async () => {
+    // 恢复会把服务端内容整体覆盖回来：先把未保存的脏草稿落盘，
+    // 使其进入恢复版修订的快照（保存失败时抛错中止恢复，避免静默丢失）。
+    if (!hasChangesRef.current) return;
+    await handleSave(false);
+    if (hasChangesRef.current) {
+      throw new Error("保存未完成，已中止恢复");
+    }
+  }, [handleSave]);
+
+  const handleChapterRestored = useCallback(
+    (restored: Chapter) => {
+      if (!editor) return;
+      // 恢复已在服务端持久化：本地基线直接对齐恢复后的章节，
+      // 不留脏状态（避免一次内容相同的冗余自动保存）。
+      const restoredDraft = createChapterEditorDraft({
+        title: restored.title,
+        content: restored.content,
+      });
+      const restoredUpdatedAt = getNextWritingWorkingCopyTimestamp(latestDraftUpdatedAtRef.current);
+      editor.commands.setContent(restored.content ? newlinesToHtml(restored.content) : "", {
+        emitUpdate: false,
+      });
+      setWordCount(wordsCount(restored.content));
+      setLineNumberDigits(getLineNumberDigits(editor.state.doc.childCount));
+      latestDraftRef.current = restoredDraft;
+      latestDraftUpdatedAtRef.current = restoredUpdatedAt;
+      lastSavedDraftRef.current = restoredDraft;
+      baseUpdatedAtRef.current = restored.updatedAt;
+      syncDirtyStateFromEditor(editor);
+      setManuscriptRevision((revision) => revision + 1);
+      onChapterUpdate?.(restored);
+    },
+    [editor, onChapterUpdate, syncDirtyStateFromEditor],
+  );
+
   const handleProseFormatCleanup = useCallback(
     (rules: ProseFormatCleanupRules) => {
       if (!editor) return;
@@ -735,6 +773,12 @@ function ChapterEditorContent({
             label: t("writing.proseFormatCleanup.label"),
             onClick: openProseFormatCleanup,
           },
+          {
+            id: "chapter-history",
+            icon: <History size={18} />,
+            label: t("writing.chapterHistory.label"),
+            onClick: () => setIsHistoryPanelOpen((open) => !open),
+          },
         ]}
       />
 
@@ -745,6 +789,19 @@ function ChapterEditorContent({
             editor={editor}
             showReplace={findReplaceMode === "replace"}
             onClose={() => setFindReplaceMode("closed")}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isHistoryPanelOpen && editor && (
+          <ChapterHistoryPanel
+            key="chapter-history-panel"
+            chapterId={chapter.id}
+            isAgentLocked={isAgentLocked}
+            onBeforeRestore={handleBeforeRestore}
+            onClose={() => setIsHistoryPanelOpen(false)}
+            onRestored={handleChapterRestored}
           />
         )}
       </AnimatePresence>

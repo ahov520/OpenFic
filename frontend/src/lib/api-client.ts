@@ -767,6 +767,9 @@ import type {
   ChapterUpdate,
   ChapterListItem,
   ChapterMoveToVolume,
+  ChapterRevisionDetail,
+  ChapterRevisionItem,
+  ChapterRevisionRestoreResult,
   PreviousChapterEnding,
   Volume,
   VolumeCreate,
@@ -1140,6 +1143,70 @@ export async function updateChapter(chapterId: string, data: ChapterUpdate): Pro
  */
 export async function deleteChapter(chapterId: string): Promise<void> {
   await apiClient.delete(`/chapters/${chapterId}`);
+}
+
+function transformChapterRevisionItem(raw: Record<string, unknown>): ChapterRevisionItem {
+  return {
+    commitId: String(raw.commit_id ?? ""),
+    revisionId: String(raw.revision_id ?? ""),
+    revisionType: typeof raw.revision_type === "string" ? raw.revision_type : "",
+    message: typeof raw.message === "string" ? raw.message : "",
+    operation: typeof raw.operation === "string" ? raw.operation : "",
+    createdAt: typeof raw.created_at === "string" ? raw.created_at : "",
+    title: typeof raw.title === "string" ? raw.title : null,
+    wordCount: typeof raw.word_count === "number" ? raw.word_count : null,
+    hasSnapshot: raw.has_snapshot === true,
+  };
+}
+
+/**
+ * 列出章节历史版本时间线（Agent 修订与手动修订混合，按变更时间倒序）
+ */
+export async function fetchChapterRevisions(
+  chapterId: string,
+  pagination: { offset?: number; limit?: number } = {},
+): Promise<ChapterRevisionItem[]> {
+  const params: Record<string, number> = {};
+  if (pagination.offset !== undefined) params.offset = pagination.offset;
+  if (pagination.limit !== undefined) params.limit = pagination.limit;
+  const response = await apiClient.get<{ items: Record<string, unknown>[] }>(
+    `/chapters/${chapterId}/revisions`,
+    { params },
+  );
+  return (response.data.items ?? []).map(transformChapterRevisionItem);
+}
+
+/**
+ * 预览单个历史版本保留的章节全文
+ */
+export async function fetchChapterRevisionDetail(
+  chapterId: string,
+  commitId: string,
+): Promise<ChapterRevisionDetail> {
+  const response = await apiClient.get<Record<string, unknown>>(
+    `/chapters/${chapterId}/revisions/${commitId}`,
+  );
+  return {
+    ...transformChapterRevisionItem(response.data),
+    content: String(response.data.content ?? ""),
+  };
+}
+
+/**
+ * 一键恢复：把所选历史版本写回章节正文与字数（后端旁路节流生成 manual 修订）
+ */
+export async function restoreChapterRevision(
+  chapterId: string,
+  commitId: string,
+): Promise<ChapterRevisionRestoreResult> {
+  const response = await apiClient.post<{
+    revision_id: string;
+    chapter: Record<string, unknown>;
+  }>(`/chapters/${chapterId}/revisions/${commitId}/restore`);
+  return {
+    revisionId: response.data.revision_id,
+    chapter: transformChapter(response.data.chapter),
+  };
 }
 
 function transformPlotBeat(raw: Record<string, unknown>): PlotBeat {

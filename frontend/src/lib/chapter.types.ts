@@ -121,3 +121,34 @@ export interface ChapterMove {
 export interface ChapterMoveToVolume {
   volumeId: string;
 }
+
+/**
+ * 章节历史版本时间线条目（一次章节变更及其所属版本信息）。
+ * 每条目代表该次变更发生前保留的版本（snapshot_*）。
+ */
+export interface ChapterRevisionItem {
+  commitId: string;
+  revisionId: string;
+  revisionType: string;
+  message: string;
+  operation: string;
+  createdAt: string;
+  title: string | null;
+  wordCount: number | null;
+  hasSnapshot: boolean;
+}
+
+/**
+ * 章节历史版本全文预览
+ */
+export interface ChapterRevisionDetail extends ChapterRevisionItem {
+  content: string;
+}
+
+/**
+ * 恢复章节历史版本的结果
+ */
+export interface ChapterRevisionRestoreResult {
+  revisionId: string;
+  chapter: Chapter;
+}

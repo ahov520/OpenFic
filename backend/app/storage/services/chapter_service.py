@@ -10,6 +10,7 @@ from typing import Literal
 
 from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 
 from app.core.editor_content_limits import validate_editor_content
 from app.core.errors import NotFoundError
@@ -26,7 +27,7 @@ from app.storage.repos import (
     project_repo,
     volume_repo,
 )
-from app.storage.services import writing_activity_service
+from app.storage.services import manual_revision_service, writing_activity_service
 
 UNSET = object()
 
@@ -486,6 +487,7 @@ async def update_chapter(
     chapter = await get_chapter(session, chapter_id)
     old_word_count = chapter.word_count
     old_content = chapter.content
+    old_title = chapter.title
 
     title_changed = False
     if title is not None and title != chapter.title:
@@ -546,6 +548,20 @@ async def update_chapter(
             )
         await _update_project_stats(session, chapter.project_id)
     if content is not None and content != old_content:
+        # 手动修订钩子：按定值节流（距最近一条 manual 修订 ≥10 分钟或字数变化
+        # ≥200）把本次内容变化记入 revisions/commits 版本时间线。版本记录是
+        # 保险层而非主路径，钩子失败只记日志，不阻断保存。
+        try:
+            await manual_revision_service.maybe_create_manual_revision(
+                session,
+                chapter=chapter,
+                old_title=old_title,
+                old_content=old_content,
+                old_word_count=old_word_count,
+            )
+        except Exception:
+            logger.exception(f"记录手动修订失败（不影响保存）: chapter_id={chapter_id}")
+
         from app.retrieval.chapter_index import (
             ChapterIndexIntegrationService,
             safe_maybe_enqueue_auto_index,

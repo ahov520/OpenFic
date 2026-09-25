@@ -387,6 +387,25 @@
       "ruleConvertPunctuationHint": "Only converts punctuation in Chinese context; punctuation inside English text and URLs is untouched",
       "apply": "Apply cleanup"
     },
+    "chapterHistory": {
+      "label": "History",
+      "title": "Version history",
+      "empty": "No versions yet. Saves are recorded automatically.",
+      "typeAgent": "Agent revision",
+      "typeManual": "Manual save",
+      "typeRollback": "Rollback",
+      "typeUnknown": "Other",
+      "wordCount": "{{count}} words",
+      "restore": "Restore",
+      "restoring": "Restoring…",
+      "restoreUnavailableHint": "No snapshot",
+      "restoreSuccess": "Restored to the selected version",
+      "restoreFailed": "Restore failed, please retry",
+      "loadFailed": "Failed to load version history",
+      "loadOlder": "Load earlier versions",
+      "loadingOlder": "Loading…",
+      "emptyPreview": "(no content in this version)"
+    },
     "unstuck": {
       "label": "I'm stuck",
       "instruction": "I'm stuck on this chapter — suggest directions only, do not write prose for me. Using the story so far, this chapter's synopsis and the current ending below, give me 3 distinct directions. For each direction write exactly three sentences: advance event (what the next chapter opens with), conflict source (who or what pushes back), chapter-end hook (what suspense the chapter ends on), plus a one-line note on how to choose. The three directions must be genuinely different, not rewordings of each other; I will pick one and keep writing myself.",
