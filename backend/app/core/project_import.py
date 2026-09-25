@@ -8,6 +8,7 @@ import posixpath
 from typing import Literal
 import zipfile
 
+from app.core.doc_extract import extract_text_from_docx, extract_text_from_epub
 from app.core.txt_parser import (
     ParseResult,
     ParsedChapter,
@@ -23,7 +24,7 @@ ImportSplitMode = Literal["auto", "manual"]
 DEFAULT_IMPORT_CHUNK_SIZE = 800
 MAX_IMPORT_CHUNK_SIZE = 100_000
 MAX_IMPORT_FILE_SIZE = 50 * 1024 * 1024
-SUPPORTED_IMPORT_SUFFIXES = frozenset({".txt", ".md", ".zip"})
+SUPPORTED_IMPORT_SUFFIXES = frozenset({".txt", ".md", ".zip", ".docx", ".epub"})
 SUPPORTED_TEXT_SUFFIXES = frozenset({".txt", ".md"})
 
 
@@ -65,7 +66,31 @@ def parse_project_import(
         return parse_txt_content(content)
     if suffix == ".zip":
         return _parse_zip_archive(content)
-    raise ValueError("不支持的文件类型，仅支持 .txt、.md 或 .zip 文件")
+    if suffix == ".docx":
+        if len(content) > MAX_IMPORT_FILE_SIZE:
+            raise ValueError("文件大小超过限制（最大 50MB）")
+        return _parse_extracted_text(
+            extract_text_from_docx(content), split_mode=split_mode, chunk_size=chunk_size
+        )
+    if suffix == ".epub":
+        if len(content) > MAX_IMPORT_FILE_SIZE:
+            raise ValueError("文件大小超过限制（最大 50MB）")
+        return _parse_extracted_text(
+            extract_text_from_epub(content), split_mode=split_mode, chunk_size=chunk_size
+        )
+    raise ValueError("不支持的文件类型，仅支持 .txt、.md、.docx、.epub 或 .zip 文件")
+
+
+def _parse_extracted_text(
+    text: str,
+    *,
+    split_mode: ImportSplitMode,
+    chunk_size: int,
+) -> ParseResult:
+    """DOCX/EPUB 提取出的纯文本走与 TXT 相同的分卷分章解析。"""
+    if split_mode == "manual":
+        return _parse_manual_text(text.encode("utf-8"), chunk_size)
+    return parse_txt_content(text.encode("utf-8"))
 
 
 def _parse_manual_text(content: bytes, chunk_size: int) -> ParseResult:

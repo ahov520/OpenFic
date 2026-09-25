@@ -12,6 +12,7 @@ class ChapterExportCreate(BaseModel):
     included_chapter_ids: list[str] = Field(default_factory=list)
     excluded_chapter_ids: list[str] = Field(default_factory=list)
     local_date: date
+    format: str = Field(default="txt", description="导出格式：txt/epub/docx")
 
 
 class ChapterExportResponse(BaseModel):
@@ -21,6 +22,7 @@ class ChapterExportResponse(BaseModel):
     status: str
     filename: str
     mode: str
+    format: str = "txt"
     volume_count: int
     chapter_count: int
     word_count: int

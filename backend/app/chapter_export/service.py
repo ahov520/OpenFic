@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 import os
 from pathlib import Path
 import re
-from typing import Iterable
+from typing import Any, Iterable
 
 import aiofiles
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +20,18 @@ from app.background.jobs.states import (
     JOB_STATUS_PENDING,
     JOB_STATUS_RUNNING,
     JOB_STATUS_SUCCEEDED,
+)
+from app.chapter_export.docx_writer import write_docx
+from app.chapter_export.epub_writer import write_epub
+from app.chapter_export.formats import (
+    DEFAULT_EXPORT_FORMAT,
+    EXPORT_FILE_SUFFIXES,
+    PART_SUFFIX,
+    ExportDocumentChapter,
+    ExportDocumentSpec,
+    ExportDocumentVolume,
+    export_suffix,
+    normalize_export_format,
 )
 from app.settings import settings
 from app.storage.repos import chapter_repo, project_repo, volume_repo
@@ -78,8 +90,11 @@ class ChapterExportPlan:
     project_id: str
     filename: str
     mode: str
-    chapters: list[ExportChapter]
-    volumes: list[ExportVolume]
+    format: str = DEFAULT_EXPORT_FORMAT
+    book_title: str = ""
+    author: str = ""
+    chapters: list[ExportChapter] = field(default_factory=list)
+    volumes: list[ExportVolume] = field(default_factory=list)
 
     @property
     def chapter_ids(self) -> list[str]:
@@ -102,6 +117,9 @@ class ChapterExportPlan:
             "project_id": self.project_id,
             "filename": self.filename,
             "mode": self.mode,
+            "format": self.format,
+            "book_title": self.book_title,
+            "author": self.author,
             "chapters": [chapter.to_dict() for chapter in self.chapters],
             "volumes": [volume.to_dict() for volume in self.volumes],
             "chapter_count": self.chapter_count,
@@ -116,11 +134,12 @@ def ensure_chapter_exports_dir() -> Path:
     return settings.chapter_exports_dir
 
 
-def export_file_paths(job_id: str) -> tuple[Path, Path]:
-    """返回任务的临时文件与成品文件路径。"""
+def export_file_paths(job_id: str, export_format: str = DEFAULT_EXPORT_FORMAT) -> tuple[Path, Path]:
+    """返回任务的临时文件与成品文件路径（成品后缀由导出格式决定）。"""
     directory = ensure_chapter_exports_dir()
     basename = f"{EXPORT_FILE_PREFIX}{job_id}"
-    return directory / f"{basename}.part", directory / f"{basename}.txt"
+    suffix = export_suffix(normalize_export_format(export_format))
+    return directory / f"{basename}{PART_SUFFIX}", directory / f"{basename}{suffix}"
 
 
 def sanitize_filename_segment(value: str, fallback: str) -> str:
@@ -183,8 +202,14 @@ async def create_export_plan(
     included_chapter_ids: Iterable[str],
     excluded_chapter_ids: Iterable[str],
     local_date: str,
+    export_format: str = DEFAULT_EXPORT_FORMAT,
 ) -> ChapterExportPlan:
-    """校验选择并固定导出范围、顺序和文件名。"""
+    """校验选择并固定导出范围、顺序、格式和文件名。"""
+    try:
+        normalized_format = normalize_export_format(export_format)
+    except ValueError as exc:
+        raise ChapterExportSelectionError(str(exc)) from exc
+
     project = await project_repo.get_by_id(session, project_id)
     if project is None:
         raise LookupError(f"项目不存在: {project_id}")
@@ -251,8 +276,13 @@ async def create_export_plan(
 
     return ChapterExportPlan(
         project_id=project_id,
-        filename=f"{project_title}-{filename_label}-{local_date}.txt",
+        filename=(
+            f"{project_title}-{filename_label}-{local_date}{export_suffix(normalized_format)}"
+        ),
         mode=mode,
+        format=normalized_format,
+        book_title=project.title or "未命名项目",
+        author=settings.app_name,
         chapters=[
             ExportChapter(
                 id=chapter_id,
@@ -293,6 +323,7 @@ def get_export_summary(job: BackgroundJob) -> dict[str, object]:
         "status": job.status,
         "filename": payload.get("filename", "导出章节.txt"),
         "mode": payload.get("mode", "chapters"),
+        "format": payload.get("format", DEFAULT_EXPORT_FORMAT),
         "volume_count": int(payload.get("volume_count", 0)),
         "chapter_count": int(payload.get("chapter_count", len(chapter_ids))),
         "word_count": int(payload.get("word_count", 0)),
@@ -308,15 +339,67 @@ def get_export_summary(job: BackgroundJob) -> dict[str, object]:
     }
 
 
+class _TxtPartWriter:
+    """TXT 成品的分批流式写入器（utf-8-sig，统一 \n 换行）。"""
+
+    def __init__(self, path: Path) -> None:
+        self._path = path
+        self._file: Any = None
+
+    async def __aenter__(self) -> "_TxtPartWriter":
+        self._file = await aiofiles.open(self._path, "w", encoding="utf-8-sig", newline="\n")
+        return self
+
+    async def __aexit__(self, *_exc_info) -> None:
+        await self._file.close()
+
+    async def write_volume_heading(self, heading: str, separator: bool) -> None:
+        if separator:
+            await self._file.write("\n\n")
+        await self._file.write(f"{heading}\n")
+
+    async def write_chapter(self, title: str, content: str, separator: bool) -> None:
+        if separator:
+            await self._file.write("\n\n")
+        await self._file.write(f"{title}\n{content}")
+
+
+class _DocumentCollector:
+    """EPUB/DOCX 的结构化收集器：按批累积卷章，收尾后一次性交给 writer。"""
+
+    def __init__(self) -> None:
+        self.volumes: list[ExportDocumentVolume] = []
+        self.chapters: list[ExportDocumentChapter] = []
+
+    async def __aenter__(self) -> "_DocumentCollector":
+        return self
+
+    async def __aexit__(self, *_exc_info) -> None:
+        return None
+
+    async def write_volume_heading(self, heading: str, separator: bool) -> None:
+        self.volumes.append(ExportDocumentVolume(title=heading, order=0, chapters=[]))
+
+    async def write_chapter(self, title: str, content: str, separator: bool) -> None:
+        if self.volumes:
+            self.volumes[-1].chapters.append(ExportDocumentChapter(title=title, content=content))
+        else:
+            self.chapters.append(ExportDocumentChapter(title=title, content=content))
+
+
 async def write_chapter_export(context) -> dict[str, object]:
-    """分批读取章节正文并写入任务专属 TXT 文件。"""
+    """分批读取章节正文并写入任务专属导出文件（TXT/EPUB/DOCX）。"""
     payload = background_service.parse_json_object(context.job.payload_json)
     chapters = [item for item in payload.get("chapters", []) if isinstance(item, dict)]
     volumes = [item for item in payload.get("volumes", []) if isinstance(item, dict)]
     if not chapters:
         raise ChapterExportSelectionError("导出任务没有可处理的章节")
 
-    part_path, output_path = export_file_paths(context.job_id)
+    try:
+        export_format = normalize_export_format(payload.get("format"))
+    except ValueError as exc:
+        raise RuntimeError("导出任务格式无效") from exc
+    part_path, output_path = export_file_paths(context.job_id, export_format)
     groups = {
         chapter_id: volume
         for volume in volumes
@@ -326,9 +409,10 @@ async def write_chapter_export(context) -> dict[str, object]:
     mode = payload.get("mode")
     written_count = 0
     last_group_id: str | None = None
+    sink = _TxtPartWriter(part_path) if export_format == "txt" else _DocumentCollector()
 
     try:
-        async with aiofiles.open(part_path, "w", encoding="utf-8-sig", newline="\n") as output:
+        async with sink:
             for offset in range(0, len(chapters), EXPORT_BATCH_SIZE):
                 await context.check_cancelled()
                 batch = chapters[offset : offset + EXPORT_BATCH_SIZE]
@@ -352,21 +436,17 @@ async def write_chapter_export(context) -> dict[str, object]:
                         if not isinstance(group_id, str):
                             raise RuntimeError("导出任务卷数据无效")
                         if group_id != last_group_id:
-                            if written_count:
-                                await output.write("\n\n")
                             order = group.get("order")
                             volume_title = group.get("title")
                             if not isinstance(order, int) or not isinstance(volume_title, str):
                                 raise RuntimeError("导出任务卷数据无效")
-                            await output.write(f"第{chinese_number(order)}卷 {volume_title}\n")
+                            await sink.write_volume_heading(
+                                f"第{chinese_number(order)}卷 {volume_title}",
+                                separator=written_count > 0,
+                            )
                             last_group_id = group_id
-                        elif written_count:
-                            await output.write("\n\n")
-                    elif written_count:
-                        await output.write("\n\n")
-
                     content = chapter.content.replace("\r\n", "\n").replace("\r", "\n")
-                    await output.write(f"{title}\n{content}")
+                    await sink.write_chapter(title, content, separator=written_count > 0)
                     written_count += 1
 
                 last_title = batch[-1].get("title")
@@ -384,6 +464,21 @@ async def write_chapter_export(context) -> dict[str, object]:
                 )
                 await context.commit()
 
+        if isinstance(sink, _DocumentCollector):
+            spec_volumes = (
+                sink.volumes
+                if sink.volumes
+                else [ExportDocumentVolume(title=None, order=1, chapters=sink.chapters)]
+            )
+            spec = ExportDocumentSpec(
+                book_title=str(payload.get("book_title") or "导出作品"),
+                author=str(payload.get("author") or "OpenFic"),
+                language="zh",
+                volumes=spec_volumes,
+            )
+            writer = write_epub if export_format == "epub" else write_docx
+            await asyncio.to_thread(writer, part_path, spec)
+
         await context.check_cancelled()
         await asyncio.to_thread(os.replace, part_path, output_path)
         expires_at = datetime.now(UTC) + EXPORT_FILE_TTL
@@ -400,7 +495,7 @@ async def write_chapter_export(context) -> dict[str, object]:
 
 
 async def cleanup_chapter_export_files(session: AsyncSession) -> int:
-    """清除过期或已不可达的章节导出文件。"""
+    """清除过期或已不可达的章节导出文件（覆盖全部支持格式的成品与 .part）。"""
     directory = ensure_chapter_exports_dir()
     removed = 0
     now = datetime.now(UTC)
@@ -412,13 +507,15 @@ async def cleanup_chapter_export_files(session: AsyncSession) -> int:
         job = await background_service.get_job(session, job_id)
         should_keep = False
         if job is not None and job.type == EXPORT_JOB_TYPE:
-            if path.suffix in {".part", ".txt"}:
-                should_keep = job.status in {
-                    JOB_STATUS_PENDING,
-                    JOB_STATUS_RUNNING,
-                    JOB_STATUS_CANCEL_REQUESTED,
-                }
-            elif path.suffix == ".txt" and job.status == JOB_STATUS_SUCCEEDED:
+            output_suffix = _output_suffix_for_job(job)
+            if job.status in {
+                JOB_STATUS_PENDING,
+                JOB_STATUS_RUNNING,
+                JOB_STATUS_CANCEL_REQUESTED,
+            }:
+                # 进行中的任务：.part 草稿与成品（上一轮遗留）都保留
+                should_keep = path.suffix == PART_SUFFIX or path.suffix == output_suffix
+            elif path.suffix == output_suffix and job.status == JOB_STATUS_SUCCEEDED:
                 expires_at = _parse_datetime(
                     background_service.parse_json_object(job.result_json).get("expires_at")
                 )
@@ -437,14 +534,16 @@ def is_export_download_available(job: BackgroundJob) -> bool:
     expires_at = _parse_datetime(background_service.parse_json_object(job.result_json).get("expires_at"))
     if expires_at is None or expires_at <= datetime.now(UTC):
         return False
-    _part_path, output_path = export_file_paths(job.id)
+    _part_path, output_path = export_file_paths(job.id, _output_format_for_job(job))
     return output_path.is_file()
 
 
 async def _delete_export_files(job_id: str) -> None:
-    part_path, output_path = export_file_paths(job_id)
+    """删除任务的 .part 草稿与全部格式成品（取消/失败/超时清理）。"""
+    part_path, _ = export_file_paths(job_id)
     await asyncio.to_thread(part_path.unlink, missing_ok=True)
-    await asyncio.to_thread(output_path.unlink, missing_ok=True)
+    for suffix in EXPORT_FILE_SUFFIXES:
+        await asyncio.to_thread(part_path.with_suffix(suffix).unlink, missing_ok=True)
 
 
 def _parse_datetime(value: object) -> datetime | None:
@@ -457,8 +556,25 @@ def _parse_datetime(value: object) -> datetime | None:
     return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
+def _output_format_for_job(job: BackgroundJob) -> str:
+    """按任务 payload 的 format 返回归一化格式（payload 损坏时按 TXT 兜底）。"""
+    try:
+        return normalize_export_format(
+            background_service.parse_json_object(job.payload_json).get("format")
+        )
+    except ValueError:
+        return DEFAULT_EXPORT_FORMAT
+
+
+def _output_suffix_for_job(job: BackgroundJob) -> str:
+    """按任务 payload 的 format 返回成品后缀（payload 损坏时按 TXT 兜底）。"""
+    return export_suffix(_output_format_for_job(job))
+
+
 def _job_id_from_export_path(path: Path) -> str | None:
-    if path.suffix not in {".part", ".txt"} or not path.name.startswith(EXPORT_FILE_PREFIX):
+    if path.suffix not in EXPORT_FILE_SUFFIXES | {PART_SUFFIX}:
+        return None
+    if not path.name.startswith(EXPORT_FILE_PREFIX):
         return None
     job_id = path.name[len(EXPORT_FILE_PREFIX) : -len(path.suffix)]
     return job_id or None

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """章节导出 API 测试。"""
 
+import io
+
 import pytest
+from docx import Document
 from httpx import AsyncClient
 from urllib.parse import unquote
 
@@ -332,3 +335,109 @@ async def test_cleanup_keeps_output_while_export_is_still_running(
 
     assert await chapter_export_service.cleanup_chapter_export_files(session) == 0
     assert output_path.exists()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("export_format", "expected_media_type"),
+    [
+        ("epub", "application/epub+zip"),
+        ("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+    ],
+)
+async def test_export_epub_docx_writes_product_serves_media_type(
+    client: AsyncClient,
+    session,
+    monkeypatch,
+    tmp_path,
+    export_format: str,
+    expected_media_type: str,
+) -> None:
+    async def skip_cancellation_check(_context: JobContext) -> None:
+        return None
+
+    monkeypatch.setattr(chapter_export_service.settings, "chapter_exports_dir", tmp_path)
+    monkeypatch.setattr(JobContext, "check_cancelled", skip_cancellation_check)
+    project_id, volume_id = await _create_project(client)
+    first = await _create_chapter(client, project_id, volume_id, "第一章", "第一章正文", 5)
+    second = await _create_chapter(client, project_id, volume_id, "第二章", "第二章正文", 5)
+    created = await client.post(
+        f"/api/v1/projects/{project_id}/chapter-exports",
+        json={
+            "selected_volume_ids": [volume_id],
+            "included_chapter_ids": [],
+            "excluded_chapter_ids": [],
+            "local_date": "2026-07-28",
+            "format": export_format,
+        },
+    )
+    assert created.status_code == 201
+    created_data = created.json()
+    assert created_data["format"] == export_format
+    assert created_data["filename"].endswith(f".{export_format}")
+    assert "测试小说-全本-2026-07-28" in created_data["filename"]
+
+    job = await background_service.get_job(session, created.json()["id"])
+    assert job is not None
+    job.status = "running"
+    await session.commit()
+
+    context = JobContext(session=session, job=job, publisher=BackgroundEventPublisher(None))
+    result = await dispatch_job(context)
+    await background_service.mark_succeeded(session, context.publisher, context.job, result=result)
+    await session.commit()
+
+    status_response = await client.get(
+        f"/api/v1/projects/{project_id}/chapter-exports/{job.id}"
+    )
+    assert status_response.status_code == 200
+    assert status_response.json()["download_url"]
+
+    download_response = await client.get(
+        f"/api/v1/projects/{project_id}/chapter-exports/{job.id}/download"
+    )
+    assert download_response.status_code == 200
+    assert download_response.headers["content-type"].startswith(expected_media_type)
+    assert f"测试小说-全本-2026-07-28.{export_format}" in unquote(
+        download_response.headers["content-disposition"]
+    )
+
+    if export_format == "epub":
+        from ebooklib import ITEM_DOCUMENT
+        from ebooklib import epub as epub_module
+
+        book = epub_module.read_epub(io.BytesIO(download_response.content))
+        chapter_documents = [
+            item
+            for item in book.get_items_of_type(ITEM_DOCUMENT)
+            if item.file_name.startswith("chapter_")
+        ]
+        assert len(chapter_documents) == 2
+        assert book.get_metadata("DC", "title")[0][0] == "测试小说"
+        assert [first["id"], second["id"]] == created_data["chapter_ids"]
+    else:
+        document = Document(io.BytesIO(download_response.content))
+        headings = [
+            paragraph.text
+            for paragraph in document.paragraphs
+            if paragraph.style.name.startswith("Heading 2")
+        ]
+        assert headings == ["第一章", "第二章"]
+
+
+@pytest.mark.asyncio
+async def test_create_export_rejects_unknown_format(client: AsyncClient) -> None:
+    project_id, volume_id = await _create_project(client)
+
+    response = await client.post(
+        f"/api/v1/projects/{project_id}/chapter-exports",
+        json={
+            "selected_volume_ids": [volume_id],
+            "included_chapter_ids": [],
+            "excluded_chapter_ids": [],
+            "local_date": "2026-07-28",
+            "format": "mobi",
+        },
+    )
+
+    assert response.status_code == 400

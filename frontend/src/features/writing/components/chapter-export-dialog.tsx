@@ -25,7 +25,7 @@ import {
   fetchProject,
 } from "@/lib/api-client";
 import { subscribeBackgroundEvents } from "@/lib/background-socket";
-import type { ChapterExport } from "@/lib/chapter-export.types";
+import type { ChapterExport, ChapterExportFormat } from "@/lib/chapter-export.types";
 import type { Chapter, VolumeWithChapters } from "@/lib/chapter.types";
 import { getSocketConnectionStatus, subscribeSocketConnectionStatus } from "@/lib/socket-client";
 
@@ -108,6 +108,7 @@ export function ChapterExportDialog({
   const [exportJob, setExportJob] = useState<ChapterExport | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [format, setFormat] = useState<ChapterExportFormat>("txt");
   const [isCancelling, setIsCancelling] = useState(false);
   const [mobileSection, setMobileSection] = useState<ChapterExportMobileSection>("selection");
   const previewRequestIdRef = useRef(0);
@@ -158,6 +159,7 @@ export function ChapterExportDialog({
     setErrorMessage(null);
     setIsSubmitting(false);
     setIsCancelling(false);
+    setFormat("txt");
     setMobileSection("selection");
     downloadedExportIdRef.current = null;
   }, [open, projectId]);
@@ -319,6 +321,7 @@ export function ChapterExportDialog({
         includedChapterIds: [...selection.includedChapterIds],
         excludedChapterIds: [...selection.excludedChapterIds],
         localDate: getLocalDate(),
+        format,
       });
       setExportJob(nextExport);
       setStep("exporting");
@@ -545,6 +548,33 @@ export function ChapterExportDialog({
                 </Flex>
               )}
             </section>
+          </Flex>
+        )}
+
+        {step === "selecting" && (
+          <Flex
+            align="center"
+            gap="2"
+            mt="3"
+            wrap="wrap"
+            className="chapter-export-format-row"
+          >
+            <Text
+              size="2"
+              color="gray"
+            >
+              {t(`${EXPORT_I18N_KEY}.formatLabel`)}
+            </Text>
+            <SegmentedControl.Root
+              value={format}
+              onValueChange={(value) => setFormat(value as ChapterExportFormat)}
+              size="1"
+              aria-label={t(`${EXPORT_I18N_KEY}.formatLabel`)}
+            >
+              <SegmentedControl.Item value="txt">TXT</SegmentedControl.Item>
+              <SegmentedControl.Item value="epub">EPUB</SegmentedControl.Item>
+              <SegmentedControl.Item value="docx">DOCX</SegmentedControl.Item>
+            </SegmentedControl.Root>
           </Flex>
         )}
 

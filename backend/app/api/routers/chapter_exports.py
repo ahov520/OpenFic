@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.schemas.chapter_export import ChapterExportCreate, ChapterExportResponse
 from app.background.jobs import service as background_service
 from app.background.runtime.supervisor import get_background_supervisor
+from app.chapter_export import formats as chapter_export_formats
 from app.chapter_export import service as chapter_export_service
 from app.storage.database import get_session
 
@@ -35,6 +36,7 @@ async def create_chapter_export(
             included_chapter_ids=data.included_chapter_ids,
             excluded_chapter_ids=data.excluded_chapter_ids,
             local_date=data.local_date.isoformat(),
+            export_format=data.format,
         )
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -101,11 +103,18 @@ async def download_chapter_export(
     job = await _get_export_job(session, project_id, job_id)
     if not chapter_export_service.is_export_download_available(job):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="导出文件不可用或已过期")
-    _part_path, output_path = chapter_export_service.export_file_paths(job.id)
+    summary = chapter_export_service.get_export_summary(job)
+    _part_path, output_path = chapter_export_service.export_file_paths(
+        job.id, str(summary.get("format", "txt"))
+    )
+    media_type = chapter_export_formats.EXPORT_MEDIA_TYPES.get(
+        summary.get("format", "txt"),
+        "text/plain; charset=utf-8",
+    )
     return FileResponse(
         output_path,
-        media_type="text/plain; charset=utf-8",
-        filename=str(chapter_export_service.get_export_summary(job)["filename"]),
+        media_type=media_type,
+        filename=str(summary["filename"]),
     )
 
 

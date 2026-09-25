@@ -1,4 +1,4 @@
-"""章节 TXT 导出后台任务定义。"""
+"""章节导出（TXT/EPUB/DOCX）后台任务定义。"""
 
 from typing import Any
 
@@ -29,6 +29,9 @@ class ChapterExportInput(BaseModel):
     project_id: str
     filename: str
     mode: str
+    format: str = "txt"
+    book_title: str = ""
+    author: str = "OpenFic"
     chapters: list[ChapterExportChapterInput] = Field(min_length=1)
     volumes: list[ChapterExportVolumeInput]
     chapter_count: int
@@ -45,7 +48,7 @@ class ChapterExportResult(BaseModel):
 
 
 async def handle_chapter_export(context: JobContext) -> dict[str, Any]:
-    """写入章节 TXT 成品。"""
+    """写入章节导出成品（TXT/EPUB/DOCX）。"""
     ChapterExportInput.model_validate(context.input)
     try:
         return await chapter_export_service.write_chapter_export(context)
@@ -66,7 +69,7 @@ async def cleanup_chapter_export(_context: JobContext, _reason: str) -> None:
 CHAPTER_EXPORT_JOB = JobDefinition(
     type=JOB_TYPE_CHAPTER_EXPORT,
     name="Chapter export",
-    description="Export selected project chapters as a TXT file.",
+    description="Export selected project chapters as a TXT/EPUB/DOCX file.",
     input_model=ChapterExportInput,
     result_model=ChapterExportResult,
     handler=handle_chapter_export,

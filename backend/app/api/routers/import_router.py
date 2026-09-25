@@ -31,7 +31,7 @@ from app.storage.services import import_service
 
 router = APIRouter(prefix="/import", tags=["import"])
 
-SUPPORTED_FILE_DETAIL = "仅支持 .txt、.md 或 .zip 文件"
+SUPPORTED_FILE_DETAIL = "仅支持 .txt、.md、.docx、.epub 或 .zip 文件"
 
 
 def _require_supported_filename(filename: str | None) -> str:

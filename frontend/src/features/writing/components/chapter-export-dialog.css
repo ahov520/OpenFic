@@ -199,6 +199,10 @@
 }
 
 @media (max-width: 767px) {
+  .chapter-export-format-row {
+    padding: 0 12px;
+  }
+
   .rt-DialogContent.chapter-export-dialog-content {
     width: calc(100vw - 20px);
   }

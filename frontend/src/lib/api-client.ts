@@ -217,6 +217,7 @@ function transformChapterExport(raw: Record<string, unknown>): ChapterExport {
     status: raw.status as string,
     filename: raw.filename as string,
     mode: raw.mode as ChapterExport["mode"],
+    format: (raw.format as ChapterExport["format"]) ?? "txt",
     volumeCount: Number(raw.volume_count ?? 0),
     chapterCount: Number(raw.chapter_count ?? 0),
     wordCount: Number(raw.word_count ?? 0),
@@ -242,6 +243,7 @@ export async function createChapterExport(
     included_chapter_ids: data.includedChapterIds,
     excluded_chapter_ids: data.excludedChapterIds,
     local_date: data.localDate,
+    format: data.format,
   });
   return transformChapterExport(response.data);
 }
