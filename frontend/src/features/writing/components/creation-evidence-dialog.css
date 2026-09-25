@@ -1,0 +1,26 @@
+.creation-evidence-spinner {
+  animation: creation-evidence-spin 900ms linear infinite;
+  color: var(--accent-9);
+}
+
+.creation-evidence-filename {
+  max-width: 100%;
+  overflow: hidden;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--gray-a4);
+  border-radius: var(--radius-2);
+  background: var(--gray-2);
+  color: var(--gray-12);
+  font-size: var(--font-size-base);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes creation-evidence-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

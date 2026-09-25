@@ -726,6 +726,29 @@
         "rebuildSuccess": "索引重建任务已提交",
         "rebuildFailed": "索引重建失败"
       }
+    },
+    "creationEvidence": {
+      "open": "创作凭证报告",
+      "title": "创作凭证报告",
+      "description": "一键导出修改时间线、AI 调用披露与人工修改占比，用于平台创作申报存档。",
+      "scope": "报告范围",
+      "scopeProject": "全本",
+      "scopeChapter": "单章",
+      "chapter": "选择章节",
+      "chapterPlaceholder": "选择一个章节",
+      "outputs": "将生成机器可读 JSON 与可读 HTML 两份报告。",
+      "generate": "生成报告",
+      "exporting": "正在生成报告",
+      "cancelling": "正在取消…",
+      "cancelExport": "取消",
+      "cancelled": "已取消",
+      "cancelFailed": "取消失败",
+      "statusLoadFailed": "报告状态加载失败",
+      "success": "报告已生成",
+      "downloadAgain": "重新下载",
+      "errorTitle": "生成失败",
+      "failed": "报告生成失败，请重试",
+      "backToScope": "返回选择"
     }
   },
   "editor": {
