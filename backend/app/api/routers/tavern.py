@@ -77,7 +77,7 @@ def _included_ids(raw: str) -> set[str] | None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="included_block_ids 不是合法 JSON") from exc
     if not isinstance(payload, list) or not all(isinstance(item, str) for item in payload):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="included_block_ids 必须是字符串数组")
-    return set(payload)
+    return {item for item in payload if isinstance(item, str)}
 
 
 @router.post(

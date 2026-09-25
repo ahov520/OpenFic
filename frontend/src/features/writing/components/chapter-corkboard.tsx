@@ -316,7 +316,12 @@ export function ChapterCorkboard({
           chapters: volume.chapters.filter((chapter) => chapterOwesOpenPlant(chapter, threads)),
         }))
       : filtered;
-    return arrangeCorkboardVolumes(owing, chapterSort);
+    // 显式类型实参：oxlint --type-aware 推不出 TChapter，会退到约束
+    // CorkboardSortableChapter（无 id），误报 TS2339/TS2322；tsc 无此错。
+    return arrangeCorkboardVolumes<ChapterListItem, CorkboardVolumeCards<ChapterListItem>>(
+      owing,
+      chapterSort,
+    );
   }, [chapterSort, missingTargetOnly, normalizedQuery, owingApplied, statusFilter, threads, volumes]);
   const visibleChapterIds = useMemo(
     () => new Set(visibleVolumes.flatMap((volume) => volume.chapters.map((chapter) => chapter.id))),

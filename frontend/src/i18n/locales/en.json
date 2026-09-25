@@ -373,6 +373,16 @@
       "untitled": "Untitled chapter",
       "aria": "Previous chapter ending"
     },
+    "unstuck": {
+      "label": "I'm stuck",
+      "instruction": "I'm stuck on this chapter — suggest directions only, do not write prose for me. Using the story so far, this chapter's synopsis and the current ending below, give me 3 distinct directions. For each direction write exactly three sentences: advance event (what the next chapter opens with), conflict source (who or what pushes back), chapter-end hook (what suspense the chapter ends on), plus a one-line note on how to choose. The three directions must be genuinely different, not rewordings of each other; I will pick one and keep writing myself.",
+      "previousContextLabel": "Story so far",
+      "previousContextHint": "First read the chapter summaries before this chapter with read_chapter_summaries; if they are missing or stale, read the previous chapter's ending instead.",
+      "synopsisLabel": "Chapter synopsis",
+      "synopsisEmptyHint": "(not filled in; infer it from the story so far and the current ending)",
+      "endingLabel": "Current ending",
+      "endingEmptyHint": "(this chapter has no text yet)"
+    },
     "marginNotes": {
       "title": "Margin notes",
       "hint": "Select a sentence and leave the question beside it. A matching sentence keeps a faint mark; click the mark to see the note. Notes stay out of the manuscript and the word count.",

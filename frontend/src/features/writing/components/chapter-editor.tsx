@@ -1,7 +1,7 @@
 import { Box, Flex, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AtSign, StickyNote } from "lucide-react";
+import { AtSign, LifeBuoy, StickyNote } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -11,6 +11,7 @@ import wordsCountModule from "words-count";
 import { toast } from "@/components";
 import { TitleInput, EditorToolbar, Spinner } from "@/components";
 import { ContextMenu } from "@/components";
+import { buildSkillCommandTag } from "@/features/assistant/lib/command-text";
 import {
   buildChapterMentionTag,
   buildLineRangeMentionTag,
@@ -40,6 +41,11 @@ import {
 } from "../hooks/use-writing-working-copy";
 import { createChapterEditorDraft, isChapterEditorDraftDirty } from "../lib/chapter-editor-draft";
 import { createEditorExtensions } from "../lib/editor-config";
+import {
+  UNSTUCK_SKILL_ID,
+  UNSTUCK_SKILL_NAME,
+  buildUnstuckRequest,
+} from "../lib/unstuck-request";
 import {
   getNextWritingWorkingCopyTimestamp,
   isRemoteWritingEntityNewer,
@@ -634,10 +640,34 @@ function ChapterEditorContent({
         addSelectionToConversation();
       },
     });
+    items.push({
+      id: "unstuck",
+      label: t("writing.unstuck.label"),
+      icon: LifeBuoy,
+      onClick: () => {
+        onAddToConversation(
+          buildUnstuckRequest({
+            skillTag: buildSkillCommandTag(UNSTUCK_SKILL_ID, UNSTUCK_SKILL_NAME),
+            instruction: t("writing.unstuck.instruction"),
+            previousContextLabel: t("writing.unstuck.previousContextLabel"),
+            previousContextHint: t("writing.unstuck.previousContextHint"),
+            chapterId: chapter.id,
+            chapterLabel,
+            synopsis: chapter.synopsis,
+            synopsisLabel: t("writing.unstuck.synopsisLabel"),
+            synopsisEmptyHint: t("writing.unstuck.synopsisEmptyHint"),
+            endingLabel: t("writing.unstuck.endingLabel"),
+            endingEmptyHint: t("writing.unstuck.endingEmptyHint"),
+            docText: editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", "\n"),
+          }),
+        );
+      },
+    });
     return items;
   }, [
     addSelectionToConversation,
     chapter.id,
+    chapter.synopsis,
     chapter.title,
     editor,
     onAddToConversation,
