@@ -131,6 +131,10 @@ export async function checkHealth(): Promise<HealthResponse> {
 
 import type { ChapterExport, ChapterExportCreate } from "./chapter-export.types";
 import type {
+  CreationEvidenceReport,
+  CreationEvidenceReportCreate,
+} from "./creation-evidence.types";
+import type {
   Character,
   CharacterCreate,
   CharacterListItem,
@@ -253,6 +257,53 @@ export async function cancelChapterExport(
 ): Promise<ChapterExport> {
   const response = await apiClient.post(`/projects/${projectId}/chapter-exports/${jobId}/cancel`);
   return transformChapterExport(response.data);
+}
+
+function transformCreationEvidenceReport(raw: Record<string, unknown>): CreationEvidenceReport {
+  return {
+    id: String(raw.id ?? ""),
+    status: String(raw.status ?? ""),
+    filename: typeof raw.filename === "string" ? raw.filename : "创作凭证报告",
+    chapterId: typeof raw.chapter_id === "string" ? raw.chapter_id : null,
+    current: Number(raw.current ?? 0),
+    total: Number(raw.total ?? 0),
+    stage: typeof raw.stage === "string" ? raw.stage : null,
+    expiresAt: typeof raw.expires_at === "string" ? raw.expires_at : null,
+    jsonDownloadUrl: resolveBackendUrl(raw.json_download_url as string | null | undefined),
+    htmlDownloadUrl: resolveBackendUrl(raw.html_download_url as string | null | undefined),
+    errorMessage: typeof raw.error_message === "string" ? raw.error_message : null,
+  };
+}
+
+export async function createCreationEvidenceReport(
+  projectId: string,
+  data: CreationEvidenceReportCreate,
+): Promise<CreationEvidenceReport> {
+  const response = await apiClient.post(`/projects/${projectId}/creation-evidence-reports`, {
+    chapter_id: data.chapterId,
+    local_date: data.localDate,
+  });
+  return transformCreationEvidenceReport(response.data);
+}
+
+export async function fetchCreationEvidenceReport(
+  projectId: string,
+  jobId: string,
+): Promise<CreationEvidenceReport> {
+  const response = await apiClient.get(
+    `/projects/${projectId}/creation-evidence-reports/${jobId}`,
+  );
+  return transformCreationEvidenceReport(response.data);
+}
+
+export async function cancelCreationEvidenceReport(
+  projectId: string,
+  jobId: string,
+): Promise<CreationEvidenceReport> {
+  const response = await apiClient.post(
+    `/projects/${projectId}/creation-evidence-reports/${jobId}/cancel`,
+  );
+  return transformCreationEvidenceReport(response.data);
 }
 
 /**
