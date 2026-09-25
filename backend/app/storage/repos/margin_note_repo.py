@@ -113,7 +113,7 @@ async def delete_by_chapter_ids(session: AsyncSession, chapter_ids: list[str]) -
 
 
 async def delete_by_project(session: AsyncSession, project_id: str) -> None:
-    chapter_ids = select(Chapter.id).where(col(Chapter.project_id) == project_id)
+    chapter_ids = select(col(Chapter.id)).where(col(Chapter.project_id) == project_id)
     await session.execute(
         sql_delete(ChapterMarginNote).where(
             col(ChapterMarginNote.chapter_id).in_(chapter_ids)

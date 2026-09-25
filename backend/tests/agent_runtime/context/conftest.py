@@ -1,8 +1,24 @@
 from typing import Any, cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from app.agent_runtime.graph.state import AgentRuntimeState
+
+
+@pytest.fixture(autouse=True)
+def _stub_lore_part():
+    """Stub the lore part for build_context tests.
+
+    build_lore_pack queries characters/world info/chapter titles through
+    ``session.execute()`` chains, which a plain ``AsyncMock`` session cannot
+    express (``result.scalars().all()`` breaks). Tests here examine other
+    parts, so lore is stubbed out the same way as rules/skills.
+    """
+    with patch(
+        "app.agent_runtime.context.build_context.build_lore_pack",
+        new=AsyncMock(return_value=None),
+    ):
+        yield
 
 
 @pytest.fixture

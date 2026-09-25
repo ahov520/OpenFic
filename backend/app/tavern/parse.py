@@ -138,10 +138,11 @@ def detect_material_kind(raw: bytes, filename: str) -> Literal["character_card",
     payload = _load_json_object(raw)
     if isinstance(payload, dict) and isinstance(payload.get("prompts"), list):
         return "preset"
+    card_data = payload.get("data") if isinstance(payload, dict) else None
     if isinstance(payload, dict) and (
         payload.get("spec") in {"chara_card_v2", "chara_card_v3"}
-        or isinstance(payload.get("data"), dict)
-        and "first_mes" in payload.get("data", {})
+        or isinstance(card_data, dict)
+        and "first_mes" in card_data
     ):
         return "character_card"
     if isinstance(payload, dict) and "name" in payload and "description" in payload and "entries" not in payload:
@@ -225,12 +226,15 @@ def parse_preset_bytes(
 ) -> PresetDraft:
     """Parse a SillyTavern preset and classify each enabled prompt."""
     payload = _load_json_object(raw)
-    if not isinstance(payload, dict) or not isinstance(payload.get("prompts"), list):
+    if not isinstance(payload, dict):
+        raise ValueError("预设文件格式无效：缺少 prompts 数组")
+    prompts = payload.get("prompts")
+    if not isinstance(prompts, list):
         raise ValueError("预设文件格式无效：缺少 prompts 数组")
 
     enabled = _enabled_identifiers(payload)
     blocks: list[PresetBlock] = []
-    for index, prompt in enumerate(payload["prompts"]):
+    for index, prompt in enumerate(prompts):
         if not isinstance(prompt, dict):
             continue
         if prompt.get("marker") is True:
@@ -346,7 +350,7 @@ def _read_uid(raw_uid: object, fallback_key: object, index: int) -> int:
     if isinstance(fallback_key, int) and not isinstance(fallback_key, bool):
         return fallback_key
     try:
-        return int(fallback_key)  # type: ignore[arg-type]
+        return int(fallback_key)  # ty: ignore[invalid-argument-type]
     except (TypeError, ValueError):
         return index
 

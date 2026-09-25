@@ -782,8 +782,10 @@ def _gap_from_dict(raw: object) -> CoverageGap | None:
     detail = raw.get("detail", "")
     if (
         not isinstance(ref, str)
+        or not isinstance(origin, str)
         or origin not in {"synopsis", "beat"}
         or not isinstance(plan_text, str)
+        or not isinstance(basis, str)
         or basis not in {"literal", "model"}
         or not isinstance(missing, list)
         or not all(isinstance(item, str) for item in missing)
@@ -800,14 +802,14 @@ def _gap_from_dict(raw: object) -> CoverageGap | None:
         return None
     if thread_id is not None and not isinstance(thread_id, str):
         return None
-    if change is not None and change not in GAP_CHANGES:
+    if change is not None and (not isinstance(change, str) or change not in GAP_CHANGES):
         return None
     return CoverageGap(
         ref=ref,
         origin=origin,
         plan_text=plan_text,
         basis=basis,
-        missing=tuple(missing),
+        missing=tuple(item for item in missing if isinstance(item, str)),
         detail=detail,
         beat_kind=beat_kind,
         thread_name=thread_name,
@@ -824,6 +826,7 @@ def _line_from_dict(raw: object) -> UncheckedLine | None:
     plan_text = raw.get("plan_text")
     if (
         not isinstance(ref, str)
+        or not isinstance(origin, str)
         or origin not in {"synopsis", "beat"}
         or not isinstance(plan_text, str)
     ):

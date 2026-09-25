@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -158,7 +159,7 @@ def _clip(text: str, limit: int) -> str:
     return text[: limit - 1] + "…"
 
 
-def agent_margin_payload(notes: list[object]) -> dict[str, object] | None:
+def agent_margin_payload(notes: Sequence[object]) -> dict[str, object] | None:
     """未划掉的旁注。没有则不占上下文。划掉的不带进去。"""
     open_notes = [
         note
