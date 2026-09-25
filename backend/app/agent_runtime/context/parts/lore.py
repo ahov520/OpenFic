@@ -91,7 +91,7 @@ async def _writing_haystack(
             parts.extend(_todo_text(todo) for todo in todos)
             open_todos = _open_todo_lines(todos)
     titles = await db_session.execute(
-        select(Chapter.title)
+        select(col(Chapter.title))
         .where(col(Chapter.project_id) == project_id)
         .order_by(col(Chapter.updated_at).desc())
         .limit(_RECENT_CHAPTER_LIMIT)

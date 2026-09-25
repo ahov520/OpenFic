@@ -261,6 +261,9 @@ async def test_edit_world_entry_reads_and_writes_inside_lock() -> None:
         content="旧内容",
         token_count=1,
         is_enabled=True,
+        keywords_json="[]",
+        is_constant=True,
+        source="",
     )
 
     async def get_world_info(*_args: object, **_kwargs: object):

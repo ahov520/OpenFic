@@ -606,6 +606,9 @@ async def test_create_world_entry_returns_diff() -> None:
         content="林舟",
         token_count=2,
         is_enabled=True,
+        keywords_json="[]",
+        is_constant=True,
+        source="",
     )
 
     with patch(
@@ -785,6 +788,9 @@ async def test_edit_world_entry_returns_diff() -> None:
         content="林舟",
         token_count=2,
         is_enabled=True,
+        keywords_json="[]",
+        is_constant=True,
+        source="",
     )
     updated_entry = SimpleNamespace(
         id="e1",
@@ -795,6 +801,9 @@ async def test_edit_world_entry_returns_diff() -> None:
         content="林舟与旧友",
         token_count=2,
         is_enabled=True,
+        keywords_json="[]",
+        is_constant=True,
+        source="",
     )
 
     with patch(
@@ -929,6 +938,9 @@ async def test_delete_world_entry_removes_title() -> None:
         content="林舟",
         token_count=2,
         is_enabled=True,
+        keywords_json="[]",
+        is_constant=True,
+        source="",
     )
 
     with patch(
