@@ -35,6 +35,7 @@ from app.api.routers import (
     chapter_exports,
     chapters,
     commands,
+    creation_evidence,
     dashboard,
     health,
     import_router,
@@ -735,6 +736,7 @@ def create_app() -> FastAPI:
     app.include_router(agent_memories.router, prefix=app_settings.api_v1_prefix)
     app.include_router(chapter_context.router, prefix=app_settings.api_v1_prefix)
     app.include_router(chapter_exports.router, prefix=app_settings.api_v1_prefix)
+    app.include_router(creation_evidence.router, prefix=app_settings.api_v1_prefix)
     app.include_router(tasks.router, prefix=app_settings.api_v1_prefix)
     app.include_router(
         agent_runtime.router, prefix=f"{app_settings.api_v1_prefix}/agent"
