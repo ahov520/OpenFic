@@ -3,6 +3,7 @@ import {
   BookPlus,
   Check,
   Download,
+  FileCheck2,
   FilePlus,
   GripVertical,
   LayoutGrid,
@@ -33,6 +34,7 @@ interface SidebarToolbarProps {
   onOpenPlotThreads?: () => void;
   onOpenMarginNotes?: () => void;
   onExport: () => void;
+  onCreationEvidence: () => void;
   onSaveOrder: () => void;
   onCancelOrder: () => void;
   isSavingOrder?: boolean;
@@ -51,6 +53,7 @@ export function SidebarToolbar({
   onOpenPlotThreads,
   onOpenMarginNotes,
   onExport,
+  onCreationEvidence,
   onSaveOrder,
   onCancelOrder,
   isSavingOrder,
@@ -413,6 +416,19 @@ export function SidebarToolbar({
                     onClick={onExport}
                   >
                     <Download size={16} />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip content={t("writing.creationEvidence.open")}>
+                  <IconButton
+                    variant="ghost"
+                    color="gray"
+                    highContrast
+                    size="2"
+                    aria-label={t("writing.creationEvidence.open")}
+                    data-testid="open-creation-evidence"
+                    onClick={onCreationEvidence}
+                  >
+                    <FileCheck2 size={16} />
                   </IconButton>
                 </Tooltip>
               </>

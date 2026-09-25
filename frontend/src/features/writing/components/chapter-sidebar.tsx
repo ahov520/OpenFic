@@ -28,6 +28,7 @@ import type { SidebarWritingStatusFilter } from "../lib/sidebar-writing-status-f
 import { useTabsStore } from "../store/use-tabs-store";
 import { useWritingStore } from "../store/use-writing-store";
 import { ChapterExportDialog } from "./chapter-export-dialog";
+import { CreationEvidenceDialog } from "./creation-evidence-dialog";
 import {
   findVolumeIdForChapter,
   getInitialCurrentChapterVolumeIdToExpand,
@@ -122,6 +123,7 @@ export function ChapterSidebar({
   const [editingVolume, setEditingVolume] = useState<VolumeWithChapters | null>(null);
   const [editingVolumeDescription, setEditingVolumeDescription] = useState("");
   const [chapterExportOpen, setChapterExportOpen] = useState(false);
+  const [creationEvidenceOpen, setCreationEvidenceOpen] = useState(false);
   const [localTitleOverrides, setLocalTitleOverrides] = useState<Record<string, string>>({});
   const [scrollRequest, setScrollRequest] = useState<GroupedVolumeListScrollRequest | null>(null);
   const defaultExpansionAppliedProjectRef = useRef<string | null>(null);
@@ -585,6 +587,7 @@ export function ChapterSidebar({
         onOpenPlotThreads={onOpenPlotThreads}
         onOpenMarginNotes={onOpenMarginNotes}
         onExport={() => setChapterExportOpen(true)}
+        onCreationEvidence={() => setCreationEvidenceOpen(true)}
         onSaveOrder={handleSaveOrder}
         onCancelOrder={handleCancelOrder}
         isSavingOrder={reorderChaptersMutation.isPending}
@@ -683,6 +686,14 @@ export function ChapterSidebar({
         onOpenChange={setChapterExportOpen}
         projectId={projectId}
         volumes={volumes}
+      />
+
+      <CreationEvidenceDialog
+        open={creationEvidenceOpen}
+        onOpenChange={setCreationEvidenceOpen}
+        projectId={projectId}
+        volumes={volumes}
+        currentChapterId={currentChapterId}
       />
 
       <Dialog.Root

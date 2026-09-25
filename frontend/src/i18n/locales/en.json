@@ -736,6 +736,29 @@
         "rebuildSuccess": "Index rebuild job submitted",
         "rebuildFailed": "Failed to rebuild index"
       }
+    },
+    "creationEvidence": {
+      "open": "Creation evidence report",
+      "title": "Creation evidence report",
+      "description": "Export revision timeline, AI call disclosure and human edit ratio for platform declaration.",
+      "scope": "Report scope",
+      "scopeProject": "Whole book",
+      "scopeChapter": "Single chapter",
+      "chapter": "Select chapter",
+      "chapterPlaceholder": "Pick a chapter",
+      "outputs": "Generates both a machine-readable JSON and a readable HTML report.",
+      "generate": "Generate report",
+      "exporting": "Generating report",
+      "cancelling": "Cancelling…",
+      "cancelExport": "Cancel",
+      "cancelled": "Cancelled",
+      "cancelFailed": "Failed to cancel",
+      "statusLoadFailed": "Failed to load report status",
+      "success": "Report generated",
+      "downloadAgain": "Download again",
+      "errorTitle": "Generation failed",
+      "failed": "Failed to generate report, please retry",
+      "backToScope": "Back to selection"
     }
   },
   "editor": {
