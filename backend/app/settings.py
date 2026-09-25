@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     character_images_dir: Path = BACKEND_DATA_DIR / "character-images"
     agent_attachments_dir: Path = BACKEND_DATA_DIR / "agent-attachments"
     chapter_exports_dir: Path = BACKEND_DATA_DIR / "chapter-exports"
+    project_backups_dir: Path = BACKEND_DATA_DIR / "project-backups"
     creation_evidence_dir: Path = BACKEND_DATA_DIR / "creation-evidence"
     static_dir: Path = BACKEND_DATA_DIR
 

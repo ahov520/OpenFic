@@ -7,6 +7,7 @@ from app.background.jobs.constants import (
     JOB_TYPE_CHAPTER_EXPORT,
     JOB_TYPE_CREATION_EVIDENCE_REPORT,
     JOB_TYPE_LONG_TERM_SUMMARY,
+    JOB_TYPE_PROJECT_BACKUP,
     JOB_TYPE_RETRIEVAL_CHAPTER_INDEX_BATCH,
     JOB_TYPE_SESSION_TITLE,
     JOB_TYPE_SUMMARY_BATCH,
@@ -60,6 +61,12 @@ def register_creation_evidence_report_job() -> None:
     get_job_registry().register(CREATION_EVIDENCE_REPORT_JOB)
 
 
+def register_project_backup_job() -> None:
+    from app.background.jobs.definitions.project_backup import PROJECT_BACKUP_JOB
+
+    get_job_registry().register(PROJECT_BACKUP_JOB)
+
+
 _REGISTRARS: dict[str, Callable[[], None]] = {
     JOB_TYPE_SESSION_TITLE: register_session_title_job,
     JOB_TYPE_CHAPTER_SUMMARY: register_chapter_summary_job,
@@ -68,6 +75,7 @@ _REGISTRARS: dict[str, Callable[[], None]] = {
     JOB_TYPE_RETRIEVAL_CHAPTER_INDEX_BATCH: register_retrieval_chapter_index_batch_job,
     JOB_TYPE_CHAPTER_EXPORT: register_chapter_export_job,
     JOB_TYPE_CREATION_EVIDENCE_REPORT: register_creation_evidence_report_job,
+    JOB_TYPE_PROJECT_BACKUP: register_project_backup_job,
 }
 
 

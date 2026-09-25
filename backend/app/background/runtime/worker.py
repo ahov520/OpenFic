@@ -9,6 +9,7 @@ from app.background.events.publisher import BackgroundEventPublisher
 from app.background.events.types import EVENT_JOB_STARTED
 from app.background.jobs.constants import (
     JOB_TYPE_CHAPTER_EXPORT,
+    JOB_TYPE_PROJECT_BACKUP,
     JOB_TYPE_RETRIEVAL_CHAPTER_INDEX_BATCH,
     JOB_TYPE_SUMMARY_BATCH,
 )
@@ -39,9 +40,11 @@ class BackgroundWorker:
         self._running_summary_batch_tasks: dict[str, asyncio.Task[dict | None]] = {}
         self._running_index_batch_tasks: dict[str, asyncio.Task[dict | None]] = {}
         self._running_chapter_export_tasks: dict[str, asyncio.Task[dict | None]] = {}
+        self._running_project_backup_tasks: dict[str, asyncio.Task[dict | None]] = {}
         self._preempted_summary_batch_ids: set[str] = set()
         self._preempted_index_batch_ids: set[str] = set()
         self._preempted_chapter_export_ids: set[str] = set()
+        self._preempted_project_backup_ids: set[str] = set()
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -67,6 +70,14 @@ class BackgroundWorker:
         if task is None or task.done():
             return False
         self._preempted_chapter_export_ids.add(job_id)
+        task.cancel()
+        return True
+
+    def cancel_running_project_backup(self, job_id: str) -> bool:
+        task = self._running_project_backup_tasks.get(job_id)
+        if task is None or task.done():
+            return False
+        self._preempted_project_backup_ids.add(job_id)
         task.cancel()
         return True
 
@@ -145,6 +156,8 @@ class BackgroundWorker:
                 self._running_index_batch_tasks[job.id] = execution_task
             elif job.type == JOB_TYPE_CHAPTER_EXPORT:
                 self._running_chapter_export_tasks[job.id] = execution_task
+            elif job.type == JOB_TYPE_PROJECT_BACKUP:
+                self._running_project_backup_tasks[job.id] = execution_task
             if job.timeout_seconds is None:
                 result = await execution_task
             else:
@@ -165,7 +178,13 @@ class BackgroundWorker:
             is_summary_batch_cancelled = job_id in self._preempted_summary_batch_ids
             is_index_batch_cancelled = job_id in self._preempted_index_batch_ids
             is_chapter_export_cancelled = job_id in self._preempted_chapter_export_ids
-            if not is_summary_batch_cancelled and not is_index_batch_cancelled and not is_chapter_export_cancelled:
+            is_project_backup_cancelled = job_id in self._preempted_project_backup_ids
+            if not (
+                is_summary_batch_cancelled
+                or is_index_batch_cancelled
+                or is_chapter_export_cancelled
+                or is_project_backup_cancelled
+            ):
                 raise
             if is_summary_batch_cancelled:
                 job_name = "summary batch"
@@ -173,9 +192,12 @@ class BackgroundWorker:
             elif is_index_batch_cancelled:
                 job_name = "index batch"
                 reason = "用户停止索引"
-            else:
+            elif is_chapter_export_cancelled:
                 job_name = "chapter export"
                 reason = "用户取消导出"
+            else:
+                job_name = "project backup"
+                reason = "用户取消备份"
             logger.bind(job_id=job_id, worker_id=self.worker_id).info(
                 f"running {job_name} interrupted by cancellation request"
             )
@@ -204,9 +226,11 @@ class BackgroundWorker:
                 self._running_summary_batch_tasks.pop(job_id, None)
                 self._running_index_batch_tasks.pop(job_id, None)
                 self._running_chapter_export_tasks.pop(job_id, None)
+                self._running_project_backup_tasks.pop(job_id, None)
             self._preempted_summary_batch_ids.discard(job_id)
             self._preempted_index_batch_ids.discard(job_id)
             self._preempted_chapter_export_ids.discard(job_id)
+            self._preempted_project_backup_ids.discard(job_id)
             with suppress(asyncio.CancelledError):
                 await self._stop_heartbeat(heartbeat_task)
             if context is not None and context.session is not session:

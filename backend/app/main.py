@@ -46,6 +46,7 @@ from app.api.routers import (
     notes,
     margin_notes,
     plot_threads,
+    project_backups,
     projects,
     prompt_chains,
     retrieval_index,
@@ -92,6 +93,7 @@ from app.agent_runtime.attachments import (
 )
 from app.core.storage import ensure_character_images_dir, ensure_covers_dir
 from app.chapter_export.service import cleanup_chapter_export_files
+from app.project_backup.service import cleanup_project_backup_files
 from app.models.builtin import seed_builtin_models
 from app.models.catalog import ModelProviderCatalogService
 from app.maintenance import maintenance_state
@@ -340,6 +342,7 @@ async def _run_startup_maintenance() -> None:
         await init_checkpointer()
 
         await _cleanup_chapter_export_files()
+        await _cleanup_project_backup_files()
         await _cleanup_orphaned_agent_attachment_files()
         await _cleanup_orphaned_task_data()
         await _cleanup_orphaned_revision_data()
@@ -391,6 +394,16 @@ async def _cleanup_chapter_export_files() -> None:
         deleted_files = await cleanup_chapter_export_files(session)
         if deleted_files:
             logger.info(f"Deleted {deleted_files} expired or unreachable chapter export files")
+    finally:
+        await session.close()
+
+
+async def _cleanup_project_backup_files() -> None:
+    session = await create_session()
+    try:
+        deleted_files = await cleanup_project_backup_files(session)
+        if deleted_files:
+            logger.info(f"Deleted {deleted_files} expired or unreachable project backup files")
     finally:
         await session.close()
 
@@ -736,6 +749,7 @@ def create_app() -> FastAPI:
     app.include_router(agent_memories.router, prefix=app_settings.api_v1_prefix)
     app.include_router(chapter_context.router, prefix=app_settings.api_v1_prefix)
     app.include_router(chapter_exports.router, prefix=app_settings.api_v1_prefix)
+    app.include_router(project_backups.router, prefix=app_settings.api_v1_prefix)
     app.include_router(creation_evidence.router, prefix=app_settings.api_v1_prefix)
     app.include_router(tasks.router, prefix=app_settings.api_v1_prefix)
     app.include_router(

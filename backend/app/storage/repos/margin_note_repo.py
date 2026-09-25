@@ -96,6 +96,20 @@ async def save(session: AsyncSession, note: ChapterMarginNote) -> ChapterMarginN
     return note
 
 
+async def list_by_project(
+    session: AsyncSession, project_id: str
+) -> list[ChapterMarginNote]:
+    """全书全部旁注（含已划掉的），供整项目备份做全量读取。"""
+    rows = await session.scalars(
+        select(ChapterMarginNote)
+        .where(col(ChapterMarginNote.project_id) == project_id)
+        .order_by(
+            col(ChapterMarginNote.created_at).asc(), col(ChapterMarginNote.id).asc()
+        )
+    )
+    return list(rows.all())
+
+
 async def delete(session: AsyncSession, note: ChapterMarginNote) -> None:
     await session.delete(note)
     await session.flush()

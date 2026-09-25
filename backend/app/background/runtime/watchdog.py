@@ -9,6 +9,7 @@ from app.background.events.publisher import BackgroundEventPublisher
 from app.background.jobs import repos as job_repo
 from app.background.jobs import service as job_service
 from app.chapter_export.service import cleanup_chapter_export_files
+from app.project_backup.service import cleanup_project_backup_files
 from app.background.transport.base import BackgroundTransport
 from app.settings import settings
 from app.storage.database import create_session
@@ -46,6 +47,7 @@ class BackgroundWatchdog:
                     reason="后台任务 worker lease 已过期",
                 )
             await cleanup_chapter_export_files(session)
+            await cleanup_project_backup_files(session)
             await job_service.commit_and_notify(session)
             return len(jobs)
         except Exception:

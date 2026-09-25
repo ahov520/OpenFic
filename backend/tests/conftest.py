@@ -41,6 +41,7 @@ from app.api.routers import (
     notes,
     margin_notes,
     plot_threads,
+    project_backups,
     projects,
     prompt_chains,
     retrieval_index,
@@ -120,6 +121,7 @@ def _create_test_app() -> FastAPI:
     test_app.include_router(skill_reference_docs.router, prefix="/api/v1")
     test_app.include_router(chapter_context.router, prefix="/api/v1")
     test_app.include_router(chapter_exports.router, prefix="/api/v1")
+    test_app.include_router(project_backups.router, prefix="/api/v1")
     test_app.include_router(tasks.router, prefix="/api/v1")
     test_app.include_router(agent_runtime.router, prefix="/api/v1/agent")
     test_app.include_router(background.router, prefix="/api/v1")
