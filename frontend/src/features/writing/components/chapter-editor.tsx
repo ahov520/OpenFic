@@ -1,7 +1,7 @@
 import { Box, Flex, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AtSign, LifeBuoy, StickyNote } from "lucide-react";
+import { AtSign, LifeBuoy, Paintbrush, StickyNote } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -41,6 +41,8 @@ import {
 } from "../hooks/use-writing-working-copy";
 import { createChapterEditorDraft, isChapterEditorDraftDirty } from "../lib/chapter-editor-draft";
 import { createEditorExtensions } from "../lib/editor-config";
+import type { ProseFormatCleanupRules } from "../lib/prose-format-cleanup";
+import { applyProseFormatCleanup } from "../lib/prose-format-cleanup-editor";
 import { UNSTUCK_SKILL_ID, UNSTUCK_SKILL_NAME, buildUnstuckRequest } from "../lib/unstuck-request";
 import {
   getNextWritingWorkingCopyTimestamp,
@@ -52,6 +54,7 @@ import { ChapterPlanBar } from "./chapter-plan-bar";
 import { ChapterWordTarget } from "./chapter-word-target";
 import { FindReplacePanel } from "./find-replace-panel";
 import { PreviousChapterEnding } from "./previous-chapter-ending";
+import { ProseFormatCleanupDialog } from "./prose-format-cleanup-dialog";
 
 const MANUAL_SAVE_EVENT = "openfic:chapter-editor-manual-save";
 
@@ -152,6 +155,7 @@ function ChapterEditorContent({
   const [isSaving, setIsSaving] = useState(false);
   const [manuscriptRevision, setManuscriptRevision] = useState(0);
   const [findReplaceMode, setFindReplaceMode] = useState<"closed" | "find" | "replace">("closed");
+  const [isProseFormatCleanupOpen, setIsProseFormatCleanupOpen] = useState(false);
   const [marginComposeRequest, setMarginComposeRequest] = useState(0);
   const [wordCount, setWordCount] = useState(() => wordsCount(initialDraft.content));
   const [lineNumberDigits, setLineNumberDigits] = useState(1);
@@ -602,6 +606,28 @@ function ChapterEditorContent({
     setMarginComposeRequest((value) => value + 1);
   }, [isAgentLocked, showLockedToast]);
 
+  const openProseFormatCleanup = useCallback(() => {
+    if (isAgentLocked) {
+      showLockedToast();
+      return;
+    }
+    setIsProseFormatCleanupOpen(true);
+  }, [isAgentLocked, showLockedToast]);
+
+  const handleProseFormatCleanup = useCallback(
+    (rules: ProseFormatCleanupRules) => {
+      if (!editor) return;
+      if (isAgentLocked) {
+        showLockedToast();
+        return;
+      }
+      // 单笔事务派发，配合 History 扩展实现一步整体撤销；
+      // 编辑器 onUpdate 会同步脏状态、字数与行号。
+      applyProseFormatCleanup(editor, rules);
+    },
+    [editor, isAgentLocked, showLockedToast],
+  );
+
   const editorExtraItems = useCallback(() => {
     const items = [
       {
@@ -703,6 +729,12 @@ function ChapterEditorContent({
             label: t("writing.marginNotes.add"),
             onClick: requestMarginNote,
           },
+          {
+            id: "prose-format-cleanup",
+            icon: <Paintbrush size={18} />,
+            label: t("writing.proseFormatCleanup.label"),
+            onClick: openProseFormatCleanup,
+          },
         ]}
       />
 
@@ -716,6 +748,12 @@ function ChapterEditorContent({
           />
         )}
       </AnimatePresence>
+
+      <ProseFormatCleanupDialog
+        open={isProseFormatCleanupOpen}
+        onOpenChange={setIsProseFormatCleanupOpen}
+        onApply={handleProseFormatCleanup}
+      />
 
       <Box
         ref={containerRef}

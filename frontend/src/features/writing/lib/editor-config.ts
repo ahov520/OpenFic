@@ -24,7 +24,9 @@ import { SearchAndReplace } from "./search-and-replace";
 
 export type { EditorShortcutCallbacks } from "@/components/editor-shortcuts";
 
-const HALFWIDTH_PUNCTUATION_MAP: Record<string, string> = {
+// 半角 → 全角标点的统一映射口径；「一键排版」（prose-format-cleanup）复用同一份，
+// 避免输入时转换与整章清理各持一套约定。
+export const HALFWIDTH_PUNCTUATION_MAP: Record<string, string> = {
   ",": "，",
   ".": "。",
   "?": "？",

@@ -373,6 +373,20 @@
       "untitled": "未命名章节",
       "aria": "上一章结尾"
     },
+    "proseFormatCleanup": {
+      "label": "一键排版",
+      "title": "一键排版",
+      "description": "按《小说正文格式规范》清理当前章的段落排版，代码块内容不动；执行后可一步撤销。注意：所在段落被改写的旁注锚点可能不再高亮。",
+      "ruleCompactParagraphGaps": "段间压缩为单换行",
+      "ruleCompactParagraphGapsHint": "去掉段落之间的空行和连续换行，章节标记前后最多保留一个空行",
+      "ruleTrimParagraphIndent": "去掉段首缩进",
+      "ruleTrimParagraphIndentHint": "删除段首的全角空格和半角空白",
+      "ruleTrimTrailingWhitespace": "去掉行尾空白",
+      "ruleTrimTrailingWhitespaceHint": "删除每行末尾多余的空白字符",
+      "ruleConvertPunctuation": "半角标点转全角",
+      "ruleConvertPunctuationHint": "只转换中文语境的标点，英文句子和 URL 里的半角标点不动",
+      "apply": "执行排版"
+    },
     "unstuck": {
       "label": "卡住了",
       "instruction": "我写这一章卡住了，请只帮我找方向，不要替我写正文。结合下面的前情、本章节拍与当前正文结尾，给出 3 个互不相同的走向。每个走向各写三句：推进事件（下一章开场推进什么）、冲突来源（阻力来自谁或什么）、章尾钩子（章尾留下什么悬念），再各用一句说明取舍。三个走向要真正不同，不要措辞变体；我自己挑一个继续写。",
