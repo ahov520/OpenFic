@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import case, func, literal, select, union_all
+from sqlalchemy import case, delete as sql_delete, func, literal, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
 from sqlmodel import col
@@ -224,3 +224,13 @@ def _fixed_timezone_modifier(timezone: ZoneInfo) -> str | None:
     if seconds:
         return f"{sign}{hours:02d}:{minutes:02d}:{seconds:02d}"
     return f"{sign}{hours:02d}:{minutes:02d}"
+
+
+async def delete_by_project(session: AsyncSession, project_id: str) -> None:
+    """删除项目下的全部写作活动事件（删除项目时随行清理）。"""
+    await session.execute(
+        sql_delete(WritingActivityEvent).where(
+            col(WritingActivityEvent.project_id) == project_id
+        )
+    )
+    await session.flush()

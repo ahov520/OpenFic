@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """AgentRule Repository - 规则数据访问层。"""
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete as sql_delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
@@ -121,3 +121,11 @@ async def delete_by_origin_key(session: AsyncSession, project_id: str, origin_ke
     if rules:
         await session.flush()
     return len(rules)
+
+
+async def delete_by_project(session: AsyncSession, project_id: str) -> None:
+    """删除挂在项目上的项目级规则（全局规则不受影响）。"""
+    await session.execute(
+        sql_delete(AgentRule).where(col(AgentRule.project_id) == project_id)
+    )
+    await session.flush()

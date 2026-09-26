@@ -301,3 +301,17 @@ async def search_by_content(
         .order_by(col(WorldInfoEntry.order))
     )
     return list(result.scalars().all())
+
+
+async def delete_by_world_info_ids(
+    session: AsyncSession, world_info_ids: list[str]
+) -> None:
+    """删除一批世界书下的全部条目（删除世界书或项目时随行清理）。"""
+    if not world_info_ids:
+        return
+    await session.execute(
+        sql_delete(WorldInfoEntry).where(
+            col(WorldInfoEntry.world_info_id).in_(world_info_ids)
+        )
+    )
+    await session.flush()

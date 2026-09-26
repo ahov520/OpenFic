@@ -968,6 +968,34 @@ class ChapterIndexIntegrationService:
                 chapter_id=chapter.id,
             ).warning(f"delete retrieval chapter document failed: {exc}")
 
+    async def delete_project_index(self, session: AsyncSession, project_id: str) -> None:
+        """删除项目的整份章节向量索引（删除项目时随行清理）。
+
+        依状态行找回已索引章节的文档 ID，把向量文档、状态行、索引行一并清掉。
+        向量库删除失败只记日志，状态行仍然清除，让残留文档随索引行失效。
+        """
+        index_key = chapter_index_key(project_id)
+        states = await retrieval_chapter_index_state_repo.list_by_project(
+            session,
+            project_id=project_id,
+            index_key=index_key,
+        )
+        document_ids = [chapter_document_id(state.chapter_id) for state in states]
+        try:
+            await self.retrieval_service.delete_documents(session, index_key, document_ids)
+        except Exception as exc:
+            logger.bind(project_id=project_id).warning(
+                f"delete retrieval project documents failed: {exc}"
+            )
+        await retrieval_chapter_index_state_repo.delete_by_project(
+            session,
+            project_id=project_id,
+            index_key=index_key,
+        )
+        index = await retrieval_index_repo.get_by_index_key(session, index_key)
+        if index is not None:
+            await retrieval_index_repo.delete(session, index)
+
     async def index_chapter(
         self,
         session: AsyncSession,

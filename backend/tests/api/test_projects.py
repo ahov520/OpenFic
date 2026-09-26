@@ -7,7 +7,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
 from app.agent_runtime.persistence import repo as agent_run_repo
 from app.agent_runtime.persistence.child_runs import create_child_run
@@ -21,6 +23,13 @@ from app.agent_runtime.persistence.model import (
 )
 from app.storage.models.task import Task
 from app.storage.models.task_message import TaskMessage
+from app.storage.models.agent_rule import AgentRule
+from app.storage.models.character import Character
+from app.storage.models.chapter_summary import ChapterSummary
+from app.storage.models.note import Note, NoteCategory
+from app.storage.models.world_info import WorldInfo
+from app.storage.models.world_info_entry import WorldInfoEntry
+from app.storage.models.writing_activity_event import WritingActivityEvent
 from app.storage.services import task_service
 
 
@@ -384,3 +393,123 @@ async def test_delete_project_not_found(client: AsyncClient) -> None:
     """测试删除不存在的项目。"""
     response = await client.delete("/api/v1/projects/nonexistent")
     assert response.status_code == 404
+
+
+# ---------- 删除项目级联清理 ----------
+
+
+async def _count_project_rows(
+    session: AsyncSession, model: type, project_id: str
+) -> int:
+    return int(
+        await session.scalar(
+            select(func.count())
+            .select_from(model)
+            .where(col(model.project_id) == project_id)  # type: ignore[attr-defined]
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_delete_project_cascades_project_scoped_data(
+    client: AsyncClient,
+    session: AsyncSession,
+) -> None:
+    """删除项目时，项目级数据随行清理，不留孤儿行。"""
+    create_response = await client.post(
+        "/api/v1/projects",
+        data={"title": "级联清理小说"},
+    )
+    project_id = create_response.json()["id"]
+
+    # 角色（API 创建）
+    character_response = await client.post(
+        f"/api/v1/projects/{project_id}/characters",
+        data={"name": "林昭"},
+    )
+    assert character_response.status_code == 201
+
+    # 章节（API 创建，同时产生写作活动事件）
+    volumes = (await client.get(f"/api/v1/projects/{project_id}/volumes")).json()
+    chapter_response = await client.post(
+        f"/api/v1/projects/{project_id}/chapters",
+        json={"volume_id": volumes[0]["id"], "title": "第一章", "content": "正文"},
+    )
+    assert chapter_response.status_code == 201
+    chapter_id = chapter_response.json()["id"]
+
+    # 世界书与条目、笔记与分类、章节摘要、项目级规则（直接插行）
+    world_info = WorldInfo(project_id=project_id, name="设定集")
+    session.add(world_info)
+    await session.flush()
+    session.add(
+        WorldInfoEntry(
+            world_info_id=world_info.id,
+            uid=1,
+            name="青云宗",
+            order=1,
+            content="主角门派",
+        )
+    )
+    category = NoteCategory(project_id=project_id, title="灵感")
+    session.add(category)
+    await session.flush()
+    session.add(
+        Note(
+            project_id=project_id,
+            category_id=category.id,
+            title="待写桥段",
+            content="雨夜追逐",
+        )
+    )
+    session.add(
+        ChapterSummary(
+            project_id=project_id,
+            summary_type="chapter",
+            status="ready",
+            chapter_id=chapter_id,
+            chapter_order=1,
+        )
+    )
+    session.add(
+        AgentRule(
+            title="项目规则",
+            content="保持文风一致",
+            scope="project",
+            project_id=project_id,
+        )
+    )
+    await session.commit()
+
+    # 前置确认：项目下确实有这些行
+    assert await _count_project_rows(session, Character, project_id) == 1
+    assert await _count_project_rows(session, WritingActivityEvent, project_id) >= 1
+    assert await _count_project_rows(session, Note, project_id) == 1
+    entry_count = int(
+        await session.scalar(
+            select(func.count())
+            .select_from(WorldInfoEntry)
+            .where(col(WorldInfoEntry.world_info_id) == world_info.id)
+        )
+    )
+    assert entry_count == 1
+
+    delete_response = await client.delete(f"/api/v1/projects/{project_id}")
+    assert delete_response.status_code == 204
+
+    # 项目级数据全部清零
+    assert await _count_project_rows(session, Character, project_id) == 0
+    assert await _count_project_rows(session, WorldInfo, project_id) == 0
+    remaining_entries = int(
+        await session.scalar(
+            select(func.count())
+            .select_from(WorldInfoEntry)
+            .where(col(WorldInfoEntry.world_info_id) == world_info.id)
+        )
+    )
+    assert remaining_entries == 0
+    assert await _count_project_rows(session, Note, project_id) == 0
+    assert await _count_project_rows(session, NoteCategory, project_id) == 0
+    assert await _count_project_rows(session, ChapterSummary, project_id) == 0
+    assert await _count_project_rows(session, WritingActivityEvent, project_id) == 0
+    assert await _count_project_rows(session, AgentRule, project_id) == 0

@@ -208,3 +208,19 @@ async def fail_active_states_for_job(
         )
     )
     await session.flush()
+
+
+async def delete_by_project(
+    session: AsyncSession,
+    *,
+    project_id: str,
+    index_key: str,
+) -> None:
+    """删除项目在指定索引下的全部章节状态行（删除项目时随行清理）。"""
+    await session.execute(
+        delete(RetrievalChapterIndexState).where(
+            col(RetrievalChapterIndexState.project_id) == project_id,
+            col(RetrievalChapterIndexState.index_key) == index_key,
+        )
+    )
+    await session.flush()

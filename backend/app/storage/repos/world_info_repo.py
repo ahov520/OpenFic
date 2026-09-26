@@ -133,3 +133,10 @@ async def count(session: AsyncSession) -> int:
     """
     result = await session.execute(select(func.count(col(WorldInfo.id))))
     return result.scalar_one()
+
+
+async def delete_by_project(session: AsyncSession, project_id: str) -> None:
+    """删除项目下的世界书（每个项目只有一本）。调用方先清空其条目。"""
+    world_info = await get_by_project_id(session, project_id)
+    if world_info is not None:
+        await delete(session, world_info)

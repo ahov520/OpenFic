@@ -110,3 +110,9 @@ async def mark_all_needs_rebuild(session: AsyncSession) -> None:
         )
     )
     await session.flush()
+
+
+async def delete(session: AsyncSession, index: RetrievalIndex) -> None:
+    """删除一条索引记录（删除项目时随行清理）。"""
+    await session.delete(index)
+    await session.flush()
