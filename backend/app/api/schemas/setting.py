@@ -162,6 +162,12 @@ class SettingsResponse(BaseModel):
         default=False,
         description="是否开启专注模式：淡化光标所在段落以外的正文",
     )
+    daily_word_count_target: int = Field(
+        default=0,
+        ge=0,
+        le=1_000_000,
+        description="每日码字目标（全书合计的用户字数增量），0 表示未设置",
+    )
 
 
 class SettingsUpdateRequest(BaseModel):
@@ -276,6 +282,12 @@ class SettingsUpdateRequest(BaseModel):
     editor_focus_mode: bool | None = Field(
         default=None,
         description="是否开启专注模式",
+    )
+    daily_word_count_target: int | None = Field(
+        default=None,
+        ge=0,
+        le=1_000_000,
+        description="每日码字目标，0 表示未设置",
     )
 
 

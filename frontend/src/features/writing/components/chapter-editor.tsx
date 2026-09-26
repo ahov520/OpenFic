@@ -54,6 +54,7 @@ import { ChapterHistoryPanel } from "./chapter-history-panel";
 import { ChapterMarginNotes } from "./chapter-margin-notes";
 import { ChapterPlanBar } from "./chapter-plan-bar";
 import { ChapterWordTarget } from "./chapter-word-target";
+import { DailyWordGoal } from "./daily-word-goal";
 import { WritingSprint } from "./writing-sprint";
 import { FindReplacePanel } from "./find-replace-panel";
 import { PreviousChapterEnding } from "./previous-chapter-ending";
@@ -986,6 +987,7 @@ function ChapterEditorContent({
             chapterWordCount={wordCount}
             disabled={isAgentLocked}
           />
+          <DailyWordGoal />
         </Flex>
         <Text
           size="1"

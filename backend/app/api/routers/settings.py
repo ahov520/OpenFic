@@ -118,6 +118,7 @@ SETTING_KEY_EDITOR_AUTO_PAIR_SYMBOLS = "editor_auto_pair_symbols"
 SETTING_KEY_EDITOR_SHOW_LINE_NUMBERS = "editor_show_line_numbers"
 SETTING_KEY_EDITOR_TYPEWRITER_MODE = "editor_typewriter_mode"
 SETTING_KEY_EDITOR_FOCUS_MODE = "editor_focus_mode"
+SETTING_KEY_DAILY_WORD_COUNT_TARGET = "daily_word_count_target"
 # 默认值
 DEFAULT_SETTINGS = {
     SETTING_KEY_LANGUAGE: "zh-CN",
@@ -167,6 +168,7 @@ DEFAULT_SETTINGS = {
     SETTING_KEY_EDITOR_SHOW_LINE_NUMBERS: "false",
     SETTING_KEY_EDITOR_TYPEWRITER_MODE: "false",
     SETTING_KEY_EDITOR_FOCUS_MODE: "false",
+    SETTING_KEY_DAILY_WORD_COUNT_TARGET: "0",
 }
 
 
@@ -489,6 +491,13 @@ code_font_family=settings_dict.get(
             ),
             default=False,
         ),
+        daily_word_count_target=_parse_int_setting(
+            settings_dict.get(
+                SETTING_KEY_DAILY_WORD_COUNT_TARGET,
+                DEFAULT_SETTINGS[SETTING_KEY_DAILY_WORD_COUNT_TARGET],
+            ),
+            default=0,
+        ),
     )
 
 
@@ -740,6 +749,11 @@ async def update_settings(
     if request.editor_focus_mode is not None:
         settings_to_update[SETTING_KEY_EDITOR_FOCUS_MODE] = json.dumps(
             request.editor_focus_mode,
+            ensure_ascii=False,
+        )
+    if request.daily_word_count_target is not None:
+        settings_to_update[SETTING_KEY_DAILY_WORD_COUNT_TARGET] = json.dumps(
+            request.daily_word_count_target,
             ensure_ascii=False,
         )
 

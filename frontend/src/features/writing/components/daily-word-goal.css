@@ -1,0 +1,35 @@
+/* 每日码字目标 chip。 */
+
+.daily-word-goal {
+  border: 1px solid var(--gray-a5);
+  border-radius: 6px;
+  background: var(--gray-a1);
+  color: var(--gray-12);
+}
+
+.daily-word-goal--done {
+  border-color: var(--grass-a6);
+  background: var(--grass-a2);
+  color: var(--grass-11);
+}
+
+.daily-word-goal__track {
+  display: inline-block;
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--gray-a4);
+  overflow: hidden;
+}
+
+.daily-word-goal__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-9);
+  transition: width 0.3s ease;
+}
+
+.daily-word-goal--done .daily-word-goal__fill {
+  background: var(--grass-9);
+}

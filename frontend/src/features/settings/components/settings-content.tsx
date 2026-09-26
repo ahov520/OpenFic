@@ -194,6 +194,7 @@ export function SettingsContent({
         code_font_family: settings.codeFontFamily,
         base_font_size: settings.baseFontSize,
         editor_font_size: settings.editorFontSize,
+        daily_word_count_target: settings.dailyWordCountTarget,
         agent_tool_permissions: settings.agentToolPermissions.map((item) => ({
           tool_name: item.toolName,
           mode: item.mode,

@@ -74,6 +74,7 @@ export function transformSettings(raw: SettingsResponse): Settings {
     editorShowLineNumbers: raw.editor_show_line_numbers ?? false,
     editorTypewriterMode: raw.editor_typewriter_mode ?? false,
     editorFocusMode: raw.editor_focus_mode ?? false,
+    dailyWordCountTarget: raw.daily_word_count_target ?? 0,
   };
 }
 

@@ -65,6 +65,7 @@ export interface Settings {
   editorShowLineNumbers: boolean;
   editorTypewriterMode: boolean;
   editorFocusMode: boolean;
+  dailyWordCountTarget: number;
 }
 
 /** 设置响应（后端格式） */
@@ -111,6 +112,7 @@ export interface SettingsResponse {
   editor_show_line_numbers?: boolean;
   editor_typewriter_mode?: boolean;
   editor_focus_mode?: boolean;
+  daily_word_count_target?: number;
 }
 
 /** 设置更新请求 */
@@ -158,6 +160,7 @@ export interface SettingsUpdateRequest {
   editor_show_line_numbers?: boolean;
   editor_typewriter_mode?: boolean;
   editor_focus_mode?: boolean;
+  daily_word_count_target?: number;
 }
 
 export interface AuditDetailsStorage {

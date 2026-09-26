@@ -165,6 +165,37 @@ export function GeneralSettings({
           onCommit={handleEditorFontSizeCommit}
           disabled={isSaving}
         />
+
+        {/* 每日码字目标（0 表示未设置） */}
+        <Flex
+          direction="column"
+          gap="2"
+        >
+          <Text
+            size="2"
+            weight="medium"
+            color="gray"
+          >
+            {t("settings.dailyWordCountTarget")}
+          </Text>
+          <StepperNumberInput
+            value={settings.dailyWordCountTarget}
+            min={0}
+            max={1_000_000}
+            step={100}
+            width={200}
+            increaseAriaLabel={t("settings.dailyWordCountTarget")}
+            decreaseAriaLabel={t("settings.dailyWordCountTarget")}
+            onCommit={(value) => onSettingsChange({ ...settings, dailyWordCountTarget: value })}
+            disabled={isSaving}
+          />
+          <Text
+            size="1"
+            color="gray"
+          >
+            {t("settings.dailyWordCountTargetHint")}
+          </Text>
+        </Flex>
       </Flex>
     </Box>
   );

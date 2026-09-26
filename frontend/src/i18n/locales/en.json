@@ -663,6 +663,10 @@
       "summaryTargetMissed": "Target {{target}} words: +{{count}}, almost there",
       "close": "Done"
     },
+    "dailyGoal": {
+      "title": "Today's words",
+      "progress": "Today {{words}}/{{target}}"
+    },
     "agentLockedChapterEdit": "The Agent is running, so chapters cannot be edited right now",
     "agentLockedNoteEdit": "The Agent is running, so notes cannot be edited right now",
     "titlePlaceholder": "Chapter title",
@@ -1338,6 +1342,8 @@
     "editorTypewriterModeHint": "Keeps the caret line near the top of the viewport while typing, so your eyes never chase the text.",
     "editorFocusMode": "Focus mode",
     "editorFocusModeHint": "Dim every paragraph except the one under the caret to stay on the line you are writing.",
+    "dailyWordCountTarget": "Daily word goal",
+    "dailyWordCountTargetHint": "Counts only the words you type across all books; set 0 to turn off. Turns green in the editor when reached.",
     "editorShowLineNumbersHint": "Show line numbers for explicit line breaks in the chapter editor; soft-wrapped lines do not receive new numbers.",
     "increaseFontSize": "Increase font size",
     "decreaseFontSize": "Decrease font size",
