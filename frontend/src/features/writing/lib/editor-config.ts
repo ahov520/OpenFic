@@ -20,6 +20,7 @@ import { serializeClipboardText } from "@/components/editor-clipboard";
 import { createEditorShortcuts, type EditorShortcutCallbacks } from "@/components/editor-shortcuts";
 import { PARAGRAPH_INDENT } from "@/components/editor-toolbar-actions";
 
+import { createMoveTopLevelBlockTr } from "./paragraph-move";
 import { MarginNoteHighlight } from "./margin-note-highlight";
 import { SearchAndReplace } from "./search-and-replace";
 import { SensitiveHighlight } from "./sensitive-highlight";
@@ -354,6 +355,28 @@ export interface EditorExtensionsOptions {
 }
 
 /**
+ * 段落重排：Alt+↑/↓ 把光标所在顶层段上移或下移一位。
+ */
+function createParagraphMove() {
+  return Extension.create({
+    name: "paragraphMove",
+
+    addKeyboardShortcuts() {
+      const move = (direction: "up" | "down") => ({ editor }: { editor: import("@tiptap/core").Editor }) => {
+        const tr = createMoveTopLevelBlockTr(editor.state.tr, direction);
+        if (!tr) return true;
+        editor.view.dispatch(tr);
+        return true;
+      };
+      return {
+        "Alt-ArrowUp": move("up"),
+        "Alt-ArrowDown": move("down"),
+      };
+    },
+  });
+}
+
+/**
  * 专注模式：用 NodeDecoration 给光标所在顶层段落之外的段落加淡化类。
  * 开关通过 getter 读取，设置变化时由编辑器派发一次空事务刷新装饰。
  */
@@ -442,6 +465,9 @@ export function createEditorExtensions(options: EditorExtensionsOptions = {}) {
 
   // 专注模式始终注册，运行时按 getter 决定是否生效
   extensions.push(createFocusMode(focusMode ?? (() => false)));
+
+  // Alt+↑/↓ 段落重排
+  extensions.push(createParagraphMove());
 
   // 如果启用了半角标点自动转换，添加输入转换扩展
   if (autoConvertPunctuation) {
