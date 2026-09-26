@@ -1,6 +1,6 @@
 import { Flex, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck, Flame } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,7 +8,10 @@ import { fetchWritingDashboard } from "@/features/dashboard/lib/dashboard-api";
 import { fetchSettings } from "@/features/settings/lib/settings-api";
 
 import {
+  computeStreak,
   goalProgress,
+  localDateKey,
+  MAX_STREAK_LOOKBACK_DAYS,
   todayUserWords,
   todayWordGoalRange,
 } from "../lib/daily-word-goal";
@@ -25,14 +28,25 @@ export function DailyWordGoal() {
   });
   const target = settings?.dailyWordCountTarget ?? 0;
 
-  const range = useMemo(() => todayWordGoalRange(Date.now()), []);
+  const now = Date.now();
+  const streakStart = useMemo(() => {
+    const start = new Date(now);
+    start.setDate(start.getDate() - MAX_STREAK_LOOKBACK_DAYS + 1);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }, [now]);
+  const streakRange = useMemo(() => {
+    const startAt = todayWordGoalRange(streakStart.getTime());
+    const endAt = todayWordGoalRange(now + 24 * 60 * 60 * 1000);
+    return { startAt: startAt.startAt, endAt: endAt.endAt, timezone: endAt.timezone };
+  }, [now, streakStart]);
   const { data } = useQuery({
-    queryKey: ["writing-today", range.startAt, range.timezone],
+    queryKey: ["writing-today", streakRange.startAt, streakRange.timezone],
     queryFn: () =>
       fetchWritingDashboard({
-        startAt: range.startAt,
-        endAt: range.endAt,
-        timezone: range.timezone,
+        startAt: streakRange.startAt,
+        endAt: streakRange.endAt,
+        timezone: streakRange.timezone,
       }),
     enabled: target > 0,
     staleTime: 30_000,
@@ -41,7 +55,9 @@ export function DailyWordGoal() {
 
   if (target <= 0) return null;
 
-  const words = todayUserWords(data?.timeSeries ?? []);
+  const series = data?.timeSeries ?? [];
+  const words = todayUserWords(series);
+  const streak = computeStreak(series, target, localDateKey(new Date(now)));
   const { percent, done } = goalProgress(words, target);
 
   return (
@@ -66,6 +82,18 @@ export function DailyWordGoal() {
       <Text size="1">
         {done ? "✓" : `${Math.round(percent * 100)}%`}
       </Text>
+      {streak > 0 && (
+        <Flex
+          align="center"
+          gap="1"
+          title={t("writing.dailyGoal.streak", { count: streak })}
+        >
+          <Flame size={12} />
+          <Text size="1">
+            {t("writing.dailyGoal.streakShort", { count: streak })}
+          </Text>
+        </Flex>
+      )}
     </Flex>
   );
 }

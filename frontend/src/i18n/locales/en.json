@@ -665,7 +665,9 @@
     },
     "dailyGoal": {
       "title": "Today's words",
-      "progress": "Today {{words}}/{{target}}"
+      "progress": "Today {{words}}/{{target}}",
+      "streak": "{{count}}-day streak",
+      "streakShort": "{{count}}d"
     },
     "agentLockedChapterEdit": "The Agent is running, so chapters cannot be edited right now",
     "agentLockedNoteEdit": "The Agent is running, so notes cannot be edited right now",

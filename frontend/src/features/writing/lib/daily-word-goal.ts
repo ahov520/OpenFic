@@ -58,3 +58,57 @@ export function goalProgress(todayWords: number, target: number): GoalProgress {
     done: todayWords >= target,
   };
 }
+
+/** 序列点的最小形状（与 dashboard 时间轴点一致）。 */
+export interface StreakSeriesPoint {
+  date: string;
+  userWordDelta: number;
+}
+
+/**
+ * 连续达标天数：从今天往回数（今天未达标则从昨天起算），遇到未达标日即断。
+ * 历史天数一律按当前目标判定（目标变更没有历史记录，这是可接受的近似）。
+ */
+export function computeStreak(
+  timeSeries: StreakSeriesPoint[],
+  target: number,
+  todayLocalDate: string,
+): number {
+  if (target <= 0) return 0;
+  const byDate = new Map<string, number>();
+  for (const point of timeSeries) {
+    byDate.set(point.date, Math.max(0, point.userWordDelta));
+  }
+
+  const reached = (date: Date): boolean => {
+    const key = localDateKey(date);
+    const words = byDate.get(key);
+    // 序列覆盖范围内的无记录日视为未达标；范围外的日期不再往前数。
+    return words !== undefined && words >= target;
+  };
+
+  const today = parseLocalDateKey(todayLocalDate);
+  let streak = 0;
+  let cursor = new Date(today);
+  if (!reached(cursor)) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  const rangeStart = new Date(today);
+  rangeStart.setDate(rangeStart.getDate() - MAX_STREAK_LOOKBACK_DAYS + 1);
+  while (cursor >= rangeStart && reached(cursor)) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+export const MAX_STREAK_LOOKBACK_DAYS = 120;
+
+export function localDateKey(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function parseLocalDateKey(key: string): Date {
+  const [year, month, day] = key.split("-").map(Number);
+  return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1);
+}
