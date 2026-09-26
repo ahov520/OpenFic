@@ -199,8 +199,10 @@ export function PlotThreadBoard({
             <p className="plot-thread-quiet">{t("writing.plotThreads.loading")}</p>
           ) : view === "timeline" && visible.length > 0 ? (
             <PlotTimeline
+              projectId={projectId}
               threads={visible}
               chapters={chapters}
+              disabled={isAgentLocked}
               onOpenChapter={onOpenChapter}
             />
           ) : visible.length === 0 ? (
