@@ -72,3 +72,19 @@ export interface CharacterRelationshipListResponse {
   items: CharacterRelationship[];
   total: number;
 }
+
+export interface CharacterAppearance {
+  characterId: string;
+  name: string;
+  chapterCount: number;
+  totalChapters: number;
+  coverage: number;
+  firstChapterId: string | null;
+  firstChapterTitle: string | null;
+  lastChapterId: string | null;
+  lastChapterTitle: string | null;
+}
+
+export interface CharacterAppearanceListResponse {
+  items: CharacterAppearance[];
+}

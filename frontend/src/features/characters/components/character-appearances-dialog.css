@@ -1,0 +1,29 @@
+/* 角色出场统计弹窗。 */
+
+.character-appearances-dialog .character-appearances-list {
+  max-height: 56vh;
+  overflow-y: auto;
+}
+
+.character-appearances-dialog .character-appearance-row {
+  border-bottom: 1px solid var(--gray-a3);
+}
+
+.character-appearances-dialog .character-appearance-row:last-child {
+  border-bottom: none;
+}
+
+.character-appearances-dialog .character-appearance-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--gray-a3);
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.character-appearances-dialog .character-appearance-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-9);
+  transition: width 0.3s ease;
+}

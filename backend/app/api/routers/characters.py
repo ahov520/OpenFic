@@ -8,6 +8,8 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas.character import (
+    CharacterAppearanceListResponse,
+    CharacterAppearanceResponse,
     CharacterBatchDeleteRequest,
     CharacterBatchDeleteResponse,
     CharacterBatchFavoriteRequest,
@@ -177,6 +179,38 @@ async def batch_delete_characters(
             session, project_id, data.character_ids
         )
         return CharacterBatchDeleteResponse(deleted_count=deleted_count)
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get(
+    "/projects/{project_id}/characters/appearances",
+    response_model=CharacterAppearanceListResponse,
+    summary="角色出场统计",
+)
+async def list_character_appearances(
+    project_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> CharacterAppearanceListResponse:
+    """按出场章数统计每名角色在全书的出场情况。"""
+    try:
+        stats = await character_service.appearance_stats(session, project_id)
+        return CharacterAppearanceListResponse(
+            items=[
+                CharacterAppearanceResponse(
+                    character_id=item.character_id,
+                    name=item.name,
+                    chapter_count=item.chapter_count,
+                    total_chapters=item.total_chapters,
+                    coverage=item.coverage,
+                    first_chapter_id=item.first_chapter_id,
+                    first_chapter_title=item.first_chapter_title,
+                    last_chapter_id=item.last_chapter_id,
+                    last_chapter_title=item.last_chapter_title,
+                )
+                for item in stats
+            ]
+        )
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

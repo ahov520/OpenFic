@@ -19,6 +19,7 @@ import {
   Pencil,
   Plus,
   Library,
+  BarChart3,
   Dices,
   Search,
   Star,
@@ -53,6 +54,7 @@ interface CharacterListProps {
   onCreateCharacter: () => void;
   onImportTavern?: () => void;
   onOpenRelationships?: () => void;
+  onOpenAppearances?: () => void;
   onOpenNameGenerator?: () => void;
   onSelectCharacter: (characterId: string) => void;
   onEditProfile: (character: CharacterListItem) => void;
@@ -141,6 +143,7 @@ export function CharacterList({
   onCreateCharacter,
   onImportTavern,
   onOpenRelationships,
+  onOpenAppearances,
   onOpenNameGenerator,
   onSelectCharacter,
   onEditProfile,
@@ -613,6 +616,20 @@ export function CharacterList({
                       onClick={onOpenRelationships}
                     >
                       <Waypoints size={16} />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+                {onOpenAppearances ? (
+                  <Tooltip content={t("characters.appearances.title")}>
+                    <IconButton
+                      variant="ghost"
+                      color="gray"
+                      highContrast
+                      size="2"
+                      aria-label={t("characters.appearances.title")}
+                      onClick={onOpenAppearances}
+                    >
+                      <BarChart3 size={16} />
                     </IconButton>
                   </Tooltip>
                 ) : null}

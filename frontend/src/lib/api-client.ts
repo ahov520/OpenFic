@@ -134,6 +134,7 @@ import type {
   Character,
   CharacterCreate,
   CharacterListItem,
+  CharacterAppearanceListResponse,
   CharacterRelationship,
   CharacterRelationshipListResponse,
   CharacterSearchResponse,
@@ -425,6 +426,28 @@ export async function updateCharacterRelationship(
 
 export async function deleteCharacterRelationship(relationshipId: string): Promise<void> {
   await apiClient.delete(`/character-relationships/${relationshipId}`);
+}
+
+export async function fetchCharacterAppearances(
+  projectId: string,
+): Promise<CharacterAppearanceListResponse> {
+  const response = await apiClient.get(`/projects/${projectId}/characters/appearances`);
+  const items = response.data.items as Record<string, unknown>[];
+  return {
+    items: items.map((raw) => ({
+      characterId: String(raw.character_id),
+      name: typeof raw.name === "string" ? raw.name : "",
+      chapterCount: Number(raw.chapter_count ?? 0),
+      totalChapters: Number(raw.total_chapters ?? 0),
+      coverage: Number(raw.coverage ?? 0),
+      firstChapterId: raw.first_chapter_id != null ? String(raw.first_chapter_id) : null,
+      firstChapterTitle:
+        raw.first_chapter_title != null ? String(raw.first_chapter_title) : null,
+      lastChapterId: raw.last_chapter_id != null ? String(raw.last_chapter_id) : null,
+      lastChapterTitle:
+        raw.last_chapter_title != null ? String(raw.last_chapter_title) : null,
+    })),
+  };
 }
 
 export async function fetchCharactersByProject(projectId: string): Promise<CharacterListResponse> {

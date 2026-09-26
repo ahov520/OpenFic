@@ -123,6 +123,14 @@
     "listTitle": "Characters",
     "listHint": "Sorted by last edited",
     "newCharacter": "New Character",
+    "appearances": {
+      "title": "Character Appearances",
+      "hint": "Chapters where each character's name appears in the text. Longer bar means more screen time.",
+      "chapterCount": "{{count}}/{{total}} ch · {{percent}}",
+      "firstLast": "First \"{{first}}\", last \"{{last}}\"",
+      "neverAppeared": "Not appeared yet",
+      "empty": "No characters yet. Create some to see their screen time."
+    },
     "nameGenerator": {
       "title": "Random Name Generator",
       "hint": "Generated from local word banks. Click a name to copy, or + to create a character.",

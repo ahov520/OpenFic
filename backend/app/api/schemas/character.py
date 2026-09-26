@@ -130,3 +130,23 @@ class CharacterRelationshipListResponse(BaseModel):
 
     items: list[CharacterRelationshipResponse] = Field(description="关系列表")
     total: int = Field(description="关系总数")
+
+
+class CharacterAppearanceResponse(BaseModel):
+    """角色出场统计。"""
+
+    character_id: str = Field(description="角色 ID")
+    name: str = Field(description="角色名称")
+    chapter_count: int = Field(description="出场的章节数")
+    total_chapters: int = Field(description="全书章节数")
+    coverage: float = Field(description="出场章数占全书比例 0..1")
+    first_chapter_id: str | None = Field(description="首次出场章节 ID")
+    first_chapter_title: str | None = Field(description="首次出场章节标题")
+    last_chapter_id: str | None = Field(description="最近出场章节 ID")
+    last_chapter_title: str | None = Field(description="最近出场章节标题")
+
+
+class CharacterAppearanceListResponse(BaseModel):
+    """角色出场统计列表。"""
+
+    items: list[CharacterAppearanceResponse] = Field(description="按出场章数降序")

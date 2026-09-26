@@ -12,7 +12,13 @@ from app.core.errors import ConflictError, NotFoundError
 from app.core.storage import delete_character_image, save_character_image
 from app.core.utils.tiktoken import get_encoding
 from app.storage.models.character import Character
-from app.storage.repos import character_relationship_repo, character_repo, project_repo
+from app.storage.repos import (
+    chapter_repo,
+    character_relationship_repo,
+    character_repo,
+    project_repo,
+    volume_repo,
+)
 
 
 @dataclass
@@ -224,3 +230,67 @@ async def batch_delete_characters(
         if character.image_path:
             delete_character_image(character.image_path)
     return deleted_count
+
+
+@dataclass
+class CharacterAppearance:
+    """一名角色的出场统计。"""
+
+    character_id: str
+    name: str
+    chapter_count: int
+    total_chapters: int
+    coverage: float
+    first_chapter_id: str | None
+    first_chapter_title: str | None
+    last_chapter_id: str | None
+    last_chapter_title: str | None
+
+
+async def appearance_stats(
+    session: AsyncSession, project_id: str
+) -> list[CharacterAppearance]:
+    """统计每名角色在全书的出场情况。
+
+    出场判定为角色名以子串形式出现在章节正文中；按阅读顺序取首末出场章。
+    结果按出场章数从多到少排列。
+    """
+    project = await project_repo.get_by_id(session, project_id)
+    if project is None:
+        raise NotFoundError(f"项目不存在: {project_id}")
+
+    from app.memory.chapter.sequence import global_order_index
+
+    characters = await character_repo.list_all_by_project(session, project_id)
+    chapters = await chapter_repo.list_by_project(session, project_id)
+    volumes = await volume_repo.list_by_project(session, project_id)
+    order_index = global_order_index(chapters, volumes)
+    ordered_chapters = sorted(chapters, key=lambda c: order_index[c.id])
+    total = len(ordered_chapters)
+
+    stats: list[CharacterAppearance] = []
+    for character in characters:
+        name = character.name.strip()
+        hit_chapters = (
+            [c for c in ordered_chapters if name and name in c.content]
+            if name
+            else []
+        )
+        first_chapter = hit_chapters[0] if hit_chapters else None
+        last_chapter = hit_chapters[-1] if hit_chapters else None
+        stats.append(
+            CharacterAppearance(
+                character_id=character.id,
+                name=name,
+                chapter_count=len(hit_chapters),
+                total_chapters=total,
+                coverage=(len(hit_chapters) / total) if total else 0.0,
+                first_chapter_id=first_chapter.id if first_chapter else None,
+                first_chapter_title=first_chapter.title if first_chapter else None,
+                last_chapter_id=last_chapter.id if last_chapter else None,
+                last_chapter_title=last_chapter.title if last_chapter else None,
+            )
+        )
+
+    stats.sort(key=lambda item: (-item.chapter_count, item.name))
+    return stats

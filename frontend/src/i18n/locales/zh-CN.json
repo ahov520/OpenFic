@@ -123,6 +123,14 @@
     "listTitle": "角色",
     "listHint": "按最近编辑排列",
     "newCharacter": "新建角色",
+    "appearances": {
+      "title": "角色出场统计",
+      "hint": "按角色名在正文中出现的章节统计戏份，出场越多条越长。",
+      "chapterCount": "{{count}}/{{total}} 章 · {{percent}}",
+      "firstLast": "首「{{first}}」末「{{last}}」",
+      "neverAppeared": "暂未出场",
+      "empty": "还没有角色，先创建角色再来看戏份。"
+    },
     "nameGenerator": {
       "title": "随机取名",
       "hint": "本地词库随机生成，点名字复制，点 + 直接创建角色。",

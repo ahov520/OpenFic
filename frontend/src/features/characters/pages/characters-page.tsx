@@ -29,6 +29,7 @@ import { getPreference, setPreference } from "@/lib/local-db";
 import { countTokens } from "@/lib/tiktoken-utils";
 
 import { CharacterNameGeneratorDialog } from "../components/character-name-generator-dialog";
+import { CharacterAppearancesDialog } from "../components/character-appearances-dialog";
 import { CharacterRelationshipsDialog } from "../components/character-relationships-dialog";
 import { CharacterEditor } from "../components/character-editor";
 import { CharacterList } from "../components/character-list";
@@ -87,6 +88,7 @@ export function CharactersPage() {
   const [tavernDialogOpen, setTavernDialogOpen] = useState(false);
   const [relationshipsOpen, setRelationshipsOpen] = useState(false);
   const [nameGeneratorOpen, setNameGeneratorOpen] = useState(false);
+  const [appearancesOpen, setAppearancesOpen] = useState(false);
   const [deleteCharacterTarget, setDeleteCharacterTarget] = useState<CharacterListItem | null>(
     null,
   );
@@ -390,6 +392,7 @@ export function CharactersPage() {
       onImportTavern={currentProjectId ? () => setTavernDialogOpen(true) : undefined}
       onOpenRelationships={currentProjectId ? () => setRelationshipsOpen(true) : undefined}
       onOpenNameGenerator={currentProjectId ? () => setNameGeneratorOpen(true) : undefined}
+      onOpenAppearances={currentProjectId ? () => setAppearancesOpen(true) : undefined}
       onSelectCharacter={handleSelectCharacter}
       onEditProfile={setProfileCharacter}
       onDeleteCharacter={setDeleteCharacterTarget}
@@ -613,6 +616,13 @@ export function CharactersPage() {
           </Flex>
         </AlertDialog.Content>
       </AlertDialog.Root>
+      {currentProjectId ? (
+        <CharacterAppearancesDialog
+          open={appearancesOpen}
+          projectId={currentProjectId}
+          onOpenChange={setAppearancesOpen}
+        />
+      ) : null}
       {currentProjectId ? (
         <CharacterNameGeneratorDialog
           open={nameGeneratorOpen}
