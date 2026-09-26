@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.15.0](https://github.com/ahov520/OpenFic/compare/v0.14.0...v0.15.0) (2026-09-26)
+
+
+### ✨ 新功能
+
+* Alt+上下方向键移动段落 ([c64f8c7](https://github.com/ahov520/OpenFic/commit/c64f8c7c64b4d2c8b3d7531e31c4324ed18a64f7))
+* 出场统计角色下钻(展开出场章节明细) ([e1c9778](https://github.com/ahov520/OpenFic/commit/e1c9778fae803caf887682a60485a999c2640aa9))
+* 情节线时间轴(线x章网格+节拍定位) ([085b6f3](https://github.com/ahov520/OpenFic/commit/085b6f3acf9262de2903cabd168d5f02237715f2))
+* 打字机/专注模式编辑器内快捷开关 ([f4d8111](https://github.com/ahov520/OpenFic/commit/f4d81113274282f5f630805209a19c0b521c10b9))
+* 打字机与专注模式(编辑器沉浸写作) ([7010409](https://github.com/ahov520/OpenFic/commit/7010409a3c2870eaec300fefa2aa630e06864a56))
+* 时间轴当前章高亮与自动跟随 ([014000b](https://github.com/ahov520/OpenFic/commit/014000b7587a610d577b4bf1c3204af4548a2aa8))
+* 时间轴格子编辑(点击增改删节拍) ([35514a6](https://github.com/ahov520/OpenFic/commit/35514a6d2f6eee46456be84f01626fca84c90348))
+* 每日目标连续达标天数(streak) ([9e774ca](https://github.com/ahov520/OpenFic/commit/9e774ca166328e320856a8d94388b26628914fe1))
+* 每日码字目标(设置+底栏今日进度) ([dae79ef](https://github.com/ahov520/OpenFic/commit/dae79ef7e0c26e87c0d6f26911e46712565b3177))
+* 码字冲刺(限时冲刺+正向字数统计+结算) ([83ac48d](https://github.com/ahov520/OpenFic/commit/83ac48d34499fb6c0dab0871fd3aeab29a7af92e))
+* 角色关系图谱(可视化连线+编辑) ([d68389a](https://github.com/ahov520/OpenFic/commit/d68389af3740a3c7a815f14bb2b90f250cbc3f9b))
+* 角色出场统计(戏份占比+首末出场章) ([7c7a02c](https://github.com/ahov520/OpenFic/commit/7c7a02c35358c8c151203cc63ef1d4249924f73c))
+* 随机取名生成器(本地词库+一键建角) ([3febeda](https://github.com/ahov520/OpenFic/commit/3febedaa7afafe4f4be341d39c00ed010087dabd))
+* 章节合并与拆分(修订期整理) ([e879eb0](https://github.com/ahov520/OpenFic/commit/e879eb03a68b4f274fd2fa5060bf98be886c2d38))
+
+
+### 🐛 问题修复
+
+* 项目删除级联清理(角色/世界书/笔记/摘要/活动/规则/索引) ([734c4ff](https://github.com/ahov520/OpenFic/commit/734c4ff3ebed224b58ca86461932dca9dd613a3c))
+
 ## [0.14.0](https://github.com/ahov520/OpenFic/compare/v0.13.0...v0.14.0) (2026-09-26)
 
 
