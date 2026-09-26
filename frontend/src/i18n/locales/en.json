@@ -123,6 +123,30 @@
     "listTitle": "Characters",
     "listHint": "Sorted by last edited",
     "newCharacter": "New Character",
+    "nameGenerator": {
+      "title": "Random Name Generator",
+      "hint": "Generated from local word banks. Click a name to copy, or + to create a character.",
+      "kind": "Name type",
+      "kinds": {
+        "chineseFemale": "Chinese Female",
+        "chineseMale": "Chinese Male",
+        "japanese": "Japanese Style",
+        "western": "Western Style",
+        "sect": "Sect / Faction",
+        "technique": "Martial Technique",
+        "artifact": "Artifact / Weapon",
+        "elixir": "Elixir / Pill",
+        "place": "Place Name"
+      },
+      "generate": "Regenerate",
+      "empty": "Click \"Regenerate\" to roll some names.",
+      "copyHint": "Click to copy",
+      "createHint": "Create a character with this name",
+      "copied": "Copied \"{{name}}\"",
+      "copyFailed": "Copy failed. Please copy manually.",
+      "created": "Character \"{{name}}\" created",
+      "createFailed": "Failed to create the character. Please try again."
+    },
     "relationships": {
       "title": "Character Relationships",
       "hint": "Relationship lines between characters. Click a line to edit or delete the relationship; drag nodes to rearrange.",

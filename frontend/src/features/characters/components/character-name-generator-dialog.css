@@ -1,0 +1,71 @@
+/* 随机取名弹窗。 */
+
+.character-name-generator-dialog {
+  max-height: min(80vh, 720px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.character-name-generator-results {
+  margin-top: 12px;
+  min-height: 180px;
+  max-height: 46vh;
+  overflow-y: auto;
+  border: 1px solid var(--gray-a4);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.character-name-generator-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.character-name-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--gray-a5);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--color-background);
+}
+
+.character-name-chip-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  padding: 4px 8px 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.character-name-chip-name:hover {
+  background: var(--gray-a3);
+}
+
+.character-name-chip-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-left: 1px solid var(--gray-a5);
+  background: transparent;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--gray-10);
+}
+
+.character-name-chip-add:hover:not(:disabled) {
+  background: var(--accent-a3);
+  color: var(--accent-11);
+}
+
+.character-name-chip-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

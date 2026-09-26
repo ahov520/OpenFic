@@ -123,6 +123,30 @@
     "listTitle": "角色",
     "listHint": "按最近编辑排列",
     "newCharacter": "新建角色",
+    "nameGenerator": {
+      "title": "随机取名",
+      "hint": "本地词库随机生成，点名字复制，点 + 直接创建角色。",
+      "kind": "名字类型",
+      "kinds": {
+        "chineseFemale": "中文女名",
+        "chineseMale": "中文男名",
+        "japanese": "日式名",
+        "western": "西式名",
+        "sect": "门派势力",
+        "technique": "功法武学",
+        "artifact": "法宝神兵",
+        "elixir": "丹药灵药",
+        "place": "地名场景"
+      },
+      "generate": "换一批",
+      "empty": "点击「换一批」生成名字。",
+      "copyHint": "点击复制",
+      "createHint": "用这个名字创建角色",
+      "copied": "已复制「{{name}}」",
+      "copyFailed": "复制失败，请手动复制",
+      "created": "已创建角色「{{name}}」",
+      "createFailed": "创建角色失败，请重试"
+    },
     "relationships": {
       "title": "角色关系图谱",
       "hint": "角色间的关系连线。点击连线可以修改或删除关系，拖动节点调整布局。",
