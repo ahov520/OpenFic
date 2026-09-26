@@ -1,7 +1,7 @@
-import { Box, Flex, Text } from "@radix-ui/themes";
-import { useQuery } from "@tanstack/react-query";
+import { Box, Flex, IconButton, Text } from "@radix-ui/themes";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AtSign, History, LifeBuoy, Paintbrush, Scissors, ShieldAlert, StickyNote } from "lucide-react";
+import { AtSign, Focus, History, LifeBuoy, Paintbrush, Scissors, ShieldAlert, StickyNote, Type } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -16,7 +16,7 @@ import {
   buildChapterMentionTag,
   buildLineRangeMentionTag,
 } from "@/features/assistant/lib/mention-text";
-import { fetchSettings } from "@/features/settings/lib/settings-api";
+import { fetchSettings, updateSettings } from "@/features/settings/lib/settings-api";
 import { useScrollbarAutoHide } from "@/hooks/use-scrollbar-auto-hide";
 import { fetchChapter } from "@/lib/api-client";
 import type { Chapter } from "@/lib/chapter.types";
@@ -135,6 +135,14 @@ function ChapterEditorContent({
     queryFn: fetchSettings,
   });
   const showLineNumbers = settings?.editorShowLineNumbers ?? false;
+  const queryClient = useQueryClient();
+  const toggleViewMode = useMutation({
+    mutationFn: (patch: { editor_typewriter_mode?: boolean; editor_focus_mode?: boolean }) =>
+      updateSettings(patch),
+    onSuccess: (next) => {
+      queryClient.setQueryData(["settings"], next);
+    },
+  });
   const autoIndentRef = useRef(settings?.editorAutoIndent ?? false);
   const autoConvertPunctuationRef = useRef(settings?.editorAutoConvertPunctuation ?? false);
   const autoPairSymbolsRef = useRef(settings?.editorAutoPairSymbols ?? false);
@@ -989,14 +997,38 @@ function ChapterEditorContent({
           />
           <DailyWordGoal />
         </Flex>
-        <Text
-          size="1"
-          color="gray"
-        >
-          {saveStatus === "saving" && t("writing.saving")}
-          {saveStatus === "saved" && t("writing.saved")}
-          {saveStatus === "unsaved" && t("writing.unsavedChanges")}
-        </Text>
+        <Flex align="center" gap="2">
+          <IconButton
+            size="1"
+            variant={typewriterMode ? "solid" : "ghost"}
+            color={typewriterMode ? undefined : "gray"}
+            aria-label={t("settings.editorTypewriterMode")}
+            title={t("settings.editorTypewriterMode")}
+            onClick={() =>
+              toggleViewMode.mutate({ editor_typewriter_mode: !typewriterMode })
+            }
+          >
+            <Type size={13} />
+          </IconButton>
+          <IconButton
+            size="1"
+            variant={focusMode ? "solid" : "ghost"}
+            color={focusMode ? undefined : "gray"}
+            aria-label={t("settings.editorFocusMode")}
+            title={t("settings.editorFocusMode")}
+            onClick={() => toggleViewMode.mutate({ editor_focus_mode: !focusMode })}
+          >
+            <Focus size={13} />
+          </IconButton>
+          <Text
+            size="1"
+            color="gray"
+          >
+            {saveStatus === "saving" && t("writing.saving")}
+            {saveStatus === "saved" && t("writing.saved")}
+            {saveStatus === "unsaved" && t("writing.unsavedChanges")}
+          </Text>
+        </Flex>
       </Flex>
     </Box>
   );
