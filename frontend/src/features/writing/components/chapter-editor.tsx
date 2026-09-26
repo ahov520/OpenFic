@@ -54,6 +54,7 @@ import { ChapterHistoryPanel } from "./chapter-history-panel";
 import { ChapterMarginNotes } from "./chapter-margin-notes";
 import { ChapterPlanBar } from "./chapter-plan-bar";
 import { ChapterWordTarget } from "./chapter-word-target";
+import { WritingSprint } from "./writing-sprint";
 import { FindReplacePanel } from "./find-replace-panel";
 import { PreviousChapterEnding } from "./previous-chapter-ending";
 import { ProseFormatCleanupDialog } from "./prose-format-cleanup-dialog";
@@ -939,12 +940,19 @@ function ChapterEditorContent({
           background: "var(--theme-editor-bar-background)",
         }}
       >
-        <ChapterWordTarget
-          chapterId={chapter.id}
-          written={wordCount}
-          target={chapter.wordCountTarget}
-          disabled={isAgentLocked}
-        />
+        <Flex align="center" gap="3">
+          <ChapterWordTarget
+            chapterId={chapter.id}
+            written={wordCount}
+            target={chapter.wordCountTarget}
+            disabled={isAgentLocked}
+          />
+          <WritingSprint
+            chapterId={chapter.id}
+            chapterWordCount={wordCount}
+            disabled={isAgentLocked}
+          />
+        </Flex>
         <Text
           size="1"
           color="gray"

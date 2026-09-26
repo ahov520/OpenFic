@@ -1,0 +1,14 @@
+/* 码字冲刺 HUD。 */
+
+.writing-sprint-hud {
+  border: 1px solid var(--accent-a5);
+  border-radius: 6px;
+  background: var(--accent-a2);
+  color: var(--accent-11);
+}
+
+.writing-sprint-hud--paused {
+  border-color: var(--gray-a5);
+  background: var(--gray-a2);
+  color: var(--gray-11);
+}
