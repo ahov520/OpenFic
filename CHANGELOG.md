@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.14.0](https://github.com/ahov520/OpenFic/compare/v0.13.0...v0.14.0) (2026-09-26)
+
+
+### ✨ 新功能
+
+* add stuck rescue action to chapter editor context menu ([5224d67](https://github.com/ahov520/OpenFic/commit/5224d67a1756e2e4a7f24dd790b0e5bc9ee31263))
+* add unstuck builtin skill that returns 3 story directions only ([bcdc38c](https://github.com/ahov520/OpenFic/commit/bcdc38c636db91960e02a97a5af29f5a1b66823e))
+* 一键排版(与内置正文格式基准对齐的清理) ([e909c66](https://github.com/ahov520/OpenFic/commit/e909c6605ce6cb9cfae491194898477bebdeb9aa))
+* 前端新增创作凭证报告类型与 API 客户端 ([c1c6bf8](https://github.com/ahov520/OpenFic/commit/c1c6bf875d24498c58ec481f7a9b3950de31db8b))
+* 前端测试纳入 CI(测试地基) ([0d94faa](https://github.com/ahov520/OpenFic/commit/0d94faae75ab876eee7c2440bc4172ee17848d6d))
+* 多格式编译导出与导入(EPUB/DOCX 双向) ([d5c40d0](https://github.com/ahov520/OpenFic/commit/d5c40d03d6b0ec8cf01ff40b5998aa5a291fc26e))
+* 挂载创作凭证报告 API（创建/状态/取消/按格式下载） ([f097189](https://github.com/ahov520/OpenFic/commit/f0971893f5c729d184c2ec1309b58a82d7376ba7))
+* 敏感词/平台违禁词检测(修订口径) ([c80d0f2](https://github.com/ahov520/OpenFic/commit/c80d0f228d6cbb2e59ef9e750ef2e779661a2220))
+* 整项目备份/恢复(全项目 zip 导出+导入) ([3b0068e](https://github.com/ahov520/OpenFic/commit/3b0068ef890ef9832ab02599608dd43cb5a993d9))
+* 新增创作凭证报告导出服务与后台任务，产出 JSON+HTML 双格式成品 ([38af092](https://github.com/ahov520/OpenFic/commit/38af092644597dac5c3e76d374e8fbe8bb74e484))
+* 新增创作凭证聚合层，按项目/章节汇总修改时间线、AI 调用披露与字数活动占比 ([9a1892d](https://github.com/ahov520/OpenFic/commit/9a1892d635cb3b08236e023e670baa4fcc59dfd9))
+* 章节历史版本(手动修订并入 revisions/commits 体系) ([4521013](https://github.com/ahov520/OpenFic/commit/4521013ce1da27ffad981ed85463047878644fcb))
+* 章节导出旁新增创作凭证报告入口，支持全书/单章一键导出 ([272ea08](https://github.com/ahov520/OpenFic/commit/272ea08806393a5a467acf99b827f85148da733d))
+
+
+### 🐛 问题修复
+
+* 修复后端门禁（ty 类型检查与预存的 12 个测试失败） ([af53471](https://github.com/ahov520/OpenFic/commit/af534712e33c09d25f5788dd327f43385eff11d8))
+* 修复后端门禁（ty 类型检查与预存的 12 个测试失败） ([9107cb7](https://github.com/ahov520/OpenFic/commit/9107cb78a7edbb554dc121409f1769bea35889ad))
+* 软木板排序调用补显式类型实参，过 oxlint type-check ([ae4ff2b](https://github.com/ahov520/OpenFic/commit/ae4ff2b812df26d9f9324eb181e76fde2ed29d4f))
+* 软木板排序调用补显式类型实参，过 oxlint type-check ([1f7da27](https://github.com/ahov520/OpenFic/commit/1f7da27729dab8f661e267b534c0959253759ab9))
+
 ## [0.13.0](https://github.com/ahov520/OpenFic/compare/v0.12.0...v0.13.0) (2026-09-24)
 
 
