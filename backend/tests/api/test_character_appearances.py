@@ -56,6 +56,10 @@ async def test_appearance_stats_count_chapters_and_reading_order(
     assert abs(top["coverage"] - 2 / 3) < 1e-6
     assert top["first_chapter_title"] == "第一章"
     assert top["last_chapter_title"] == "第三章"
+    # 出场明细按阅读顺序，含章号与标题
+    assert [chapter["global_order"] for chapter in top["chapters"]] == [1, 3]
+    assert [chapter["title"] for chapter in top["chapters"]] == ["第一章", "第三章"]
+    assert all(chapter["chapter_id"] for chapter in top["chapters"])
 
     second = items[1]
     assert second["character_id"] == shen["id"]

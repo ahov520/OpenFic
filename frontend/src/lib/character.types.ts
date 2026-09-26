@@ -73,6 +73,12 @@ export interface CharacterRelationshipListResponse {
   total: number;
 }
 
+export interface AppearanceChapter {
+  chapterId: string;
+  title: string;
+  globalOrder: number;
+}
+
 export interface CharacterAppearance {
   characterId: string;
   name: string;
@@ -83,6 +89,7 @@ export interface CharacterAppearance {
   firstChapterTitle: string | null;
   lastChapterId: string | null;
   lastChapterTitle: string | null;
+  chapters: AppearanceChapter[];
 }
 
 export interface CharacterAppearanceListResponse {

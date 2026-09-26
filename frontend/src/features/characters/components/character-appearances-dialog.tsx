@@ -1,6 +1,6 @@
 import { Box, Dialog, Flex, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { fetchCharacterAppearances } from "@/lib/api-client";
@@ -33,6 +33,19 @@ export function CharacterAppearancesDialog({
 
   const items = data?.items ?? [];
   const maxCount = items.reduce((acc, item) => Math.max(acc, item.chapterCount), 0);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = useCallback((characterId: string) => {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(characterId)) {
+        next.delete(characterId);
+      } else {
+        next.add(characterId);
+      }
+      return next;
+    });
+  }, []);
 
   return (
     <Dialog.Root
@@ -73,19 +86,32 @@ export function CharacterAppearancesDialog({
             items.map((item) => (
               <Flex
                 key={item.characterId}
+                direction="column"
+                className="character-appearance-row"
+              >
+              <Flex
                 align="center"
                 gap="3"
                 py="2"
-                className="character-appearance-row"
               >
-                <Text
-                  size="2"
-                  weight="medium"
-                  style={{ width: 120, flexShrink: 0 }}
-                  truncate
+                <button
+                  type="button"
+                  className="character-appearance-toggle"
+                  aria-expanded={expandedIds.has(item.characterId)}
+                  aria-label={t("characters.appearances.toggleAria", {
+                    name: item.name,
+                  })}
+                  onClick={() => toggleExpanded(item.characterId)}
                 >
-                  {item.name || t("characters.relationships.untitled")}
-                </Text>
+                  <Text
+                    size="2"
+                    weight="medium"
+                    style={{ width: 120, flexShrink: 0, textAlign: "left" }}
+                    truncate
+                  >
+                    {item.name || t("characters.relationships.untitled")}
+                  </Text>
+                </button>
                 <Box
                   flexGrow="1"
                   className="character-appearance-bar-track"
@@ -123,6 +149,28 @@ export function CharacterAppearancesDialog({
                       })
                     : t("characters.appearances.neverAppeared")}
                 </Text>
+              </Flex>
+              {expandedIds.has(item.characterId) && item.chapters.length > 0 && (
+                <Flex
+                  gap="2"
+                  wrap="wrap"
+                  pb="2"
+                  pl="3"
+                  className="character-appearance-chapters"
+                >
+                  {item.chapters.map((chapter) => (
+                    <span
+                      key={chapter.chapterId}
+                      className="character-appearance-chapter-chip"
+                    >
+                      {t("characters.appearances.chapterChip", {
+                        order: chapter.globalOrder,
+                        title: chapter.title,
+                      })}
+                    </span>
+                  ))}
+                </Flex>
+              )}
               </Flex>
             ))
           )}

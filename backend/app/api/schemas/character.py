@@ -132,6 +132,14 @@ class CharacterRelationshipListResponse(BaseModel):
     total: int = Field(description="关系总数")
 
 
+class AppearanceChapterResponse(BaseModel):
+    """出场统计里的一章。"""
+
+    chapter_id: str = Field(description="章节 ID")
+    title: str = Field(description="章节标题")
+    global_order: int = Field(description="全书阅读顺序")
+
+
 class CharacterAppearanceResponse(BaseModel):
     """角色出场统计。"""
 
@@ -144,6 +152,7 @@ class CharacterAppearanceResponse(BaseModel):
     first_chapter_title: str | None = Field(description="首次出场章节标题")
     last_chapter_id: str | None = Field(description="最近出场章节 ID")
     last_chapter_title: str | None = Field(description="最近出场章节标题")
+    chapters: list[AppearanceChapterResponse] = Field(description="出场章节明细，按阅读顺序")
 
 
 class CharacterAppearanceListResponse(BaseModel):

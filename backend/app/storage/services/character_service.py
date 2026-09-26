@@ -233,6 +233,15 @@ async def batch_delete_characters(
 
 
 @dataclass
+class AppearanceChapter:
+    """出场统计里的一章。"""
+
+    chapter_id: str
+    title: str
+    global_order: int
+
+
+@dataclass
 class CharacterAppearance:
     """一名角色的出场统计。"""
 
@@ -245,6 +254,7 @@ class CharacterAppearance:
     first_chapter_title: str | None
     last_chapter_id: str | None
     last_chapter_title: str | None
+    chapters: list[AppearanceChapter]
 
 
 async def appearance_stats(
@@ -289,6 +299,14 @@ async def appearance_stats(
                 first_chapter_title=first_chapter.title if first_chapter else None,
                 last_chapter_id=last_chapter.id if last_chapter else None,
                 last_chapter_title=last_chapter.title if last_chapter else None,
+                chapters=[
+                    AppearanceChapter(
+                        chapter_id=chapter.id,
+                        title=chapter.title,
+                        global_order=order_index[chapter.id],
+                    )
+                    for chapter in hit_chapters
+                ],
             )
         )
 

@@ -8,6 +8,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas.character import (
+    AppearanceChapterResponse as CharacterAppearanceChapterResponse,
     CharacterAppearanceListResponse,
     CharacterAppearanceResponse,
     CharacterBatchDeleteRequest,
@@ -207,6 +208,14 @@ async def list_character_appearances(
                     first_chapter_title=item.first_chapter_title,
                     last_chapter_id=item.last_chapter_id,
                     last_chapter_title=item.last_chapter_title,
+                    chapters=[
+                        CharacterAppearanceChapterResponse(
+                            chapter_id=chapter.chapter_id,
+                            title=chapter.title,
+                            global_order=chapter.global_order,
+                        )
+                        for chapter in item.chapters
+                    ],
                 )
                 for item in stats
             ]

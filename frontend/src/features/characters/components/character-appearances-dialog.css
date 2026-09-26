@@ -27,3 +27,27 @@
   background: var(--accent-9);
   transition: width 0.3s ease;
 }
+
+.character-appearances-dialog .character-appearance-toggle {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+
+.character-appearances-dialog .character-appearance-toggle:hover {
+  color: var(--accent-11);
+}
+
+.character-appearance-chapter-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--gray-a5);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--gray-11);
+  background: var(--gray-a1);
+}

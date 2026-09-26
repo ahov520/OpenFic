@@ -129,7 +129,9 @@
       "chapterCount": "{{count}}/{{total}} 章 · {{percent}}",
       "firstLast": "首「{{first}}」末「{{last}}」",
       "neverAppeared": "暂未出场",
-      "empty": "还没有角色，先创建角色再来看戏份。"
+      "empty": "还没有角色，先创建角色再来看戏份。",
+      "toggleAria": "展开或收起「{{name}}」的出场章节",
+      "chapterChip": "{{order}}. {{title}}"
     },
     "nameGenerator": {
       "title": "随机取名",

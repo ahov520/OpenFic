@@ -446,6 +446,11 @@ export async function fetchCharacterAppearances(
       lastChapterId: raw.last_chapter_id != null ? String(raw.last_chapter_id) : null,
       lastChapterTitle:
         raw.last_chapter_title != null ? String(raw.last_chapter_title) : null,
+      chapters: ((raw.chapters ?? []) as Record<string, unknown>[]).map((chapter) => ({
+        chapterId: String(chapter.chapter_id),
+        title: typeof chapter.title === "string" ? chapter.title : "",
+        globalOrder: Number(chapter.global_order ?? 0),
+      })),
     })),
   };
 }

@@ -129,7 +129,9 @@
       "chapterCount": "{{count}}/{{total}} ch · {{percent}}",
       "firstLast": "First \"{{first}}\", last \"{{last}}\"",
       "neverAppeared": "Not appeared yet",
-      "empty": "No characters yet. Create some to see their screen time."
+      "empty": "No characters yet. Create some to see their screen time.",
+      "toggleAria": "Expand or collapse chapters for \"{{name}}\"",
+      "chapterChip": "{{order}}. {{title}}"
     },
     "nameGenerator": {
       "title": "Random Name Generator",
