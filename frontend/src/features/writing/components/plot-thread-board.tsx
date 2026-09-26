@@ -28,6 +28,7 @@ import {
   useUpdatePlotThread,
 } from "../hooks/use-plot-threads";
 import { GapChapterList } from "./plot-gap-chapters";
+import { PlotTimeline } from "./plot-timeline";
 
 import "./plot-thread.css";
 
@@ -65,6 +66,7 @@ export function PlotThreadBoard({
   const { data, isLoading } = usePlotThreads(open ? projectId : null);
   const createThread = useCreatePlotThread(projectId);
   const [filter, setFilter] = useState<PlotBoardView>("issues");
+  const [view, setView] = useState<"board" | "timeline">("board");
   const [name, setName] = useState("");
   const [intent, setIntent] = useState("");
   const threads = data?.threads ?? EMPTY_THREADS;
@@ -126,6 +128,16 @@ export function PlotThreadBoard({
           </Box>
           <div className="chapter-corkboard-filters">
             <FilterButton
+              active={view === "board"}
+              label={t("writing.plotThreads.viewBoard")}
+              onClick={() => setView("board")}
+            />
+            <FilterButton
+              active={view === "timeline"}
+              label={t("writing.plotThreads.viewTimeline")}
+              onClick={() => setView("timeline")}
+            />
+            <FilterButton
               active={filter === "issues"}
               label={t("writing.plotThreads.filterIssues", { count: issueCount })}
               onClick={() => setFilter("issues")}
@@ -185,6 +197,12 @@ export function PlotThreadBoard({
         <ScrollArea className="plot-thread-body">
           {isLoading ? (
             <p className="plot-thread-quiet">{t("writing.plotThreads.loading")}</p>
+          ) : view === "timeline" && visible.length > 0 ? (
+            <PlotTimeline
+              threads={visible}
+              chapters={chapters}
+              onOpenChapter={onOpenChapter}
+            />
           ) : visible.length === 0 ? (
             <p className="plot-thread-quiet">
               {filter === "open"

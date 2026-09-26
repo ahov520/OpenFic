@@ -500,6 +500,11 @@
       "openListFailed": "Couldn't load open margin notes. Please try again."
     },
     "plotThreads": {
+    "viewBoard": "Board",
+    "viewTimeline": "Timeline",
+    "timelineCorner": "thread \\ chapter",
+    "timelineCellTitle": "“{chapter}” · {kind}{note}",
+    "timelineChapterTitle": "Ch. {order} “{title}” · {volume}",
       "open": "Plot threads",
       "title": "Plot threads",
       "description": "A thread runs across chapters. This view shows where it was planted, how far it got, whether it paid off, and which chapters an open thread skips before the end of the book.",

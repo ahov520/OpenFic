@@ -500,6 +500,11 @@
       "openListFailed": "未划掉的旁注加载失败，请重试"
     },
     "plotThreads": {
+      "viewBoard": "看板",
+      "viewTimeline": "时间轴",
+      "timelineCorner": "线 ╲ 章",
+      "timelineCellTitle": "「{chapter}」· {kind}{note}",
+      "timelineChapterTitle": "第 {order} 章「{title}」· {volume}",
       "open": "情节线",
       "title": "情节线",
       "description": "一条线挂在多章上。这里看它有没有埋下、推到哪一章、回收了没有，以及未回收的线到全书最后一章中间空在哪几章。",

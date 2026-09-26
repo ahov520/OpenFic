@@ -1,0 +1,95 @@
+/* 情节线时间轴网格。 */
+
+.plot-timeline-scroll {
+  overflow: auto;
+  max-height: 100%;
+}
+
+.plot-timeline-grid {
+  --plot-timeline-name-width: 160px;
+  --plot-timeline-cell-width: 28px;
+  display: grid;
+  gap: 2px;
+  align-items: center;
+  min-width: max-content;
+  padding-bottom: 8px;
+}
+
+.plot-timeline__corner {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--color-background);
+  font-size: 11px;
+  color: var(--gray-9);
+  padding: 4px 6px;
+}
+
+.plot-timeline__chapter {
+  border: none;
+  background: transparent;
+  font-size: 10px;
+  color: var(--gray-10);
+  padding: 4px 0;
+  cursor: pointer;
+  min-height: 20px;
+}
+
+.plot-timeline__chapter:hover {
+  color: var(--accent-11);
+  text-decoration: underline;
+}
+
+.plot-timeline__name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-background);
+  padding: 4px 6px;
+  height: 24px;
+}
+
+.plot-timeline__cell {
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.plot-timeline__cell--empty {
+  background: var(--gray-a2);
+}
+
+.plot-timeline__cell--empty:hover {
+  background: var(--gray-a4);
+}
+
+.plot-timeline__cell--plant {
+  background: var(--blue-a4);
+  color: var(--blue-11);
+  cursor: pointer;
+}
+
+.plot-timeline__cell--advance {
+  background: var(--gray-a6);
+  color: var(--gray-12);
+  cursor: pointer;
+}
+
+.plot-timeline__cell--payoff {
+  background: var(--grass-a4);
+  color: var(--grass-11);
+  cursor: pointer;
+}
+
+.plot-timeline__cell--plant:hover,
+.plot-timeline__cell--advance:hover,
+.plot-timeline__cell--payoff:hover {
+  filter: brightness(0.95);
+  outline: 1px solid var(--accent-9);
+}
