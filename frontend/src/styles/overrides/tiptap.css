@@ -348,6 +348,12 @@
   border-radius: 2px;
 }
 
+.tiptap-editor .sensitive-word-mark {
+  background-color: var(--red-a5);
+  border-bottom: 2px dotted var(--red-a8);
+  border-radius: 2px;
+}
+
 .tiptap-editor .search-result-current {
   background-color: var(--orange-a7);
 }

@@ -47,6 +47,7 @@ from app.api.routers import (
     prompt_chains,
     retrieval_index,
     runtime_config,
+    sensitive_words,
     skills,
     skill_reference_docs,
     settings,
@@ -119,6 +120,7 @@ def _create_test_app() -> FastAPI:
     test_app.include_router(retrieval_index.router, prefix="/api/v1")
     test_app.include_router(retrieval_index.global_router, prefix="/api/v1")
     test_app.include_router(runtime_config.router, prefix="/api/v1")
+    test_app.include_router(sensitive_words.router, prefix="/api/v1")
     test_app.include_router(skills.router, prefix="/api/v1")
     test_app.include_router(skill_reference_docs.router, prefix="/api/v1")
     test_app.include_router(chapter_context.router, prefix="/api/v1")

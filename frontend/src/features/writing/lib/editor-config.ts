@@ -21,6 +21,7 @@ import { PARAGRAPH_INDENT } from "@/components/editor-toolbar-actions";
 
 import { MarginNoteHighlight } from "./margin-note-highlight";
 import { SearchAndReplace } from "./search-and-replace";
+import { SensitiveHighlight } from "./sensitive-highlight";
 
 export type { EditorShortcutCallbacks } from "@/components/editor-shortcuts";
 
@@ -385,6 +386,7 @@ export function createEditorExtensions(options: EditorExtensionsOptions = {}) {
     PlainTextClipboard,
     SearchAndReplace,
     MarginNoteHighlight,
+    SensitiveHighlight,
   ];
 
   // 如果提供了快捷键回调，添加快捷键扩展

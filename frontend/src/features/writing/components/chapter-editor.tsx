@@ -1,7 +1,7 @@
 import { Box, Flex, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AtSign, History, LifeBuoy, Paintbrush, StickyNote } from "lucide-react";
+import { AtSign, History, LifeBuoy, Paintbrush, ShieldAlert, StickyNote } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -43,6 +43,7 @@ import { createChapterEditorDraft, isChapterEditorDraftDirty } from "../lib/chap
 import { createEditorExtensions } from "../lib/editor-config";
 import type { ProseFormatCleanupRules } from "../lib/prose-format-cleanup";
 import { applyProseFormatCleanup } from "../lib/prose-format-cleanup-editor";
+import { SENSITIVE_WORDS_ACTION_ID, SENSITIVE_WORDS_LABEL_KEY } from "../lib/sensitive-words";
 import { UNSTUCK_SKILL_ID, UNSTUCK_SKILL_NAME, buildUnstuckRequest } from "../lib/unstuck-request";
 import {
   getNextWritingWorkingCopyTimestamp,
@@ -56,6 +57,7 @@ import { ChapterWordTarget } from "./chapter-word-target";
 import { FindReplacePanel } from "./find-replace-panel";
 import { PreviousChapterEnding } from "./previous-chapter-ending";
 import { ProseFormatCleanupDialog } from "./prose-format-cleanup-dialog";
+import { SensitiveWordsPanel } from "./sensitive-words-panel";
 
 const MANUAL_SAVE_EVENT = "openfic:chapter-editor-manual-save";
 
@@ -157,6 +159,7 @@ function ChapterEditorContent({
   const [manuscriptRevision, setManuscriptRevision] = useState(0);
   const [findReplaceMode, setFindReplaceMode] = useState<"closed" | "find" | "replace">("closed");
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+  const [isSensitivePanelOpen, setIsSensitivePanelOpen] = useState(false);
   const [isProseFormatCleanupOpen, setIsProseFormatCleanupOpen] = useState(false);
   const [marginComposeRequest, setMarginComposeRequest] = useState(0);
   const [wordCount, setWordCount] = useState(() => wordsCount(initialDraft.content));
@@ -779,6 +782,12 @@ function ChapterEditorContent({
             label: t("writing.chapterHistory.label"),
             onClick: () => setIsHistoryPanelOpen((open) => !open),
           },
+          {
+            id: SENSITIVE_WORDS_ACTION_ID,
+            icon: <ShieldAlert size={18} />,
+            label: t(SENSITIVE_WORDS_LABEL_KEY),
+            onClick: () => setIsSensitivePanelOpen((open) => !open),
+          },
         ]}
       />
 
@@ -802,6 +811,17 @@ function ChapterEditorContent({
             onBeforeRestore={handleBeforeRestore}
             onClose={() => setIsHistoryPanelOpen(false)}
             onRestored={handleChapterRestored}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isSensitivePanelOpen && editor && (
+          <SensitiveWordsPanel
+            key="sensitive-words-panel"
+            editor={editor}
+            isAgentLocked={isAgentLocked}
+            onClose={() => setIsSensitivePanelOpen(false)}
           />
         )}
       </AnimatePresence>

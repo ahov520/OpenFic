@@ -3485,3 +3485,85 @@ export function getNoteExportUrl(noteId: string): string {
 export function getNoteCategoryExportUrl(categoryId: string): string {
   return getApiUrl(`/note-categories/${encodeURIComponent(categoryId)}/export`);
 }
+
+/**
+ * 敏感词词库条目
+ */
+export interface SensitiveWordEntry {
+  word: string;
+  source: string;
+}
+
+export interface SensitiveWordsListResponse {
+  words: SensitiveWordEntry[];
+  count: number;
+  stats: Record<string, number> | null;
+}
+
+function transformSensitiveWordEntry(raw: Record<string, unknown>): SensitiveWordEntry {
+  return {
+    word: typeof raw.word === "string" ? raw.word : "",
+    source: typeof raw.source === "string" ? raw.source : "",
+  };
+}
+
+/**
+ * 获取敏感词词表（后端首次读取惰性 seed 内置首发词库）
+ */
+export async function fetchSensitiveWords(): Promise<SensitiveWordEntry[]> {
+  const response = await apiClient.get<{ words: Record<string, unknown>[] }>("/sensitive-words");
+  return (response.data.words ?? []).map(transformSensitiveWordEntry);
+}
+
+/**
+ * 整表更新敏感词词表
+ */
+export async function updateSensitiveWords(
+  words: SensitiveWordEntry[],
+): Promise<SensitiveWordsListResponse> {
+  const response = await apiClient.put<
+    SensitiveWordsListResponse & { words: Record<string, unknown>[] }
+  >("/sensitive-words", {
+    words: words.map((entry) => ({ word: entry.word, source: entry.source })),
+  });
+  return {
+    words: (response.data.words ?? []).map(transformSensitiveWordEntry),
+    count: response.data.count,
+    stats: response.data.stats,
+  };
+}
+
+/**
+ * 导入敏感词（TXT/JSON 内容，与现有词表按词去重合并）
+ */
+export async function importSensitiveWords(
+  content: string,
+  format: "txt" | "json",
+): Promise<SensitiveWordsListResponse> {
+  const response = await apiClient.post<
+    SensitiveWordsListResponse & { words: Record<string, unknown>[] }
+  >("/sensitive-words/import", { content, format });
+  return {
+    words: (response.data.words ?? []).map(transformSensitiveWordEntry),
+    count: response.data.count,
+    stats: response.data.stats,
+  };
+}
+
+/**
+ * 导出敏感词词表（TXT：每行一词可选「词|来源」；JSON：词条数组）
+ */
+export async function exportSensitiveWords(
+  format: "txt" | "json",
+): Promise<{ filename: string; format: string; content: string }> {
+  const response = await apiClient.get<{
+    filename: string;
+    format: string;
+    content: string;
+  }>("/sensitive-words/export", { params: { format } });
+  return {
+    filename: response.data.filename,
+    format: response.data.format,
+    content: response.data.content,
+  };
+}

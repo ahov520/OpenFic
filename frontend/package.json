@@ -8,7 +8,7 @@
     "dev": "vp dev",
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",
-    "lint": "oxlint .",
+    "lint": "oxlint . && node scripts/check-offline.mjs",
     "preview": "vp preview",
     "test": "node --import ./scripts/register-ts-paths.mjs --experimental-strip-types --test \"src/**/*.node.test.ts\" && vp test --run",
     "test:e2e": "playwright test",

@@ -52,6 +52,7 @@ from app.api.routers import (
     prompt_chains,
     retrieval_index,
     runtime_config,
+    sensitive_words,
     settings,
     skill_reference_docs,
     skills,
@@ -724,6 +725,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, prefix=app_settings.api_v1_prefix)
     app.include_router(health.router, prefix=app_settings.api_v1_prefix)
     app.include_router(runtime_config.router, prefix=app_settings.api_v1_prefix)
+    app.include_router(sensitive_words.router, prefix=app_settings.api_v1_prefix)
     app.include_router(projects.router, prefix=app_settings.api_v1_prefix)
     app.include_router(volumes.router, prefix=app_settings.api_v1_prefix)
     app.include_router(chapters.router, prefix=app_settings.api_v1_prefix)
