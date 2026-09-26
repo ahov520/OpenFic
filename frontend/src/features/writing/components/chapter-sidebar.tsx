@@ -14,6 +14,7 @@ import {
   useDeleteChapter,
   useReorderChapters,
   useMoveChapterToVolume,
+  useMergeChapters,
 } from "../hooks/use-chapters";
 import { useSummaryStatuses } from "../hooks/use-summaries";
 import {
@@ -73,12 +74,13 @@ export function ChapterSidebar({
   const deleteChapterMutation = useDeleteChapter(projectId);
   const reorderChaptersMutation = useReorderChapters(projectId);
   const moveChapterToVolumeMutation = useMoveChapterToVolume(projectId);
+  const mergeChaptersMutation = useMergeChapters(projectId);
   const createVolumeMutation = useCreateVolume(projectId);
   const updateVolumeMutation = useUpdateVolume();
   const deleteVolumeMutation = useDeleteVolume(projectId);
   const moveVolumeMutation = useMoveVolume(projectId);
 
-  const { openTab, tabs } = useTabsStore();
+  const { openTab, tabs, removeTabsByReference } = useTabsStore();
   const MAX_TABS = 10;
 
   const {
@@ -119,6 +121,9 @@ export function ChapterSidebar({
   const [cancelOrderDialogOpen, setCancelOrderDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [movingChapter, setMovingChapter] = useState<ChapterListItem | null>(null);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergingChapter, setMergingChapter] = useState<ChapterListItem | null>(null);
+  const [mergeTargetChapter, setMergeTargetChapter] = useState<ChapterListItem | null>(null);
   const [renamingVolumeId, setRenamingVolumeId] = useState<string | null>(null);
   const [editingVolume, setEditingVolume] = useState<VolumeWithChapters | null>(null);
   const [editingVolumeDescription, setEditingVolumeDescription] = useState("");
@@ -389,6 +394,53 @@ export function ChapterSidebar({
     [isAgentLocked, showLockedToast],
   );
 
+  const handleOpenMergeChapter = useCallback(
+    (chapter: ChapterListItem, previous: ChapterListItem) => {
+      if (isAgentLocked) {
+        showLockedToast();
+        return;
+      }
+
+      setMergingChapter(chapter);
+      setMergeTargetChapter(previous);
+      setMergeDialogOpen(true);
+    },
+    [isAgentLocked, showLockedToast],
+  );
+
+  const handleMergeDialogChange = useCallback((open: boolean) => {
+    setMergeDialogOpen(open);
+    if (!open) {
+      setMergingChapter(null);
+      setMergeTargetChapter(null);
+    }
+  }, []);
+
+  const handleConfirmMerge = useCallback(async () => {
+    if (!mergingChapter || !mergeTargetChapter) return;
+
+    try {
+      await mergeChaptersMutation.mutateAsync({
+        chapterIds: [mergeTargetChapter.id, mergingChapter.id],
+      });
+      // 被合并的章已删除：关掉相关标签页，切到合并后的目标章。
+      removeTabsByReference("chapter", mergingChapter.id);
+      handleChapterSelect(mergeTargetChapter.id);
+      toast.success(t("writing.mergeChapterSuccess"));
+      handleMergeDialogChange(false);
+    } catch {
+      toast.error(t("writing.mergeChapterFailed"));
+    }
+  }, [
+    handleChapterSelect,
+    handleMergeDialogChange,
+    mergeChaptersMutation,
+    mergeTargetChapter,
+    mergingChapter,
+    removeTabsByReference,
+    t,
+  ]);
+
   const handleOpenDeleteVolume = useCallback(
     (volume: VolumeWithChapters) => {
       if (isAgentLocked) {
@@ -634,6 +686,7 @@ export function ChapterSidebar({
         onRenameChapter={handleRenameChapter}
         onMoveChapterToVolume={handleOpenMoveChapter}
         onDeleteChapter={handleOpenDeleteChapter}
+        onMergeChapterIntoPrevious={handleOpenMergeChapter}
         onAddToConversation={onAddToConversation}
         onLockedAction={showLockedToast}
       />
@@ -659,6 +712,18 @@ export function ChapterSidebar({
         title={t("writing.saveOrder")}
         description={t("writing.saveOrderConfirm")}
         onConfirm={handleConfirmSaveOrder}
+      />
+
+      <ConfirmDialog
+        open={mergeDialogOpen}
+        onOpenChange={handleMergeDialogChange}
+        title={t("chapterMenu.mergeIntoPrevious")}
+        description={t("writing.mergeChapterConfirm", {
+          source: mergingChapter?.title || t("writing.untitledChapter"),
+          target: mergeTargetChapter?.title || t("writing.untitledChapter"),
+        })}
+        onConfirm={handleConfirmMerge}
+        loading={mergeChaptersMutation.isPending}
       />
 
       <ConfirmDialog

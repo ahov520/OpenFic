@@ -277,6 +277,11 @@
       "title": "移动到卷",
       "description": "章节会追加到目标卷末尾。"
     },
+    "mergeChapterConfirm": "「{{source}}」将并入「{{target}}」，正文按阅读顺序相接，旁注与节拍一并归入，此操作不可撤销。",
+    "mergeChapterSuccess": "章节已合并",
+    "mergeChapterFailed": "合并章节失败，请重试",
+    "splitChapterSuccess": "已从该行拆分出新章节",
+    "splitChapterFailed": "拆分章节失败，请重试",
     "words": "字",
     "notStarted": "还没动笔",
     "chapterPlan": {
@@ -825,6 +830,7 @@
   },
   "editor": {
     "paragraph": "正文",
+    "splitHere": "从此行拆分章节",
     "heading": "标题",
     "heading1": "一级标题",
     "heading2": "二级标题",
@@ -1656,6 +1662,7 @@
     "moreActions": "更多操作",
     "rename": "重命名",
     "moveToVolume": "移动到卷…",
+    "mergeIntoPrevious": "合并到上一章",
     "delete": "删除"
   },
   "volume": {

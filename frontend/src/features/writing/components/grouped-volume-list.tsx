@@ -10,7 +10,7 @@ import {
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Box, Text } from "@radix-ui/themes";
-import { AtSign, Copy, ExternalLink, MoveRight, Pencil, Trash2 } from "lucide-react";
+import { AtSign, Copy, ExternalLink, Merge, MoveRight, Pencil, Trash2 } from "lucide-react";
 import {
   forwardRef,
   useCallback,
@@ -353,6 +353,7 @@ interface GroupedVolumeListProps {
   onRenameChapter: (chapterId: string, title: string) => void;
   onMoveChapterToVolume: (chapter: ChapterListItemData) => void;
   onDeleteChapter: (chapter: ChapterListItemData) => void;
+  onMergeChapterIntoPrevious?: (chapter: ChapterListItemData, previous: ChapterListItemData) => void;
   onAddToConversation?: (markup: string) => void;
   onLockedAction?: () => void;
 }
@@ -396,6 +397,7 @@ export function GroupedVolumeList({
   onRenameChapter,
   onMoveChapterToVolume,
   onDeleteChapter,
+  onMergeChapterIntoPrevious,
   onAddToConversation,
   onLockedAction,
 }: GroupedVolumeListProps) {
@@ -1086,6 +1088,35 @@ export function GroupedVolumeList({
     [isAgentLocked, listModel, onLockedAction, onMoveChapterToVolume],
   );
 
+  const handleMergeIntoPrevious = useCallback(
+    (chapterId: string) => {
+      if (isAgentLocked) {
+        onLockedAction?.();
+        return;
+      }
+      const chapter = listModel.chapterById.get(chapterId);
+      if (!chapter) return;
+      const volume = volumes.find((item) => item.id === chapter.volumeId);
+      if (!volume) return;
+      const index = volume.chapters.findIndex((item) => item.id === chapter.id);
+      if (index > 0) {
+        onMergeChapterIntoPrevious?.(chapter, volume.chapters[index - 1]);
+      }
+    },
+    [isAgentLocked, listModel, onMergeChapterIntoPrevious, onLockedAction, volumes],
+  );
+
+  const hasPreviousChapterInVolume = useMemo(() => {
+    const chapter = contextMenuChapterId
+      ? listModel.chapterById.get(contextMenuChapterId)
+      : undefined;
+    if (!chapter) return false;
+    const volume = volumes.find((item) => item.id === chapter.volumeId);
+    if (!volume) return false;
+    const index = volume.chapters.findIndex((item) => item.id === chapter.id);
+    return index > 0;
+  }, [contextMenuChapterId, listModel.chapterById, volumes]);
+
   const menuItems = useMemo<ContextMenuItem[]>(() => {
     if (!contextMenuChapterId || isAgentLocked) return [];
 
@@ -1134,6 +1165,13 @@ export function GroupedVolumeList({
         onClick: () => handleMoveToVolume(contextMenuChapterId),
       },
       {
+        id: "mergeIntoPrevious",
+        label: t("chapterMenu.mergeIntoPrevious"),
+        icon: Merge,
+        disabled: !onMergeChapterIntoPrevious || !hasPreviousChapterInVolume,
+        onClick: () => handleMergeIntoPrevious(contextMenuChapterId),
+      },
+      {
         id: "delete",
         label: t("chapterMenu.delete"),
         icon: Trash2,
@@ -1149,8 +1187,11 @@ export function GroupedVolumeList({
     contextMenuChapterTitle,
     handleDelete,
     handleDuplicate,
+    handleMergeIntoPrevious,
     handleMoveToVolume,
+    hasPreviousChapterInVolume,
     onAddToConversation,
+    onMergeChapterIntoPrevious,
     handleOpenInNewTab,
     handleStartRename,
     isAgentLocked,

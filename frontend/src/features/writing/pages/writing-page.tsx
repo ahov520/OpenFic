@@ -8,7 +8,7 @@ import { useParams } from "react-router";
 
 import "./writing-page.css";
 
-import { PanelLayoutLoading } from "@/components";
+import { PanelLayoutLoading, toast } from "@/components";
 import { AssistantSidebarHost, MobileAppSidebarTrigger, useAppShell } from "@/features/app-shell";
 import type { AssistantSidebarState } from "@/features/assistant";
 import { useMobileSidebarSwipe } from "@/hooks/use-mobile-sidebar-swipe";
@@ -21,7 +21,7 @@ import { EditorTabs, EmptyTabContent } from "../components/editor-tabs";
 import { NoteEditor } from "../components/note-editor";
 import { PageLoadingOverlay } from "../components/page-loading-overlay";
 import { WritingSidebar } from "../components/writing-sidebar";
-import { useCreateChapter } from "../hooks/use-chapters";
+import { useCreateChapter, useSplitChapter } from "../hooks/use-chapters";
 import { useNoteTree } from "../hooks/use-notes";
 import { useCreateVolume, useVolumeTree } from "../hooks/use-volumes";
 import { requestMarginNoteFocus } from "../lib/margin-note-focus";
@@ -129,6 +129,7 @@ export function WritingPage() {
 
   const createMutation = useCreateChapter(projectId ?? "");
   const createVolumeMutation = useCreateVolume(projectId ?? "");
+  const splitChapterMutation = useSplitChapter(projectId ?? "");
 
   const { data: chaptersData, isLoading: isChaptersLoading } = useVolumeTree(projectId ?? "");
 
@@ -486,6 +487,18 @@ export function WritingPage() {
     closeAllTabs();
   }, [closeAllTabs]);
 
+  const handleSplitChapter = useCallback(
+    async (chapterId: string, splitLine: number) => {
+      try {
+        await splitChapterMutation.mutateAsync({ chapterId, splitLine });
+        toast.success(t("writing.splitChapterSuccess"));
+      } catch {
+        toast.error(t("writing.splitChapterFailed"));
+      }
+    },
+    [splitChapterMutation, t],
+  );
+
   const handleAddToConversation = useCallback(
     (markup: string) => {
       if (!markup.trim()) return;
@@ -644,6 +657,7 @@ export function WritingPage() {
                         onAddToConversation={
                           isViewingSubagent ? undefined : handleAddToConversation
                         }
+                        onSplitChapter={handleSplitChapter}
                       />
                     )
                   ) : (
@@ -762,6 +776,7 @@ export function WritingPage() {
                       onAddToConversation={isViewingSubagent ? undefined : handleAddToConversation}
                       onSelectionChange={setHasEditorSelection}
                       addSelectionToConversationRef={addSelectionToConversationRef}
+                      onSplitChapter={handleSplitChapter}
                     />
                   )
                 ) : (

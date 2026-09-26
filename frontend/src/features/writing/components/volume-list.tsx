@@ -36,6 +36,7 @@ interface VolumeListProps {
   onRenameChapter: (chapterId: string, title: string) => void;
   onMoveChapterToVolume: (chapter: ChapterListItem) => void;
   onDeleteChapter: (chapter: ChapterListItem) => void;
+  onMergeChapterIntoPrevious?: (chapter: ChapterListItem, previous: ChapterListItem) => void;
   onLockedAction?: () => void;
 }
 
@@ -67,6 +68,7 @@ export function VolumeList({
   onRenameChapter,
   onMoveChapterToVolume,
   onDeleteChapter,
+  onMergeChapterIntoPrevious,
   onLockedAction,
 }: VolumeListProps) {
   const { t } = useTranslation();
@@ -142,6 +144,7 @@ export function VolumeList({
       onRenameChapter={onRenameChapter}
       onMoveChapterToVolume={onMoveChapterToVolume}
       onDeleteChapter={onDeleteChapter}
+      onMergeChapterIntoPrevious={onMergeChapterIntoPrevious}
       onAddToConversation={onAddToConversation}
       onLockedAction={onLockedAction}
     />

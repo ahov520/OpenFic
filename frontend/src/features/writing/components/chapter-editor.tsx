@@ -1,7 +1,7 @@
 import { Box, Flex, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AtSign, History, LifeBuoy, Paintbrush, ShieldAlert, StickyNote } from "lucide-react";
+import { AtSign, History, LifeBuoy, Paintbrush, Scissors, ShieldAlert, StickyNote } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -10,7 +10,7 @@ import wordsCountModule from "words-count";
 
 import { toast } from "@/components";
 import { TitleInput, EditorToolbar, Spinner } from "@/components";
-import { ContextMenu } from "@/components";
+import { ContextMenu, type ContextMenuItem } from "@/components";
 import { buildSkillCommandTag } from "@/features/assistant/lib/command-text";
 import {
   buildChapterMentionTag,
@@ -82,6 +82,7 @@ interface ChapterEditorProps {
   onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
   addSelectionToConversationRef?: React.MutableRefObject<(() => void) | null>;
+  onSplitChapter?: (chapterId: string, splitLine: number) => void;
 }
 
 interface ChapterEditorContentProps {
@@ -98,6 +99,7 @@ interface ChapterEditorContentProps {
   onOpenChapter?: (chapterId: string, chapterTitle: string) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
   addSelectionToConversationRef?: React.MutableRefObject<(() => void) | null>;
+  onSplitChapter?: (chapterId: string, splitLine: number) => void;
 }
 
 function ChapterEditorContent({
@@ -114,6 +116,7 @@ function ChapterEditorContent({
   onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
+  onSplitChapter,
 }: ChapterEditorContentProps) {
   const { t } = useTranslation();
   const updateMutation = useUpdateChapter();
@@ -669,8 +672,8 @@ function ChapterEditorContent({
     [editor, isAgentLocked, showLockedToast],
   );
 
-  const editorExtraItems = useCallback(() => {
-    const items = [
+  const editorExtraItems = useCallback((): ContextMenuItem[] => {
+    const items: ContextMenuItem[] = [
       {
         id: "marginNote",
         label: t("writing.marginNotes.add"),
@@ -678,7 +681,24 @@ function ChapterEditorContent({
         onClick: requestMarginNote,
       },
     ];
-    if (!editor || !onAddToConversation) return items;
+    if (!editor) return items;
+
+    // 光标所在段落即正文行号（1 基），供“从此行拆分章节”使用。
+    const caretLine = editor.state.doc.resolve(editor.state.selection.from).index(0) + 1;
+    const canSplitChapter =
+      Boolean(onSplitChapter) && editor.state.doc.childCount >= 2 && caretLine > 1;
+
+    items.push({
+      id: "splitChapter",
+      label: t("editor.splitHere"),
+      icon: Scissors,
+      disabled: !canSplitChapter,
+      onClick: () => {
+        onSplitChapter?.(chapter.id, caretLine);
+      },
+    });
+
+    if (!onAddToConversation) return items;
 
     const chapterLabel = chapter.title.trim() || t("writing.untitledChapter");
     const { from, to } = editor.state.selection;
@@ -734,6 +754,7 @@ function ChapterEditorContent({
     chapter.title,
     editor,
     onAddToConversation,
+    onSplitChapter,
     requestMarginNote,
     t,
   ]);
@@ -948,6 +969,7 @@ export function ChapterEditor({
   onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
+  onSplitChapter,
 }: ChapterEditorProps) {
   const { t } = useTranslation();
   const { data } = useWritingEditorEntity({
@@ -1000,6 +1022,7 @@ export function ChapterEditor({
       onOpenChapter={onOpenChapter}
       onSelectionChange={onSelectionChange}
       addSelectionToConversationRef={addSelectionToConversationRef}
+      onSplitChapter={onSplitChapter}
     />
   );
 }
@@ -1017,6 +1040,7 @@ function ChapterEditorWorkingCopy({
   onOpenChapter,
   onSelectionChange,
   addSelectionToConversationRef,
+  onSplitChapter,
 }: Omit<ChapterEditorContentProps, "workingCopy">) {
   const workingCopy = useWritingWorkingCopy({
     type: "chapter",
@@ -1039,6 +1063,7 @@ function ChapterEditorWorkingCopy({
       onOpenChapter={onOpenChapter}
       onSelectionChange={onSelectionChange}
       addSelectionToConversationRef={addSelectionToConversationRef}
+      onSplitChapter={onSplitChapter}
     />
   );
 }

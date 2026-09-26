@@ -14,6 +14,8 @@ import {
   deleteChapter,
   reorderChapters,
   moveChapterToVolume,
+  mergeChapters,
+  splitChapter,
 } from "@/lib/api-client";
 import type {
   Chapter,
@@ -258,6 +260,45 @@ export function useMoveChapterToVolume(projectId: string) {
     onSuccess: (chapter) => {
       queryClient.invalidateQueries({ queryKey: ["volume-tree", projectId] });
       queryClient.invalidateQueries({ queryKey: ["chapter", chapter.id] });
+      invalidatePreviousEndings(queryClient);
+    },
+  });
+}
+
+/**
+ * 合并章节：把合并后的章节列表交给后端，第一章为目标章，其余删除
+ */
+export function useMergeChapters(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ chapterIds, title }: { chapterIds: string[]; title?: string }) =>
+      mergeChapters(chapterIds, title),
+    onSuccess: (chapter) => {
+      queryClient.invalidateQueries({ queryKey: ["volume-tree", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["chapter", chapter.id] });
+      queryClient.invalidateQueries({ queryKey: ["chapter-summary-list", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["long-term-summaries-page", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      invalidatePreviousEndings(queryClient);
+    },
+  });
+}
+
+/**
+ * 拆分章节：从指定行起划入新章
+ */
+export function useSplitChapter(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ chapterId, splitLine, title }: { chapterId: string; splitLine: number; title?: string }) =>
+      splitChapter(chapterId, splitLine, title),
+    onSuccess: ({ target }) => {
+      queryClient.invalidateQueries({ queryKey: ["volume-tree", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["chapter", target.id] });
+      queryClient.invalidateQueries({ queryKey: ["chapter-summary-list", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       invalidatePreviousEndings(queryClient);
     },
   });

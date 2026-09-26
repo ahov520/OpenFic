@@ -848,3 +848,309 @@ async def test_chapter_plan_rejects_invalid_status_and_long_synopsis(
     unchanged = (await client.get(f"/api/v1/chapters/{chapter['id']}")).json()
     assert unchanged["writing_status"] == "idea"
     assert unchanged["synopsis"] == ""
+
+
+# ---------- 合并章节 ----------
+
+
+@pytest.mark.asyncio
+async def test_merge_chapters_joins_content_and_keeps_reading_order(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    first = await _create_chapter(
+        client, project_id, volume_id, title="第一章", content="开头一段。"
+    )
+    second = await _create_chapter(
+        client, project_id, volume_id, title="第二章", content="中间一段。"
+    )
+    third = await _create_chapter(
+        client, project_id, volume_id, title="第三章", content="结尾一段。"
+    )
+
+    response = await client.post(
+        "/api/v1/chapters/merge",
+        json={"chapter_ids": [first["id"], second["id"], third["id"]]},
+    )
+    assert response.status_code == 200
+    merged = response.json()
+    assert merged["id"] == first["id"]
+    assert merged["title"] == "第一章"
+    assert merged["content"] == "开头一段。\n\n中间一段。\n\n结尾一段。"
+    assert merged["word_count"] > 0
+
+    tree = (await client.get(f"/api/v1/projects/{project_id}/chapters")).json()
+    chapters = _chapters_from_tree(tree)
+    assert tree["total_chapters"] == 1
+    assert [chapter["order"] for chapter in chapters] == [1]
+
+    project = (await client.get(f"/api/v1/projects/{project_id}")).json()
+    assert project["chapter_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_merge_chapters_merges_synopsis_and_keeps_target_fields(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    first = await _create_chapter(client, project_id, volume_id, title="上")
+    await client.patch(
+        f"/api/v1/chapters/{first['id']}",
+        json={"synopsis": "主角进城", "writing_status": "revising"},
+    )
+    second = await _create_chapter(client, project_id, volume_id, title="下")
+    await client.patch(
+        f"/api/v1/chapters/{second['id']}",
+        json={"synopsis": "主角进城\n遇伏击"},
+    )
+
+    response = await client.post(
+        "/api/v1/chapters/merge",
+        json={"chapter_ids": [first["id"], second["id"]], "title": "进城"},
+    )
+    assert response.status_code == 200
+    merged = response.json()
+    assert merged["title"] == "进城"
+    assert merged["synopsis"] == "主角进城\n遇伏击"
+    assert merged["writing_status"] == "revising"
+
+
+@pytest.mark.asyncio
+async def test_merge_chapters_moves_margin_notes_and_dedupes_beats(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    first = await _create_chapter(
+        client, project_id, volume_id, title="第一章", content="他推开门。"
+    )
+    second = await _create_chapter(
+        client, project_id, volume_id, title="第二章", content="灯还亮着。"
+    )
+    created_note = await client.post(
+        f"/api/v1/chapters/{second['id']}/margin-notes",
+        json={
+            "anchor_text": "灯还亮着。",
+            "context_before": "",
+            "context_after": "",
+            "body": "呼应第一章的门。",
+        },
+    )
+    assert created_note.status_code == 201
+
+    thread = (
+        await client.post(
+            f"/api/v1/projects/{project_id}/plot-threads",
+            json={"name": "铜镜", "intent": "后文对上"},
+        )
+    ).json()
+    target_beat = await client.post(
+        f"/api/v1/plot-threads/{thread['id']}/beats",
+        json={"chapter_id": first["id"], "kind": "plant", "note": "埋下"},
+    )
+    assert target_beat.status_code == 201
+    moved_beat = await client.post(
+        f"/api/v1/plot-threads/{thread['id']}/beats",
+        json={"chapter_id": second["id"], "kind": "payoff", "note": "回收"},
+    )
+    assert moved_beat.status_code == 201
+
+    response = await client.post(
+        "/api/v1/chapters/merge",
+        json={"chapter_ids": [first["id"], second["id"]]},
+    )
+    assert response.status_code == 200
+
+    notes = (
+        await client.get(f"/api/v1/chapters/{first['id']}/margin-notes")
+    ).json()
+    note_bodies = [note["body"] for note in notes]
+    assert note_bodies == ["呼应第一章的门。"]
+
+    board = (
+        await client.get(f"/api/v1/projects/{project_id}/plot-threads")
+    ).json()
+    merged_thread = next(
+        item for item in board["threads"] if item["id"] == thread["id"]
+    )
+    assert [beat["chapter_id"] for beat in merged_thread["beats"]] == [first["id"]]
+
+
+@pytest.mark.asyncio
+async def test_merge_chapters_rejects_cross_volume(client: AsyncClient) -> None:
+    project_id, volume_id = await _create_project(client)
+    first = await _create_chapter(client, project_id, volume_id, title="第一章")
+    other_volume = await client.post(
+        f"/api/v1/projects/{project_id}/volumes", json={"title": "第二卷"}
+    )
+    assert other_volume.status_code in (200, 201)
+    second = await _create_chapter(
+        client, project_id, other_volume.json()["id"], title="他卷章节"
+    )
+
+    response = await client.post(
+        "/api/v1/chapters/merge",
+        json={"chapter_ids": [first["id"], second["id"]]},
+    )
+    assert response.status_code == 400
+    assert "同一卷" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_merge_chapters_rejects_missing_chapter(client: AsyncClient) -> None:
+    project_id, volume_id = await _create_project(client)
+    first = await _create_chapter(client, project_id, volume_id, title="第一章")
+
+    response = await client.post(
+        "/api/v1/chapters/merge",
+        json={"chapter_ids": [first["id"], "ghost-id"]},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_merge_chapters_rejects_over_limit_content(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    first = await _create_chapter(
+        client,
+        project_id,
+        volume_id,
+        title="第一章",
+        content="\n".join("上" for _ in range(1200)),
+    )
+    second = await _create_chapter(
+        client,
+        project_id,
+        volume_id,
+        title="第二章",
+        content="\n".join("下" for _ in range(1200)),
+    )
+
+    response = await client.post(
+        "/api/v1/chapters/merge",
+        json={"chapter_ids": [first["id"], second["id"]]},
+    )
+    assert response.status_code == 400
+    assert "内容超出限制" in response.json()["detail"]
+
+
+# ---------- 拆分章节 ----------
+
+
+@pytest.mark.asyncio
+async def test_split_chapter_divides_content_and_inserts_after_target(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    content = "第一段。\n第二段。\n第三段。\n第四段。"
+    chapter = await _create_chapter(
+        client, project_id, volume_id, title="整章", content=content
+    )
+    await _create_chapter(client, project_id, volume_id, title="后一章")
+
+    response = await client.post(
+        f"/api/v1/chapters/{chapter['id']}/split",
+        json={"split_line": 3},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["target"]["content"] == "第一段。\n第二段。"
+    assert body["new"]["title"] == "整章（续）"
+    assert body["new"]["content"] == "第三段。\n第四段。"
+    assert body["new"]["writing_status"] == body["target"]["writing_status"]
+    assert body["target"]["word_count"] > 0
+    assert body["new"]["word_count"] > 0
+
+    tree = (await client.get(f"/api/v1/projects/{project_id}/chapters")).json()
+    chapters = _chapters_from_tree(tree)
+    by_title = {chapter["title"]: chapter for chapter in chapters}
+    assert by_title["整章"]["order"] == 1
+    assert by_title["整章（续）"]["order"] == 2
+    assert by_title["后一章"]["order"] == 3
+
+
+@pytest.mark.asyncio
+async def test_split_chapter_moves_notes_anchored_below_split(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    content = "第一段。\n第二段。"
+    chapter = await _create_chapter(
+        client, project_id, volume_id, title="整章", content=content
+    )
+    note_above = await client.post(
+        f"/api/v1/chapters/{chapter['id']}/margin-notes",
+        json={
+            "anchor_text": "第一段。",
+            "context_before": "",
+            "context_after": "第二段。",
+            "body": "留在前半章",
+        },
+    )
+    note_below = await client.post(
+        f"/api/v1/chapters/{chapter['id']}/margin-notes",
+        json={
+            "anchor_text": "第二段。",
+            "context_before": "第一段。",
+            "context_after": "",
+            "body": "跟去新章",
+        },
+    )
+    assert note_above.status_code == 201
+    assert note_below.status_code == 201
+
+    response = await client.post(
+        f"/api/v1/chapters/{chapter['id']}/split",
+        json={"split_line": 2},
+    )
+    assert response.status_code == 200
+    new_id = response.json()["new"]["id"]
+
+    target_notes = (
+        await client.get(f"/api/v1/chapters/{chapter['id']}/margin-notes")
+    ).json()
+    assert [note["body"] for note in target_notes] == ["留在前半章"]
+    new_notes = (
+        await client.get(f"/api/v1/chapters/{new_id}/margin-notes")
+    ).json()
+    assert [note["body"] for note in new_notes] == ["跟去新章"]
+
+
+@pytest.mark.asyncio
+async def test_split_chapter_accepts_custom_title(client: AsyncClient) -> None:
+    project_id, volume_id = await _create_project(client)
+    chapter = await _create_chapter(
+        client, project_id, volume_id, title="整章", content="上。\n下。"
+    )
+
+    response = await client.post(
+        f"/api/v1/chapters/{chapter['id']}/split",
+        json={"split_line": 2, "title": "下半场"},
+    )
+    assert response.status_code == 200
+    assert response.json()["new"]["title"] == "下半场"
+
+
+@pytest.mark.asyncio
+async def test_split_chapter_rejects_out_of_range_lines(
+    client: AsyncClient,
+) -> None:
+    project_id, volume_id = await _create_project(client)
+    chapter = await _create_chapter(
+        client, project_id, volume_id, title="整章", content="第一行。\n第二行。"
+    )
+
+    too_small = await client.post(
+        f"/api/v1/chapters/{chapter['id']}/split", json={"split_line": 0}
+    )
+    too_large = await client.post(
+        f"/api/v1/chapters/{chapter['id']}/split", json={"split_line": 3}
+    )
+    assert too_small.status_code == 422
+    assert too_large.status_code == 400
+
+    unchanged = (await client.get(f"/api/v1/chapters/{chapter['id']}")).json()
+    assert unchanged["content"] == "第一行。\n第二行。"
+    tree = (await client.get(f"/api/v1/projects/{project_id}/chapters")).json()
+    assert tree["total_chapters"] == 1

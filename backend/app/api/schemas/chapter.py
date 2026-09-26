@@ -80,6 +80,41 @@ class ChapterMoveToVolume(BaseModel):
     volume_id: str = Field(description="目标卷 ID")
 
 
+class ChapterMerge(BaseModel):
+    """合并章节请求。"""
+
+    chapter_ids: list[str] = Field(
+        min_length=2,
+        description="要合并的章节 ID，至少两个；按传入前的阅读顺序合并，第一张为目标章",
+    )
+    title: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+        description="合并后的标题，缺省沿用第一章标题",
+    )
+    separator: str = Field(
+        default="\n\n",
+        max_length=8,
+        description="各章正文之间的分隔文本",
+    )
+
+
+class ChapterSplit(BaseModel):
+    """拆分章节请求。"""
+
+    split_line: int = Field(
+        ge=2,
+        description="从这一行开始划入新章（1 基，含该行），该行之前留在原章",
+    )
+    title: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+        description="新章标题，缺省在原标题后加「（续）」",
+    )
+
+
 class ChapterResponse(BaseModel):
     """章节响应（完整版，包含正文）。"""
 
@@ -97,6 +132,13 @@ class ChapterResponse(BaseModel):
     updated_at: datetime = Field(description="上次修改时间")
 
     model_config = {"from_attributes": True}
+
+
+class ChapterSplitResponse(BaseModel):
+    """拆分章节响应。"""
+
+    target: ChapterResponse = Field(description="留在原处的前半章")
+    new: ChapterResponse = Field(description="划出去的新章")
 
 
 class ChapterListItem(BaseModel):

@@ -12,9 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.schemas.chapter import (
     ChapterCreate,
     ChapterListItem,
+    ChapterMerge,
     ChapterMoveToVolume,
     ChapterReorder,
     ChapterResponse,
+    ChapterSplit,
+    ChapterSplitResponse,
     PreviousChapterEndingResponse,
     ChapterSearchMatch,
     ChapterSearchResponse,
@@ -421,3 +424,59 @@ async def move_chapter_to_volume(
         return ChapterResponse.model_validate(chapter)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post(
+    "/chapters/merge",
+    response_model=ChapterResponse,
+    summary="合并章节",
+)
+async def merge_chapters(
+    data: ChapterMerge,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> ChapterResponse:
+    """把同一卷里的多章按阅读顺序合并成一章，第一章为目标章，其余章删除。"""
+    try:
+        logger.info(f"合并章节: {data.chapter_ids}")
+        chapter = await chapter_service.merge_chapters(
+            session,
+            data.chapter_ids,
+            title=data.title,
+            separator=data.separator,
+        )
+        await background_service.commit_and_notify(session)
+        return ChapterResponse.model_validate(chapter)
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post(
+    "/chapters/{chapter_id}/split",
+    response_model=ChapterSplitResponse,
+    summary="拆分章节",
+)
+async def split_chapter(
+    chapter_id: str,
+    data: ChapterSplit,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> ChapterSplitResponse:
+    """从指定行把一章拆成两章，该行起划入紧跟其后的新章。"""
+    try:
+        logger.info(f"拆分章节: {chapter_id} @ 行 {data.split_line}")
+        target, new = await chapter_service.split_chapter(
+            session,
+            chapter_id,
+            data.split_line,
+            title=data.title,
+        )
+        await background_service.commit_and_notify(session)
+        return ChapterSplitResponse(
+            target=ChapterResponse.model_validate(target),
+            new=ChapterResponse.model_validate(new),
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -16,7 +16,11 @@ from app.core.editor_content_limits import validate_editor_content
 from app.core.errors import NotFoundError
 from app.memory.chapter.sequence import global_order_index
 from app.storage.chapter_length import normalize_word_count_target
-from app.storage.chapter_plan import normalize_synopsis, normalize_writing_status
+from app.storage.chapter_plan import (
+    SYNOPSIS_MAX_LENGTH,
+    normalize_synopsis,
+    normalize_writing_status,
+)
 from app.storage.models.chapter import Chapter
 from app.storage.models.volume import Volume
 from app.storage.repos import (
@@ -781,6 +785,200 @@ async def reorder_chapters(
     order_lookup = {cid: idx for idx, cid in enumerate(chapter_ids)}
     updated_chapters.sort(key=lambda c: order_lookup.get(c.id, 0))
     return updated_chapters
+
+
+async def merge_chapters(
+    session: AsyncSession,
+    chapter_ids: list[str],
+    *,
+    title: str | None = None,
+    separator: str = "\n\n",
+) -> Chapter:
+    """
+    合并同一卷内的多个章节。
+
+    按阅读顺序把各章正文接在一起，第一章为目标章，其余章删除。
+    旁注和情节节拍随正文归到目标章；目标章已有同一条线的节拍时丢弃重复。
+
+    Args:
+        session: 数据库 session。
+        chapter_ids: 要合并的章节 ID，至少两个。
+        title: 合并后的标题，缺省沿用第一章标题。
+        separator: 各章正文之间的分隔文本。
+
+    Returns:
+        合并后的目标章。
+
+    Raises:
+        NotFoundError: 有章节不存在。
+        ValueError: 不足两章、跨卷跨项目，或合并后超出编辑器内容上限。
+    """
+    if len(chapter_ids) < 2:
+        raise ValueError("至少选择两章才能合并")
+
+    chapters = await chapter_repo.get_by_ids(session, chapter_ids)
+    by_id = {chapter.id: chapter for chapter in chapters}
+    missing = [chapter_id for chapter_id in chapter_ids if chapter_id not in by_id]
+    if missing:
+        raise NotFoundError(f"章节不存在: {missing}")
+
+    ordered = sorted((by_id[chapter_id] for chapter_id in chapter_ids), key=lambda c: c.order)
+    project_ids = {chapter.project_id for chapter in ordered}
+    volume_ids = {chapter.volume_id for chapter in ordered}
+    if len(project_ids) != 1:
+        raise ValueError("只能合并同一项目下的章节")
+    if len(volume_ids) != 1:
+        raise ValueError("只能合并同一卷下的章节")
+
+    target = ordered[0]
+    merged_content = separator.join(
+        chapter.content for chapter in ordered if chapter.content
+    )
+    validate_editor_content(merged_content)
+
+    # 梗概按行合并，去掉重复行，超出上限就只保留目标章的梗概。
+    merged_synopsis = "\n".join(
+        dict.fromkeys(
+            line
+            for chapter in ordered
+            for line in chapter.synopsis.splitlines()
+            if line.strip()
+        )
+    )
+    if len(merged_synopsis) > SYNOPSIS_MAX_LENGTH:
+        merged_synopsis = target.synopsis
+
+    final_title = title.strip() if title else target.title
+    merged_word_count = _count_words(merged_content)
+    updated_target = await update_chapter(
+        session,
+        target.id,
+        title=final_title,
+        content=merged_content,
+        word_count=merged_word_count,
+        synopsis=merged_synopsis,
+    )
+
+    # 合并前把旁注和节拍先挪到目标章，避免随后删除时一并清掉。
+    now = datetime.now(UTC)
+    for chapter in ordered[1:]:
+        for note in await margin_note_repo.list_by_chapter(session, chapter.id):
+            note.chapter_id = target.id
+            note.updated_at = now
+            await margin_note_repo.save(session, note)
+
+    target_thread_ids = {
+        beat.thread_id
+        for beat in await plot_beat_repo.list_by_chapter(session, target.id)
+    }
+    for chapter in ordered[1:]:
+        for beat in await plot_beat_repo.list_by_chapter(session, chapter.id):
+            if beat.thread_id in target_thread_ids:
+                await plot_beat_repo.delete(session, beat)
+                continue
+            beat.chapter_id = target.id
+            beat.updated_at = now
+            await plot_beat_repo.save(session, beat)
+            target_thread_ids.add(beat.thread_id)
+
+    for chapter in ordered[1:]:
+        await delete_chapter(session, chapter.id)
+
+    logger.info(
+        f"合并章节: {chapter_ids} -> {target.id}, 合并后 {merged_word_count} 字"
+    )
+    return updated_target
+
+
+async def split_chapter(
+    session: AsyncSession,
+    chapter_id: str,
+    split_line: int,
+    *,
+    title: str | None = None,
+) -> tuple[Chapter, Chapter]:
+    """
+    从指定行把一章拆成两章。
+
+    该行之前留在原章，从该行起划入紧跟其后的新章。新章沿用原章标题加「（续）」
+    和写作状态，不继承目标字数。锚点落在新章里的旁注跟着挪过去。
+
+    Args:
+        session: 数据库 session。
+        chapter_id: 要拆分的章节 ID。
+        split_line: 拆分行号（1 基，含该行），必须落在第 2 行到最后一行之间。
+        title: 新章标题，缺省在原标题后加「（续）」。
+
+    Returns:
+        (留在原处的前半章, 划出去的新章)。
+
+    Raises:
+        NotFoundError: 章节不存在。
+        ValueError: 行号越界或拆分导致某一半为空。
+    """
+    target = await get_chapter(session, chapter_id)
+    lines = target.content.split("\n")
+    if len(lines) < 2:
+        raise ValueError("这一章还没有可以拆开的分界行")
+    if split_line > len(lines):
+        raise ValueError(f"拆分行号不能超过本章行数 {len(lines)}")
+
+    above = "\n".join(lines[: split_line - 1])
+    below = "\n".join(lines[split_line - 1 :])
+    if not above.strip():
+        raise ValueError("拆分点太靠前，前半章会变成空章")
+    if not below.strip():
+        raise ValueError("拆分点太靠后，新章会变成空章")
+
+    updated_target = await update_chapter(
+        session,
+        target.id,
+        content=above,
+        word_count=_count_words(above),
+    )
+
+    new_title = title if title else f"{_display_chapter_title(target)}（续）"
+    new_chapter = await create_chapter(
+        session,
+        project_id=target.project_id,
+        volume_id=target.volume_id,
+        title=new_title[:200],
+        content=below,
+        writing_status=target.writing_status,
+    )
+
+    # 新章默认落在卷末，把它挪到紧跟目标章的位置：
+    # 目标章之后（含新章在内）整体后移一位，再把新章放进空出来的位置。
+    target_order = updated_target.order
+    if new_chapter.order != target_order + 1:
+        max_order = await chapter_repo.get_max_order(session, target.volume_id)
+        await chapter_repo.shift_orders(
+            session,
+            target.volume_id,
+            target_order + 1,
+            max_order,
+            +1,
+        )
+        new_chapter.order = target_order + 1
+        new_chapter.updated_at = datetime.now(UTC)
+        new_chapter = await chapter_repo.update_chapter(session, new_chapter)
+
+    # 锚点只在新章正文里出现的旁注跟着挪过去；两边都出现的留原章。
+    now = datetime.now(UTC)
+    for note in await margin_note_repo.list_by_chapter(session, target.id):
+        anchor = note.anchor_text
+        if anchor and anchor in below and anchor not in above:
+            note.chapter_id = new_chapter.id
+            note.updated_at = now
+            await margin_note_repo.save(session, note)
+
+    # 正文已经对半分了，原章摘要作废。
+    await chapter_summary_repo.delete_by_chapter_id(session, target.id)
+
+    logger.info(
+        f"拆分章节: {target.id} @ 第 {split_line} 行 -> 新章 {new_chapter.id}"
+    )
+    return updated_target, new_chapter
 
 
 async def move_chapter_to_volume(

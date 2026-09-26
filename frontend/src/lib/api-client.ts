@@ -1391,6 +1391,35 @@ export async function moveChapterToVolume(
   return transformChapter(response.data);
 }
 
+/**
+ * 合并章节：按传入顺序合并，第一章为目标章，其余删除
+ */
+export async function mergeChapters(chapterIds: string[], title?: string): Promise<Chapter> {
+  const response = await apiClient.post("/chapters/merge", {
+    chapter_ids: chapterIds,
+    ...(title ? { title } : {}),
+  });
+  return transformChapter(response.data);
+}
+
+/**
+ * 拆分章节：从指定行起划入新章，返回（前半章, 新章）
+ */
+export async function splitChapter(
+  chapterId: string,
+  splitLine: number,
+  title?: string,
+): Promise<{ target: Chapter; new: Chapter }> {
+  const response = await apiClient.post(`/chapters/${chapterId}/split`, {
+    split_line: splitLine,
+    ...(title ? { title } : {}),
+  });
+  return {
+    target: transformChapter(response.data.target),
+    new: transformChapter(response.data.new),
+  };
+}
+
 // ============================================
 // Chapter Context API
 // ============================================

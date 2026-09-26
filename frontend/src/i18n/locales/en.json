@@ -277,6 +277,11 @@
       "title": "Move to Volume",
       "description": "The chapter will be appended to the end of the target volume."
     },
+    "mergeChapterConfirm": "\"{{source}}\" will be merged into \"{{target}}\" in reading order, with margin notes and plot beats moved along. This action cannot be undone.",
+    "mergeChapterSuccess": "Chapters merged",
+    "mergeChapterFailed": "Failed to merge chapters. Please try again.",
+    "splitChapterSuccess": "New chapter split from this line",
+    "splitChapterFailed": "Failed to split the chapter. Please try again.",
     "words": "words",
     "notStarted": "Not started",
     "chapterPlan": {
@@ -825,6 +830,7 @@
   },
   "editor": {
     "paragraph": "Paragraph",
+    "splitHere": "Split Chapter From This Line",
     "heading": "Heading",
     "heading1": "Heading 1",
     "heading2": "Heading 2",
@@ -1656,6 +1662,7 @@
     "moreActions": "More Actions",
     "rename": "Rename",
     "moveToVolume": "Move to Volume...",
+    "mergeIntoPrevious": "Merge Into Previous Chapter",
     "delete": "Delete"
   },
   "volume": {
