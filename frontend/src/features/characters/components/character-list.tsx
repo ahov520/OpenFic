@@ -22,6 +22,7 @@ import {
   Search,
   Star,
   StarOff,
+  Waypoints,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -50,6 +51,7 @@ interface CharacterListProps {
   onSelectProject: (projectId: string) => void;
   onCreateCharacter: () => void;
   onImportTavern?: () => void;
+  onOpenRelationships?: () => void;
   onSelectCharacter: (characterId: string) => void;
   onEditProfile: (character: CharacterListItem) => void;
   onDeleteCharacter: (character: CharacterListItem) => void;
@@ -136,6 +138,7 @@ export function CharacterList({
   onSelectProject,
   onCreateCharacter,
   onImportTavern,
+  onOpenRelationships,
   onSelectCharacter,
   onEditProfile,
   onDeleteCharacter,
@@ -596,6 +599,20 @@ export function CharacterList({
               </Tooltip>
             ) : (
               <>
+                {onOpenRelationships ? (
+                  <Tooltip content={t("characters.relationships.title")}>
+                    <IconButton
+                      variant="ghost"
+                      color="gray"
+                      highContrast
+                      size="2"
+                      aria-label={t("characters.relationships.title")}
+                      onClick={onOpenRelationships}
+                    >
+                      <Waypoints size={16} />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
                 {onImportTavern ? (
                   <Tooltip content={t("worldInfo.tavernImport")}>
                     <IconButton

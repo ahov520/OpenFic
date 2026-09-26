@@ -134,6 +134,8 @@ import type {
   Character,
   CharacterCreate,
   CharacterListItem,
+  CharacterRelationship,
+  CharacterRelationshipListResponse,
   CharacterSearchResponse,
   CharacterListResponse,
   CharacterUpdate,
@@ -371,6 +373,58 @@ function transformCharacterListItem(raw: Record<string, unknown>): CharacterList
     createdAt: raw.created_at as string,
     updatedAt: raw.updated_at as string,
   };
+}
+
+function transformCharacterRelationship(raw: Record<string, unknown>): CharacterRelationship {
+  return {
+    id: String(raw.id),
+    projectId: String(raw.project_id),
+    fromCharacterId: String(raw.from_character_id),
+    toCharacterId: String(raw.to_character_id),
+    relationType: typeof raw.relation_type === "string" ? raw.relation_type : "",
+    description: typeof raw.description === "string" ? raw.description : "",
+    createdAt: String(raw.created_at),
+    updatedAt: String(raw.updated_at),
+  };
+}
+
+export async function fetchCharacterRelationships(
+  projectId: string,
+): Promise<CharacterRelationshipListResponse> {
+  const response = await apiClient.get(`/projects/${projectId}/character-relationships`);
+  const data = response.data;
+  return {
+    items: (data.items as Record<string, unknown>[]).map(transformCharacterRelationship),
+    total: data.total,
+  };
+}
+
+export async function createCharacterRelationship(
+  projectId: string,
+  data: { characterAId: string; characterBId: string; relationType: string; description: string },
+): Promise<CharacterRelationship> {
+  const response = await apiClient.post(`/projects/${projectId}/character-relationships`, {
+    character_a_id: data.characterAId,
+    character_b_id: data.characterBId,
+    relation_type: data.relationType,
+    description: data.description,
+  });
+  return transformCharacterRelationship(response.data);
+}
+
+export async function updateCharacterRelationship(
+  relationshipId: string,
+  data: { relationType?: string; description?: string },
+): Promise<CharacterRelationship> {
+  const response = await apiClient.patch(`/character-relationships/${relationshipId}`, {
+    relation_type: data.relationType,
+    description: data.description,
+  });
+  return transformCharacterRelationship(response.data);
+}
+
+export async function deleteCharacterRelationship(relationshipId: string): Promise<void> {
+  await apiClient.delete(`/character-relationships/${relationshipId}`);
 }
 
 export async function fetchCharactersByProject(projectId: string): Promise<CharacterListResponse> {

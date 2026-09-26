@@ -56,3 +56,19 @@ export interface CharacterSearchResponse {
   totalCharacters: number;
   totalMatches: number;
 }
+
+export interface CharacterRelationship {
+  id: string;
+  projectId: string;
+  fromCharacterId: string;
+  toCharacterId: string;
+  relationType: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CharacterRelationshipListResponse {
+  items: CharacterRelationship[];
+  total: number;
+}

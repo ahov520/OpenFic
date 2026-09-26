@@ -12,7 +12,7 @@ from app.core.errors import ConflictError, NotFoundError
 from app.core.storage import delete_character_image, save_character_image
 from app.core.utils.tiktoken import get_encoding
 from app.storage.models.character import Character
-from app.storage.repos import character_repo, project_repo
+from app.storage.repos import character_relationship_repo, character_repo, project_repo
 
 
 @dataclass
@@ -185,9 +185,10 @@ async def update_character(
 
 
 async def delete_character(session: AsyncSession, character_id: str) -> None:
-    """删除角色。"""
+    """删除角色。挂在角色上的关系一并清理。"""
     character = await get_character(session, character_id)
     image_path = character.image_path
+    await character_relationship_repo.delete_by_character_ids(session, [character_id])
     await character_repo.delete(session, character)
     if image_path:
         delete_character_image(image_path)
@@ -217,6 +218,7 @@ async def batch_delete_characters(
         raise NotFoundError(f"项目不存在: {project_id}")
 
     characters = await character_repo.list_by_project_and_ids(session, project_id, character_ids)
+    await character_relationship_repo.delete_by_character_ids(session, character_ids)
     deleted_count = await character_repo.batch_delete(session, project_id, character_ids)
     for character in characters:
         if character.image_path:

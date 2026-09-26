@@ -1,0 +1,50 @@
+/* 角色关系图谱弹窗。 */
+
+.character-relationships-dialog {
+  height: min(78vh, 760px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.character-relationships-dialog .character-relationships-canvas {
+  flex: 1;
+  min-height: 0;
+  margin-top: 12px;
+  border: 1px solid var(--gray-a4);
+  border-radius: 8px;
+  position: relative;
+}
+
+.character-relationships-dialog .character-relationships-canvas .react-flow {
+  height: 100%;
+}
+
+.character-relationships-dialog .character-relationship-node {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-8);
+  background: var(--color-background);
+}
+
+.character-relationships-dialog .character-relationship-edge {
+  cursor: pointer;
+}
+
+.character-relationships-dialog .character-relationships-form {
+  border: 1px solid var(--gray-a4);
+  border-radius: 8px;
+  background: var(--gray-a1);
+}
+
+.character-relationships-dialog .character-relationships-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  padding: 0 24px;
+  text-align: center;
+}
