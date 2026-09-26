@@ -38,6 +38,7 @@ interface PlotThreadBoardProps {
   onOpenChange: (open: boolean) => void;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
   isAgentLocked?: boolean;
+  currentChapterId?: string | null;
 }
 
 const EMPTY_THREADS: PlotThread[] = [];
@@ -61,6 +62,7 @@ export function PlotThreadBoard({
   onOpenChange,
   onOpenChapter,
   isAgentLocked = false,
+  currentChapterId = null,
 }: PlotThreadBoardProps) {
   const { t } = useTranslation();
   const { data, isLoading } = usePlotThreads(open ? projectId : null);
@@ -203,6 +205,7 @@ export function PlotThreadBoard({
               threads={visible}
               chapters={chapters}
               disabled={isAgentLocked}
+              currentChapterId={currentChapterId}
               onOpenChapter={onOpenChapter}
             />
           ) : visible.length === 0 ? (

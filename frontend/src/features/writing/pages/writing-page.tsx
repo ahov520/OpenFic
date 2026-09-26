@@ -861,6 +861,7 @@ export function WritingPage() {
             onOpenChange={handlePlotThreadsOpenChange}
             onOpenChapter={handleOpenChapterFromCorkboard}
             isAgentLocked={isAgentLocked}
+            currentChapterId={currentChapterId}
           />
         </Suspense>
       )}

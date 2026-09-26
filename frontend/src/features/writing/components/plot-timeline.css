@@ -93,3 +93,9 @@
   filter: brightness(0.95);
   outline: 1px solid var(--accent-9);
 }
+.plot-timeline__chapter--current {
+  color: var(--accent-11);
+  font-weight: 600;
+  background: var(--accent-a3);
+  border-radius: 6px;
+}

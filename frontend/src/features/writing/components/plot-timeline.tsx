@@ -1,6 +1,6 @@
 import { Button, Dialog, Flex, Select, Text, TextArea } from "@radix-ui/themes";
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { toast } from "@/components";
@@ -25,6 +25,7 @@ interface PlotTimelineProps {
   threads: PlotThread[];
   chapters: PlotChapterOption[];
   disabled?: boolean;
+  currentChapterId?: string | null;
   onOpenChapter: (chapterId: string, chapterTitle: string) => void;
 }
 
@@ -40,10 +41,30 @@ export function PlotTimeline({
   threads,
   chapters,
   disabled = false,
+  currentChapterId = null,
   onOpenChapter,
 }: PlotTimelineProps) {
   const { t } = useTranslation();
   const rows = buildTimelineRows(threads, chapters);
+  const currentColumnRef = useRef<HTMLButtonElement | null>(null);
+
+  // 打开或切换当前章时，把当前章列滚到可视区（长书导航）。
+  // 横向滚动条可能在外层 ScrollArea 的 viewport 上，因此向上找最近的可滚动祖先。
+  useEffect(() => {
+    const column = currentColumnRef.current;
+    if (!column) return;
+    let scroller: HTMLElement | null = column.parentElement;
+    while (scroller && scroller.scrollWidth <= scroller.clientWidth + 1) {
+      scroller = scroller.parentElement;
+    }
+    if (!scroller) return;
+    const columnLeft = column.getBoundingClientRect().left;
+    const scrollerLeft = scroller.getBoundingClientRect().left;
+    const target = scroller.scrollLeft + (columnLeft - scrollerLeft) - scroller.clientWidth * 0.4;
+    if (Math.abs(scroller.scrollLeft - Math.max(0, target)) > 4) {
+      scroller.scrollTo({ left: Math.max(0, target) });
+    }
+  }, [currentChapterId, chapters.length]);
   const [editing, setEditing] = useState<EditingCell | null>(null);
   const [kind, setKind] = useState<PlotBeatKind>("plant");
   const [note, setNote] = useState("");
@@ -110,7 +131,8 @@ export function PlotTimeline({
           <button
             key={chapter.id}
             type="button"
-            className="plot-timeline__chapter"
+            className={`plot-timeline__chapter${chapter.id === currentChapterId ? " plot-timeline__chapter--current" : ""}`}
+            ref={chapter.id === currentChapterId ? currentColumnRef : undefined}
             title={t("writing.plotThreads.timelineChapterTitle", {
               order: chapter.globalOrder,
               title: chapter.title,
