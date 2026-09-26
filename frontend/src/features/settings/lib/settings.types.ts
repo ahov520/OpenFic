@@ -63,6 +63,8 @@ export interface Settings {
   editorAutoConvertPunctuation: boolean;
   editorAutoPairSymbols: boolean;
   editorShowLineNumbers: boolean;
+  editorTypewriterMode: boolean;
+  editorFocusMode: boolean;
 }
 
 /** 设置响应（后端格式） */
@@ -107,6 +109,8 @@ export interface SettingsResponse {
   editor_auto_convert_punctuation?: boolean;
   editor_auto_pair_symbols?: boolean;
   editor_show_line_numbers?: boolean;
+  editor_typewriter_mode?: boolean;
+  editor_focus_mode?: boolean;
 }
 
 /** 设置更新请求 */
@@ -152,6 +156,8 @@ export interface SettingsUpdateRequest {
   editor_auto_convert_punctuation?: boolean;
   editor_auto_pair_symbols?: boolean;
   editor_show_line_numbers?: boolean;
+  editor_typewriter_mode?: boolean;
+  editor_focus_mode?: boolean;
 }
 
 export interface AuditDetailsStorage {

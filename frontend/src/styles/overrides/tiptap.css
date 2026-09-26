@@ -490,3 +490,17 @@
 .tiptap-editor table p {
   margin-bottom: 0;
 }
+
+/* 打字机模式：上下留白让光标行可以停在视口上部。 */
+.tiptap-editor--typewriter .ProseMirror {
+  padding-top: 40vh;
+  padding-bottom: 55vh;
+}
+
+/* 专注模式：淡化当前段落以外的正文。 */
+.tiptap-editor--focus .ProseMirror > p {
+  transition: opacity 0.2s ease;
+}
+.tiptap-editor--focus .ProseMirror > p.focus-dimmed {
+  opacity: 0.35;
+}

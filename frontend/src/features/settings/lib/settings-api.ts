@@ -72,6 +72,8 @@ export function transformSettings(raw: SettingsResponse): Settings {
     editorAutoConvertPunctuation: raw.editor_auto_convert_punctuation ?? false,
     editorAutoPairSymbols: raw.editor_auto_pair_symbols ?? false,
     editorShowLineNumbers: raw.editor_show_line_numbers ?? false,
+    editorTypewriterMode: raw.editor_typewriter_mode ?? false,
+    editorFocusMode: raw.editor_focus_mode ?? false,
   };
 }
 

@@ -137,6 +137,9 @@ function ChapterEditorContent({
   const autoIndentRef = useRef(settings?.editorAutoIndent ?? false);
   const autoConvertPunctuationRef = useRef(settings?.editorAutoConvertPunctuation ?? false);
   const autoPairSymbolsRef = useRef(settings?.editorAutoPairSymbols ?? false);
+  const typewriterMode = settings?.editorTypewriterMode ?? false;
+  const focusMode = settings?.editorFocusMode ?? false;
+  const focusModeRef = useRef(focusMode);
 
   useEffect(() => {
     autoIndentRef.current = settings?.editorAutoIndent ?? false;
@@ -283,6 +286,7 @@ function ChapterEditorContent({
         autoIndent: () => autoIndentRef.current,
         autoConvertPunctuation: () => autoConvertPunctuationRef.current,
         autoPairSymbols: () => autoPairSymbolsRef.current,
+        focusMode: () => focusModeRef.current,
         shortcuts: {
           onFind: openFind,
           onReplace: openReplace,
@@ -316,6 +320,36 @@ function ChapterEditorContent({
       setWordCount(wordsCount(editor.getText()));
     },
   });
+
+  // 打字机模式：每次输入或移动光标后，把光标行滚到视口偏上位置。
+  useEffect(() => {
+    if (!editor || !typewriterMode) return;
+    const scrollCaretIntoPlace = () => {
+      const scroller = containerRef.current;
+      if (!scroller) return;
+      const { from } = editor.state.selection;
+      const coords = editor.view.coordsAtPos(from);
+      const rect = scroller.getBoundingClientRect();
+      const delta = coords.top - (rect.top + rect.height * 0.4);
+      if (Math.abs(delta) > 2) {
+        scroller.scrollTop += delta;
+      }
+    };
+    editor.on("transaction", scrollCaretIntoPlace);
+    scrollCaretIntoPlace();
+    return () => {
+      editor.off("transaction", scrollCaretIntoPlace);
+    };
+  }, [containerRef, editor, typewriterMode]);
+
+  useEffect(() => {
+    const previous = focusModeRef.current;
+    focusModeRef.current = focusMode;
+    // 开关切换后派发空事务，让专注模式装饰立即重算。
+    if (editor && previous !== focusMode) {
+      editor.view.dispatch(editor.state.tr.setMeta("focusModeRefresh", true));
+    }
+  }, [editor, focusMode]);
 
   useEffect(() => {
     if (!editor) return;
@@ -916,7 +950,7 @@ function ChapterEditorContent({
           >
             <EditorContent
               editor={editor}
-              className={`tiptap-editor${showLineNumbers ? " tiptap-editor--line-numbers" : ""}`}
+              className={`tiptap-editor${showLineNumbers ? " tiptap-editor--line-numbers" : ""}${typewriterMode ? " tiptap-editor--typewriter" : ""}${focusMode ? " tiptap-editor--focus" : ""}`}
             />
           </Box>
         </Box>

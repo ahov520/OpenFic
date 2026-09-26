@@ -11,7 +11,8 @@ import History from "@tiptap/extension-history";
 import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
 import Text from "@tiptap/extension-text";
-import { Plugin, TextSelection, type Transaction } from "@tiptap/pm/state";
+import { Plugin, PluginKey, TextSelection, type Transaction } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { EditorView } from "@tiptap/pm/view";
 import { Extension } from "@tiptap/react";
 
@@ -348,6 +349,45 @@ export interface EditorExtensionsOptions {
   autoConvertPunctuation?: () => boolean;
   /** 输入成对符号的左符号时是否自动补齐右符号 */
   autoPairSymbols?: () => boolean;
+  /** 是否开启专注模式：淡化光标所在段落以外的正文 */
+  focusMode?: () => boolean;
+}
+
+/**
+ * 专注模式：用 NodeDecoration 给光标所在顶层段落之外的段落加淡化类。
+ * 开关通过 getter 读取，设置变化时由编辑器派发一次空事务刷新装饰。
+ */
+function createFocusMode(isEnabled: () => boolean) {
+  return Extension.create({
+    name: "focusMode",
+
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({
+          key: new PluginKey("focusMode"),
+          props: {
+            decorations(state) {
+              if (!isEnabled()) {
+                return DecorationSet.empty;
+              }
+              const { doc, selection } = state;
+              const activeStart = selection.$from.before(1);
+              const decorations: Decoration[] = [];
+              doc.forEach((node, offset) => {
+                const isActive = offset === activeStart;
+                decorations.push(
+                  Decoration.node(offset, offset + node.nodeSize, {
+                    class: isActive ? "focus-active" : "focus-dimmed",
+                  }),
+                );
+              });
+              return DecorationSet.create(doc, decorations);
+            },
+          },
+        }),
+      ];
+    },
+  });
 }
 
 /**
@@ -371,6 +411,7 @@ export function createEditorExtensions(options: EditorExtensionsOptions = {}) {
     autoIndent,
     autoConvertPunctuation,
     autoPairSymbols,
+    focusMode,
   } = options;
 
   const extensions = [
@@ -398,6 +439,9 @@ export function createEditorExtensions(options: EditorExtensionsOptions = {}) {
   if (autoIndent) {
     extensions.push(createParagraphAutoIndent(autoIndent));
   }
+
+  // 专注模式始终注册，运行时按 getter 决定是否生效
+  extensions.push(createFocusMode(focusMode ?? (() => false)));
 
   // 如果启用了半角标点自动转换，添加输入转换扩展
   if (autoConvertPunctuation) {

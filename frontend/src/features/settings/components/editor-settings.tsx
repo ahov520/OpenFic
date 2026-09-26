@@ -49,6 +49,20 @@ export function EditorSettings() {
         });
       }
 
+      if (previousSettings && patch.editor_typewriter_mode !== undefined) {
+        queryClient.setQueryData<Settings>(["settings"], {
+          ...previousSettings,
+          editorTypewriterMode: patch.editor_typewriter_mode,
+        });
+      }
+
+      if (previousSettings && patch.editor_focus_mode !== undefined) {
+        queryClient.setQueryData<Settings>(["settings"], {
+          ...previousSettings,
+          editorFocusMode: patch.editor_focus_mode,
+        });
+      }
+
       return { previousSettings };
     },
     onSuccess: (nextSettings) => {
@@ -243,6 +257,68 @@ export function EditorSettings() {
             aria-label={t("settings.editorShowLineNumbers")}
             onCheckedChange={(checked) => {
               updateMutation.mutate({ editor_show_line_numbers: checked });
+            }}
+          />
+        </Flex>
+
+        <Flex
+          align="center"
+          justify="between"
+          gap="4"
+        >
+          <Flex
+            direction="column"
+            gap="1"
+          >
+            <Text
+              size="2"
+              weight="medium"
+            >
+              {t("settings.editorTypewriterMode")}
+            </Text>
+            <Text
+              size="1"
+              color="gray"
+            >
+              {t("settings.editorTypewriterModeHint")}
+            </Text>
+          </Flex>
+          <Switch
+            checked={settings.editorTypewriterMode}
+            aria-label={t("settings.editorTypewriterMode")}
+            onCheckedChange={(checked) => {
+              updateMutation.mutate({ editor_typewriter_mode: checked });
+            }}
+          />
+        </Flex>
+
+        <Flex
+          align="center"
+          justify="between"
+          gap="4"
+        >
+          <Flex
+            direction="column"
+            gap="1"
+          >
+            <Text
+              size="2"
+              weight="medium"
+            >
+              {t("settings.editorFocusMode")}
+            </Text>
+            <Text
+              size="1"
+              color="gray"
+            >
+              {t("settings.editorFocusModeHint")}
+            </Text>
+          </Flex>
+          <Switch
+            checked={settings.editorFocusMode}
+            aria-label={t("settings.editorFocusMode")}
+            onCheckedChange={(checked) => {
+              updateMutation.mutate({ editor_focus_mode: checked });
             }}
           />
         </Flex>

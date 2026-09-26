@@ -154,6 +154,14 @@ class SettingsResponse(BaseModel):
         default=False,
         description="是否在章节编辑器中显示行号",
     )
+    editor_typewriter_mode: bool = Field(
+        default=False,
+        description="是否开启打字机模式：输入时光标行保持在视口中上部",
+    )
+    editor_focus_mode: bool = Field(
+        default=False,
+        description="是否开启专注模式：淡化光标所在段落以外的正文",
+    )
 
 
 class SettingsUpdateRequest(BaseModel):
@@ -260,6 +268,14 @@ class SettingsUpdateRequest(BaseModel):
     editor_show_line_numbers: bool | None = Field(
         default=None,
         description="是否在章节编辑器中显示行号",
+    )
+    editor_typewriter_mode: bool | None = Field(
+        default=None,
+        description="是否开启打字机模式",
+    )
+    editor_focus_mode: bool | None = Field(
+        default=None,
+        description="是否开启专注模式",
     )
 
 
