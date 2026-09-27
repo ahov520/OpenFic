@@ -187,7 +187,7 @@ export const TOOL_DESCRIPTOR_META = {
     group: "note",
     tag: "move",
     isExplore: false,
-    contentMode: "static",
+    contentMode: "hidden",
   },
   create_note_category: {
     toolName: "create_note_category",

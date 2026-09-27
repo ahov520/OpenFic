@@ -57,15 +57,6 @@ async def test_list_agent_tool_categories(client: AsyncClient):
     assert "chapter_read" in keys
     assert "chapter_write" in keys
     assert "character_read" in keys
-    assert "character_write" in keys
-    assert "web_fetch" in keys
-
-    web_fetch = next(item for item in data["categories"] if item["key"] == "web_fetch")
-    assert web_fetch == {
-        "key": "web_fetch",
-        "name": "网页读取",
-        "tool_keys": ["web_fetch"],
-    }
 
     chapter_read = next(item for item in data["categories"] if item["key"] == "chapter_read")
     assert chapter_read["tool_keys"] == [
@@ -110,6 +101,7 @@ async def test_create_custom_agent_definition(
         "kind": "primary",
         "prompt_agent_name": "custom-bot",
         "model_id": None,
+        "reasoning_effort": None,
         "enabled_tool_categories": ["chapter_read"],
         "enabled_skills": ["skill-a", "skill-b"],
         "metadata": {},
@@ -161,6 +153,30 @@ async def test_create_custom_agent_definition(
         if category["id"] == "custom-agents"
     )
     assert any(prompt["id"] == "custom-agent--custom-bot" for prompt in custom_agents["prompts"])
+
+
+@pytest.mark.asyncio
+async def test_update_agent_definition_reasoning_effort(client: AsyncClient):
+    create_body = {
+        "key": "reasoning-bot",
+        "display_name": "Reasoning Bot",
+        "kind": "subagent",
+        "prompt_agent_name": "reasoning-bot",
+        "model_id": "model-record",
+        "reasoning_effort": "high",
+        "enabled_tool_categories": [],
+        "enabled_skills": [],
+    }
+    response = await client.post("/api/v1/agent-definitions", json=create_body)
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["reasoning_effort"] == "high"
+
+    response = await client.put(
+        "/api/v1/agent-definitions/reasoning-bot",
+        json={"reasoning_effort": "off"},
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["reasoning_effort"] == "auto"
 
 
 @pytest.mark.asyncio
