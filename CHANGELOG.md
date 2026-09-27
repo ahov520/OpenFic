@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/ahov520/OpenFic/compare/v0.15.0...v0.15.1) (2026-09-27)
+
+
+### 🐛 问题修复
+
+* **desktop:** 打包版优先从随包 wheel 安装后端 ([d3da115](https://github.com/ahov520/OpenFic/commit/d3da115ffc5f1dbbf20fbb2acf4ca797465e192d))
+
 ## [0.15.0](https://github.com/ahov520/OpenFic/compare/v0.14.0...v0.15.0) (2026-09-27)
 
 
