@@ -1,6 +1,6 @@
-import { net } from "electron";
+import { app, net } from "electron";
 import { spawn } from "node:child_process";
-import { access, mkdir, rm } from "node:fs/promises";
+import { access, mkdir, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { findFreePort } from "../ports.js";
 import {
@@ -300,6 +300,19 @@ async function runInstallWithIndexFallback(
   throw lastError;
 }
 
+// fork 不发布 PyPI,打包版从随包分发的 wheel 安装后端;开发态与缺失 wheel 时回退固定版本
+export async function resolveBundledBackendRequirement(expectedVersion: string): Promise<string> {
+  if (!app.isPackaged) return `openfic==${expectedVersion}`;
+  const backendDir = path.join(process.resourcesPath, "backend");
+  try {
+    const wheel = (await readdir(backendDir)).find((file) => /^openfic-.*\.whl$/i.test(file));
+    if (wheel) return path.join(backendDir, wheel);
+  } catch {
+    // 资源目录不存在,回退到 PyPI 固定版本
+  }
+  return `openfic==${expectedVersion}`;
+}
+
 export async function inspectOpenFicRuntime(
   runtimeDir: string,
   expectedVersion: string,
@@ -389,10 +402,12 @@ export async function ensureOpenFicRuntime(
       installedVersion ? `OpenFic 后端需要更新：${installedVersion} -> ${expectedVersion}` : "OpenFic 后端尚未安装",
     );
     onProgress("install-openfic", installedVersion ? "更新 OpenFic 后端" : "安装 OpenFic 后端");
+    const requirement = await resolveBundledBackendRequirement(expectedVersion);
+    appendLog("runtime", `OpenFic 后端安装来源:${requirement}`);
     const packageIndexEnvironments = await getPypiEnvironments();
     const installCommand = createOpenFicInstallCommand(
       venvPythonPath,
-      expectedVersion,
+      requirement,
       installedVersion === expectedVersion && !openFicCliIsUsable,
     );
     await runInstallWithIndexFallback(packageIndexEnvironments, (environment) =>

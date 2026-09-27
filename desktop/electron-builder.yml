@@ -26,6 +26,10 @@ extraResources:
       - "**/*"
   - from: resources/app-update.yml
     to: app-update.yml
+  - from: resources/backend
+    to: backend
+    filter:
+      - "**/*.whl"
 
 win:
   icon: resources/icons/openfic.svg

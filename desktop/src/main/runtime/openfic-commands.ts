@@ -17,11 +17,11 @@ export function createOpenFicVersionCommand(venvPythonPath: string): SpawnComman
 
 export function createOpenFicInstallCommand(
   venvPythonPath: string,
-  version: string,
+  requirement: string,
   forceReinstall = false,
 ): Omit<SpawnCommand, "command"> {
   return {
-    args: ["pip", "install", "--python", venvPythonPath, ...(forceReinstall ? ["--reinstall"] : []), `openfic==${version}`],
+    args: ["pip", "install", "--python", venvPythonPath, ...(forceReinstall ? ["--reinstall"] : []), requirement],
   };
 }
 
